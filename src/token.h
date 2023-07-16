@@ -2,6 +2,7 @@
 #define _TOKEN_H_
 
 #include <stdio.h>
+#include <stdint.h> 
 
 typedef enum TokenType{
     TOKEN_ILLEGAL, 
@@ -32,10 +33,13 @@ typedef enum TokenType{
 
 typedef struct Token {
     TokenType_t type;
-    const char* literal;
+    const char* literal; // pointer to start of char literal in input string
+    uint16_t len; // length of literal (can be 0, 1, ...)
 } Token_t;
 
-Token_t* createToken(TokenType_t type, const char* literal);
+
+TokenType_t lookupIdent(const char* ident, uint32_t len);
+Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
 void cleanupToken(Token_t** token);
 
 

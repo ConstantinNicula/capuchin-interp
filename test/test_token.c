@@ -11,16 +11,16 @@ void tearDown(void) {
 }
 
 void token_create_test(void) {
-    Token_t* tok = createToken(TOKEN_EOF, "");
+    Token_t* tok = createToken(TOKEN_EOF, NULL, 0);
     TEST_ASSERT_NOT_NULL(tok);
 }
 
 
 void token_create_test_2(void) {
-    Token_t* tok = createToken(TOKEN_ASSIGN, "=");
+    Token_t* tok = createToken(TOKEN_ASSIGN, "=", 1);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(TOKEN_ASSIGN, tok->type, "Token type check");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("=", tok->literal, "Token literal check");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("=", tok->literal, tok->len, "Token literal check");
 }
 
 
