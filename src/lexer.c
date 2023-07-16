@@ -9,9 +9,9 @@
 #include "token.h"
 
 void lexerReadChar(Lexer_t* lexer);
+char lexerPeekChar(Lexer_t* lexer);
 void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len);
 void lexerReadDigit(Lexer_t* lexer, uint32_t* len);
-
 void lexerSkipWhiteSpace(Lexer_t* lexer);
 
 bool isLetter(char ch);
@@ -46,6 +46,12 @@ void lexerReadChar(Lexer_t* lexer) {
     lexer->readPosition++;
 }
 
+char lexerPeekChar(Lexer_t*lexer) {
+    if (lexer->readPosition >= lexer->inputLength) 
+        return '\0';
+    else 
+        return lexer->input[lexer->readPosition];
+}
 
 void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len) {
     *len = 0u;
@@ -72,54 +78,84 @@ void lexerSkipWhiteSpace(Lexer_t* lexer) {
 
 Token_t* lexerNextToken(Lexer_t* lexer) {
     Token_t *tok = NULL;
-    const char* tokLiteral = NULL;
+    const char* tokStart = NULL;
     uint32_t tokLen = 0u;
 
     lexerSkipWhiteSpace(lexer);
     
-    tokLiteral = &lexer->input[lexer->position]; 
-    tokLen = 1u;
+    tokStart = &lexer->input[lexer->position]; 
+
 
     switch(lexer->ch) {
         case '=': 
-            tok = createToken(TOKEN_ASSIGN, tokLiteral, tokLen);
-            break;
-        case ';':
-            tok = createToken(TOKEN_SEMICOLON, tokLiteral, tokLen);
-            break;
-        case '(':
-            tok = createToken(TOKEN_LPAREN, tokLiteral, tokLen);
-            break;
-        case ')':
-            tok = createToken(TOKEN_RPAREN, tokLiteral, tokLen);
-            break;
-        case ',': 
-            tok = createToken(TOKEN_COMMA, tokLiteral, tokLen);
+            if (lexerPeekChar(lexer) == '=') {
+                lexerReadChar(lexer); // consume next char 
+                tok = createToken(TOKEN_EQ, tokStart, 2u);
+            }
+            else {
+                tok = createToken(TOKEN_ASSIGN, tokStart, 1u);
+            }
             break;
         case '+':
-            tok = createToken(TOKEN_PLUS, tokLiteral, tokLen);
+            tok = createToken(TOKEN_PLUS, tokStart, 1u);
+            break;
+        case '-': 
+            tok = createToken(TOKEN_MINUS, tokStart, 1u);
+            break;
+        case '!': 
+            if (lexerPeekChar(lexer) == '=') {
+                lexerReadChar(lexer);
+                tok = createToken(TOKEN_NOT_EQ, tokStart, 2u);
+            }
+            else {
+                tok = createToken(TOKEN_BANG, tokStart, 1u);
+            }
+            break;
+        case '*': 
+            tok = createToken(TOKEN_ASTERISK, tokStart, 1u);
+            break;
+        case '/': 
+            tok = createToken(TOKEN_SLASH, tokStart, 1u);
+            break;
+        case '<': 
+            tok = createToken(TOKEN_LT, tokStart, 1u);
+            break;
+        case '>': 
+            tok = createToken(TOKEN_GT, tokStart, 1u);
+            break;
+        case ',': 
+            tok = createToken(TOKEN_COMMA, tokStart, 1u);
+            break;
+        case ';':
+            tok = createToken(TOKEN_SEMICOLON, tokStart, 1u);
+            break;
+        case '(':
+            tok = createToken(TOKEN_LPAREN, tokStart, 1u);
+            break;
+        case ')':
+            tok = createToken(TOKEN_RPAREN, tokStart, 1u);
             break;
         case '{':
-            tok = createToken(TOKEN_LBRACE, tokLiteral, tokLen);
+            tok = createToken(TOKEN_LBRACE, tokStart, 1u);
             break;
         case '}':
-            tok = createToken(TOKEN_RBRACE, tokLiteral, tokLen);
+            tok = createToken(TOKEN_RBRACE, tokStart, 1u);
             break;
         case '\0':
-            tok = createToken(TOKEN_EOF, tokLiteral, tokLen);
+            tok = createToken(TOKEN_EOF, tokStart, 1u);
             break;  
 
         default: 
             if (isLetter(lexer->ch)) {
                 lexerReadIdentifier(lexer, &tokLen);
-                tok = createToken(lookupIdent(tokLiteral, tokLen), tokLiteral, tokLen);
+                tok = createToken(lookupIdent(tokStart, tokLen), tokStart, tokLen);
                 return tok;
             } else if(isDigit(lexer->ch)) {
                 lexerReadDigit(lexer, &tokLen);
-                tok = createToken(TOKEN_INT, tokLiteral, tokLen);
+                tok = createToken(TOKEN_INT, tokStart, tokLen);
                 return tok;
             } else { 
-                tok = createToken(TOKEN_ILLEGAL, tokLiteral, tokLen);
+                tok = createToken(TOKEN_ILLEGAL, tokStart, tokLen);
             }
 
     }
