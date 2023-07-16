@@ -19,6 +19,7 @@ void cleanupToken(Token_t** token)
 {
     if (*token == NULL)
         return;
+    free(*token);
     *token = NULL;
 }
 
@@ -39,4 +40,29 @@ TokenType_t lookupIdent(const char* ident, uint32_t len)
     else if (strncmp(ident, "return", len) == 0) 
         return TOKEN_RETURN;
     return TOKEN_IDENT;
+}
+
+static const char* TokenTypeStrings[32] = {
+    "TOKEN_ILLEGAL", "TOKEN_EOF",
+    "TOKEN_IDENT","TOKEN_INT",
+    "TOKEN_ASSIGN", "TOKEN_PLUS", 
+    "TOKEN_MINUS", "TOKEN_BANG",
+    "TOKEN_ASTERISK", "TOKEN_SLASH",    
+    "TOKEN_LT", "TOKEN_GT",
+    "TOKEN_EQ", "TOKEN_NOT_EQ",
+    "TOKEN_COMMA", "TOKEN_SEMICOLON", 
+    "TOKEN_LPAREN", "TOKEN_RPAREN", 
+    "TOKEN_LBRACE", "TOKEN_RBRACE", 
+    "TOKEN_FUNCTION", "TOKEN_LET",
+    "TOKEN_TRUE", "TOKEN_FALSE",
+    "TOKEN_IF",  "TOKEN_ELSE",
+    "TOKEN_RETURN"
+};
+
+const char * tokenToStr(TokenType_t token)
+{
+    if (token < 0 || token >= _TOKEN_LAST) {
+        return "INVLAID_TOKEN_TYPE";
+    }
+    return TokenTypeStrings[token];
 }

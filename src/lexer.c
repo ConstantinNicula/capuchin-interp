@@ -36,6 +36,15 @@ Lexer_t* createLexer(const char* input)
     return lexer;
 }
 
+void cleanupLexer(Lexer_t** lexer)
+{
+    if (*lexer == NULL)
+        return;
+    free(*lexer);
+    *lexer = NULL;
+}
+
+
 void lexerReadChar(Lexer_t* lexer) {
     if (lexer->readPosition >= lexer->inputLength)
         lexer->ch = '\0'; // Empty string return NULL character 

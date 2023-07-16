@@ -81,6 +81,14 @@ $(PATHR):
 	$(MKDIR) $(PATHR)
 
 
+repl: $(PATHB)/repl.out 
+
+$(PATHB)/repl.out: $(PATHO)/repl.o $(SRC_OBJ)
+	$(LINK) -o $@ $^
+
+$(PATHO)/repl.o: $(PATHS)/repl/repl.c 
+	$(COMPILE) $(CFLAGS) $< -o $@
+
 clean: 
 	$(CLEANUP) $(PATHO)*.o
 	$(CLEANUP) $(PATHB)*.out

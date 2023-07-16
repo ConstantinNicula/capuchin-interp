@@ -41,8 +41,9 @@ typedef enum TokenType{
     TOKEN_FALSE,
     TOKEN_IF, 
     TOKEN_ELSE,
-    TOKEN_RETURN
+    TOKEN_RETURN,
 
+    _TOKEN_LAST
 } TokenType_t; 
 
 typedef struct Token {
@@ -53,6 +54,8 @@ typedef struct Token {
 
 
 TokenType_t lookupIdent(const char* ident, uint32_t len);
+const char * tokenToStr(TokenType_t token);
+
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
 void cleanupToken(Token_t** token);
 
