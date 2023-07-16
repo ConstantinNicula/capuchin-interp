@@ -3,38 +3,40 @@
 
 #include <stdio.h>
 
-typedef enum {
-    TOK_ILLEGAL, 
-    TOK_EOF, 
+typedef enum TokenType{
+    TOKEN_ILLEGAL, 
+    TOKEN_EOF, 
 
     // Identifieres + literals 
-    TOK_IDENT, // add, foobar, x, y, ..
-    TOK_INT,  // 1343456
+    TOKEN_IDENT, // add, foobar, x, y, ..
+    TOKEN_INT,  // 1343456
 
     // Operators
-    TOK_ASSIGN,
-    TOK_PLUS, 
+    TOKEN_ASSIGN,
+    TOKEN_PLUS, 
 
     // Delimiters
-    TOK_COMMA, 
-    TOK_SEMICOLON, 
+    TOKEN_COMMA, 
+    TOKEN_SEMICOLON, 
 
-    TOK_LPAREN, 
-    TOK_RPAREN, 
-    TOK_LBRACE, 
-    TOK_RBRACE, 
+    TOKEN_LPAREN, 
+    TOKEN_RPAREN, 
+    TOKEN_LBRACE, 
+    TOKEN_RBRACE, 
 
     // Keywords, 
-    TOK_FUNCTION, 
-    TOK_LET
+    TOKEN_FUNCTION, 
+    TOKEN_LET
 
-} TokenType; 
+} TokenType_t; 
 
-struct Token {
-    TokenType type;
+typedef struct Token {
+    TokenType_t type;
     const char* literal;
-};
+} Token_t;
 
+Token_t* createToken(TokenType_t type, const char* literal);
+void cleanupToken(Token_t** token);
 
 
 

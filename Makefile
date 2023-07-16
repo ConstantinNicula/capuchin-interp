@@ -17,9 +17,13 @@ PATHR = build/results/
 
 BUILD_PATHS = $(PATHB) $(PATHD) $(PATHO) $(PATHR)
 
+
+# all obj files 
+SRC = $(wildcard $(PATHS)*.c)
+SRC_OBJ = $(patsubst $(PATHS)%.c, $(PATHO)%.o, $(SRC))
+
 # tell compiler where to look for tests 
 SRCT = $(wildcard $(PATHT)*.c)
-
 
 ### TOOLCHAIN SETUP ###
 COMPILE=gcc -c
@@ -48,7 +52,8 @@ test: $(BUILD_PATHS) $(RESULTS)
 $(PATHR)%.txt: $(PATHB)%.out
 	-./$< > $@ 2>&1
 
-$(PATHB)test_%.out: $(PATHO)test_%.o $(PATHO)%.o $(PATHO)unity.o #$(PATHD)test_%.d
+#$(PATHB)test_%.out: $(PATHO)test_%.o $(PATHO)%.o $(PATHO)unity.o #$(PATHD)test_%.d
+$(PATHB)test_%.out: $(PATHO)test_%.o $(SRC_OBJ) $(PATHO)unity.o 
 	$(LINK) -o $@ $^
 
 $(PATHO)%.o:: $(PATHT)%.c 
