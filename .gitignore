@@ -1,0 +1,4 @@
+build/depends/*.d
+build/objs/*.o
+build/results/*.txt 
+build/*.out 
