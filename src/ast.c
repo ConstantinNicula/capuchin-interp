@@ -3,8 +3,8 @@
 #include <malloc.h>
 /* Annoying allocation and cleanup code */
 
-Identifier_t* createIdentifier(Token_t* tok, char* val) {
-    Identifier_t* ident = malloc(sizeof(Identifier_t));
+Identifier_t* createIdentifier(Token_t* tok, const char* val) {
+    Identifier_t* ident = (Identifier_t*)malloc(sizeof(Identifier_t));
     if (ident == NULL)
         return NULL; 
     ident->token = tok;
@@ -15,7 +15,7 @@ void cleanupIdentifier(Identifier_t** ident) {
     if (*ident == NULL)
         return;
     free((*ident)->token);
-    free((*ident)->value);
+    free((void*)(*ident)->value);
     free(*ident);
     *ident = NULL;
 }
@@ -123,7 +123,7 @@ void programAppendStatement(Program_t* prog, Statement_t* st) {
             prog->statements = (Statement_t**)malloc(sizeof(Statement_t) * prog->statement_cap);
         }
     }
-    prog->statements[prog->statement_cap++] = st;
+    prog->statements[prog->statement_cnt++] = st;
 }
 
 const char* programTokenLiteral(Program_t* prog) 
@@ -138,5 +138,5 @@ const char* programTokenLiteral(Program_t* prog)
 
 const char* nodeTokenLiteral(Node_t* node)
 {
-    return node->token->literal;
+    return tokenCopyLiteral(node->token);
 }

@@ -54,11 +54,11 @@ typedef struct Token {
 
 
 TokenType_t lookupIdent(const char* ident, uint32_t len);
-const char * tokenToStr(TokenType_t token);
+const char * tokenTypeToStr(TokenType_t token);
 
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
 void cleanupToken(Token_t** token);
-
+const char* tokenCopyLiteral(Token_t* token);
 
 
 #endif

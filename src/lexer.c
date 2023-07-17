@@ -8,15 +8,15 @@
 #include "lexer.h"
 #include "token.h"
 
-void lexerReadChar(Lexer_t* lexer);
-char lexerPeekChar(Lexer_t* lexer);
-void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len);
-void lexerReadDigit(Lexer_t* lexer, uint32_t* len);
-void lexerSkipWhiteSpace(Lexer_t* lexer);
+static void lexerReadChar(Lexer_t* lexer);
+static char lexerPeekChar(Lexer_t* lexer);
+static void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len);
+static void lexerReadDigit(Lexer_t* lexer, uint32_t* len);
+static void lexerSkipWhiteSpace(Lexer_t* lexer);
 
-bool isLetter(char ch);
-bool isWhiteSpace(char ch);
-bool isDigit(char ch);
+static bool isLetter(char ch);
+static bool isWhiteSpace(char ch);
+static bool isDigit(char ch);
 
 Lexer_t* createLexer(const char* input)
 {
@@ -44,46 +44,6 @@ void cleanupLexer(Lexer_t** lexer)
     *lexer = NULL;
 }
 
-
-void lexerReadChar(Lexer_t* lexer) {
-    if (lexer->readPosition >= lexer->inputLength)
-        lexer->ch = '\0'; // Empty string return NULL character 
-    else 
-        lexer->ch = lexer->input[lexer->readPosition];
-
-    lexer->position = lexer->readPosition;
-    lexer->readPosition++;
-}
-
-char lexerPeekChar(Lexer_t*lexer) {
-    if (lexer->readPosition >= lexer->inputLength) 
-        return '\0';
-    else 
-        return lexer->input[lexer->readPosition];
-}
-
-void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len) {
-    *len = 0u;
-    while (isLetter(lexer->ch)) {
-        lexerReadChar(lexer);
-        (*len)++;
-    }
-
-}
-
-void lexerReadDigit(Lexer_t* lexer, uint32_t* len) {
-    *len = 0u;
-    while(isDigit(lexer->ch)) {
-        lexerReadChar(lexer);
-        (*len)++;
-    }
-}
-
-void lexerSkipWhiteSpace(Lexer_t* lexer) {
-    while (isWhiteSpace(lexer->ch)) {
-        lexerReadChar(lexer);
-    }
-}
 
 Token_t* lexerNextToken(Lexer_t* lexer) {
     Token_t *tok = NULL;
@@ -173,15 +133,55 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
     return tok;
 }
 
+static void lexerReadChar(Lexer_t* lexer) {
+    if (lexer->readPosition >= lexer->inputLength)
+        lexer->ch = '\0'; // Empty string return NULL character 
+    else 
+        lexer->ch = lexer->input[lexer->readPosition];
 
-bool isLetter(char ch) {
+    lexer->position = lexer->readPosition;
+    lexer->readPosition++;
+}
+
+static char lexerPeekChar(Lexer_t*lexer) {
+    if (lexer->readPosition >= lexer->inputLength) 
+        return '\0';
+    else 
+        return lexer->input[lexer->readPosition];
+}
+
+static void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len) {
+    *len = 0u;
+    while (isLetter(lexer->ch)) {
+        lexerReadChar(lexer);
+        (*len)++;
+    }
+
+}
+
+static void lexerReadDigit(Lexer_t* lexer, uint32_t* len) {
+    *len = 0u;
+    while(isDigit(lexer->ch)) {
+        lexerReadChar(lexer);
+        (*len)++;
+    }
+}
+
+static void lexerSkipWhiteSpace(Lexer_t* lexer) {
+    while (isWhiteSpace(lexer->ch)) {
+        lexerReadChar(lexer);
+    }
+}
+
+
+static bool isLetter(char ch) {
     return (('a' <= ch) && (ch <='z')) || (('A' <= ch) && (ch <= 'Z')) || (ch == '_');
 }
 
-bool isWhiteSpace(char ch) {
+static bool isWhiteSpace(char ch) {
     return (ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r');
 }
 
-bool isDigit(char ch) {
+static bool isDigit(char ch) {
     return ('0' <= ch) && (ch <= '9');
 }

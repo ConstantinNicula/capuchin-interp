@@ -23,7 +23,7 @@ int main() {
             strncpy(tokBuffer, tok->literal, tok->len);
             tokBuffer[tok->len] = '\0';
 
-            printf("{%s : '%s'}\n", tokenToStr(tok->type), tokBuffer);
+            printf("{%s : '%s'}\n", tokenTypeToStr(tok->type), tokBuffer);
             
             cleanupToken(&tok);
             tok = lexerNextToken(lexer);

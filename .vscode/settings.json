@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "token.h": "c",
-        "ast.h": "c"
+        "ast.h": "c",
+        "malloc.h": "c"
     },
     "cmake.configureOnOpen": false
 }

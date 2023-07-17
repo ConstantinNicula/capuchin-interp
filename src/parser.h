@@ -15,7 +15,6 @@ Parser_t* createParser(Lexer_t* lexer);
 void cleanupParser(Parser_t** parser);
 
 
-void parserNextToken(Parser_t* parser);
 Program_t* parserParseProgram(Parser_t* parser);
 
 #endif 

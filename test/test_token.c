@@ -25,11 +25,21 @@ void token_create_test_2(void) {
 
 
 
+void token_create_test_3(void) {
+    Token_t* tok = createToken(TOKEN_ASSIGN, "123456", 3);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TOKEN_ASSIGN, tok->type, "Token type check");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("123", tokenCopyLiteral(tok), "Token literal check");
+}
+
+
+
 
 // not needed when using generate_test_runner.rb
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(token_create_test);
-     RUN_TEST(token_create_test_2);
+    RUN_TEST(token_create_test_2);
+    RUN_TEST(token_create_test_3);
     return UNITY_END();
 }

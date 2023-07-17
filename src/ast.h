@@ -1,5 +1,4 @@
 #ifndef _AST_H_
-
 #define _AST_H_
 
 #include <stdint.h> 
@@ -18,10 +17,10 @@ const char* nodeTokenLiteral(Node_t* node);
 /* Definition for Identifier node */
 typedef struct Identifier {
     Token_t* token;
-    char* value;
+    const char* value;
 } Identifier_t;
 
-Identifier_t* createIdentifier(Token_t* tok, char* val);
+Identifier_t* createIdentifier(Token_t* tok, const char* val);
 void cleanupIdentifier(Identifier_t** ident);
 
 /* Definition for Expression */

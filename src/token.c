@@ -59,10 +59,18 @@ static const char* TokenTypeStrings[32] = {
     "TOKEN_RETURN"
 };
 
-const char * tokenToStr(TokenType_t token)
+const char * tokenTypeToStr(TokenType_t tokType)
 {
-    if (token < 0 || token >= _TOKEN_LAST) {
+    if (tokType < 0 || tokType >= _TOKEN_LAST) {
         return "INVLAID_TOKEN_TYPE";
     }
-    return TokenTypeStrings[token];
+    return TokenTypeStrings[tokType];
+}
+
+const char * tokenCopyLiteral(Token_t* token) 
+{
+    char* literal = (char*) malloc(token->len + 1);
+    memmove(literal, token->literal, token->len);
+    literal[token->len] = '\0';
+    return literal;
 }
