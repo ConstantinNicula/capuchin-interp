@@ -28,8 +28,7 @@ void cleanupVector(Vector_t** vec) {
 
 }
 
-void vectorAppend(Vector_t* vec, void* elem)
-{
+void vectorAppend(Vector_t* vec, void* elem) {
     if (vec->cnt >= vec->cap)
     {
         if (vec->buf != NULL) {
@@ -49,16 +48,14 @@ void vectorAppend(Vector_t* vec, void* elem)
     }
     
     uint8_t *vp = ((uint8_t*)vec->buf) + (vec->cnt * vec->elemSize);
-    memmove(vp, (uint8_t*) elem, vec->elemSize);
+    memmove((void*)vp, elem, vec->elemSize);
     vec->cnt++;
 }
 
-uint32_t vectorGetCount(Vector_t* vec)
-{   
+uint32_t vectorGetCount(Vector_t* vec) {   
     return vec->cnt;
 }
 
-void* vectorGetBuffer(Vector_t* vec)
-{
+void* vectorGetBuffer(Vector_t* vec) {
     return vec->buf;
 }

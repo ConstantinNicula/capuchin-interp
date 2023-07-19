@@ -7,9 +7,14 @@ static void parserNextToken(Parser_t* parser);
 static Statement_t* parserParseStatement(Parser_t* parser);
 static Statement_t* parserParseLetStatement(Parser_t* parser);
 
+static void parserAppendError(Parser_t* parser, const char*);
+
 static bool parserCurTokenIs(Parser_t* parser, TokenType_t tokType);
 static bool parserPeekTokenIs(Parser_t* parser, TokenType_t tokType);
 static bool parserExpectPeek(Parser_t* parser, TokenType_t tokType);
+
+static void parserPeekError(Parser_t* parser, TokenType_t expTokenType);
+
 
 Parser_t* createParser(Lexer_t* lexer) {
     Parser_t* parser = (Parser_t*) malloc(sizeof(Parser_t));
@@ -19,19 +24,41 @@ Parser_t* createParser(Lexer_t* lexer) {
     parser->lexer = lexer;
     parser->curToken = parser->peekToken = NULL;
 
+    parser->errors = createVector(sizeof(char*));
+
     parserNextToken(parser);
     parserNextToken(parser);
     return parser;
 }
 
-void cleanupParser(Parser_t** parser)
-{
+void cleanupParser(Parser_t** parser) {
     if (*parser == NULL) 
         return;
     cleanupLexer(&(*parser)->lexer);
     cleanupToken(&(*parser)->peekToken);
     cleanupToken(&(*parser)->curToken);
+
+    const char** errorStr = parserGetErrors(*parser);
+    uint32_t errorCnt = parserGetErrorCount(*parser);
+
+    for (uint32_t i = 0u; i < errorCnt; i++){
+        free((void*)errorStr[i]);
+    }
+    cleanupVector(&(*parser)->errors);
+
     *parser = NULL;
+}
+
+const char** parserGetErrors(Parser_t* parser) {
+    return (const char**) vectorGetBuffer(parser->errors);
+}
+
+uint32_t parserGetErrorCount(Parser_t* parser) {
+    return vectorGetCount(parser->errors);
+}
+
+static void parserAppendError(Parser_t* parser, const char* err) {
+    vectorAppend(parser->errors, (void*)&err);
 }
 
 
@@ -48,6 +75,7 @@ Program_t* parserParseProgram(Parser_t* parser) {
 
     return program;
 }
+
 
 static void parserNextToken(Parser_t* parser) {
     parser->curToken = parser->peekToken;
@@ -91,17 +119,38 @@ cleanup:
     return NULL;
 }
 
+static void parserPeekError(Parser_t* parser, TokenType_t expTokenType) {
+    #define PEEK_ERROR_FMT_STR "Expected next token to be %s, got %s instead"
+    size_t strSize = snprintf(NULL, 0, PEEK_ERROR_FMT_STR, 
+                              tokenTypeToStr(expTokenType), 
+                              tokenTypeToStr(parser->peekToken->type)) + 1;
+    
+    char *strBuffer = malloc(strSize);
+
+    sprintf(strBuffer, PEEK_ERROR_FMT_STR, 
+            tokenTypeToStr(expTokenType), 
+            tokenTypeToStr(parser->peekToken->type));
+    
+    #undef PEEK_ERROR_FMT_STR
+
+    parserAppendError(parser, strBuffer);
+}
 
 static bool parserCurTokenIs(Parser_t* parser, TokenType_t tokType) {
     return parser->curToken->type == tokType;
 }
+
 static bool parserPeekTokenIs(Parser_t* parser, TokenType_t tokType) {
     return parser->peekToken->type == tokType;
 }
-static bool parserExpectPeek(Parser_t* parser, TokenType_t tokType) {
-    if( parser->peekToken->type == tokType) {
+
+static bool parserExpectPeek(Parser_t* parser, TokenType_t expTokType) {
+    if( parser->peekToken->type == expTokType) {
         parserNextToken(parser);
         return true;
+    } else {
+        parserPeekError(parser, expTokType);
+        return false;
     }
-    return false;
+    
 }
