@@ -19,20 +19,22 @@ void parser_basic_test(void) {
 
     Lexer_t* l = createLexer(input);
     Parser_t* p = createParser(l);
-
+    
     Program_t* program = parserParseProgram(p);
     TEST_ASSERT_NOT_NULL_MESSAGE(program, "parserParseProgram returned NULL");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, program->statement_cnt, "program does not contain 3 statements");
-
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, programGetStatementCount(program), "program does not contain 3 statements");
+    
     const char* tests[] = {
         "x", "y", "foobar"
     };
     int num_tests = 3;
+    Statement_t** statements = programGetStatements(program);
+
     for (int i = 0 ; i < num_tests; i++) {
-        testLetStatement(program->statements[i], tests[i]);
+        testLetStatement(statements[i], tests[i]);
     }
-
-
+    
+    cleanupParser(&p);
 }
 
 void testLetStatement(Statement_t* s, const char* name) {

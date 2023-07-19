@@ -62,7 +62,7 @@ void cleanupStatement(Statement_t** st)
 
 /* Let statement */
 LetStatement_t* createLetStatement(Token_t* token) {
-    LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t*));
+    LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t));
     if (st == NULL)
         return NULL;
     st->token = token;
@@ -87,50 +87,46 @@ Program_t* createProgram() {
     Program_t* prog = (Program_t*) malloc(sizeof(Program_t));
     if (prog == NULL)
         return NULL;
-    prog->statement_cap = 0u;
-    prog->statement_cnt = 0u;
-    prog->statements = NULL; // no entries initially 
+    prog->statements = createVector(sizeof(Statement_t*));
     return prog;
+}
+
+Statement_t** programGetStatements(Program_t* prog) {
+    return (Statement_t**)vectorGetBuffer(prog->statements);
+}
+
+uint32_t programGetStatementCount(Program_t* prog) {
+    return vectorGetCount(prog->statements);
 }
 
 void cleanupProg(Program_t** prog) {
     if (*prog == NULL) 
         return;
-    for (uint32_t i = 0; i < (*prog)->statement_cnt; i++)
-        cleanupStatement(&(*prog)->statements[i]);
-    free((*prog)->statements);
-    (*prog)->statement_cap = 0u;
-    (*prog)->statement_cnt = 0u;
+
+    uint32_t cnt = programGetStatementCount(*prog);
+    Statement_t** pst = programGetStatements(*prog);
+
+    for (uint32_t i = 0; i < cnt; i++)
+    {
+        cleanupStatement(&(pst[i]));
+    }    
+
+    cleanupVector(&(*prog)->statements);
+    
     free(*prog);
     *prog = NULL;
 }
 
 void programAppendStatement(Program_t* prog, Statement_t* st) {
-    if (prog->statement_cnt >= prog->statement_cap)
-    {
-        if (prog->statements != NULL) {
-            // no more space, reallocate
-            prog->statement_cap = 2*prog->statement_cap;
-            prog->statements = (Statement_t**)realloc(prog->statements, sizeof(Statement_t*)*prog->statement_cap);
-            if (prog->statements == NULL) {
-                return; // TO DO: OOM error 
-            }
-        }
-        else 
-        {
-            // initial allocation
-            prog->statement_cap = 2;
-            prog->statements = (Statement_t**)malloc(sizeof(Statement_t) * prog->statement_cap);
-        }
-    }
-    prog->statements[prog->statement_cnt++] = st;
+    vectorAppend(prog->statements, (void*)&st);
 }
 
 const char* programTokenLiteral(Program_t* prog) 
 {
-    if (prog->statement_cnt > 0) 
-    {
-        return nodeTokenLiteral((Node_t*) prog->statements[0]);
+    if (programGetStatementCount(prog) > 0u) 
+    {   
+        Statement_t** pst = programGetStatements(prog);
+        return nodeTokenLiteral((Node_t*) pst[0]);
     } else  {
         return "";
     }

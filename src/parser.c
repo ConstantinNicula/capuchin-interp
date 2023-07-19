@@ -24,11 +24,21 @@ Parser_t* createParser(Lexer_t* lexer) {
     return parser;
 }
 
+void cleanupParser(Parser_t** parser)
+{
+    if (*parser == NULL) 
+        return;
+    cleanupLexer(&(*parser)->lexer);
+    cleanupToken(&(*parser)->peekToken);
+    cleanupToken(&(*parser)->curToken);
+    *parser = NULL;
+}
+
 
 Program_t* parserParseProgram(Parser_t* parser) {
     Program_t* program = createProgram();
 
-    while (parser->curToken->type != TOKEN_EOF) {
+    while (!parserCurTokenIs(parser, TOKEN_EOF)) {
         Statement_t* stmt = parserParseStatement(parser);
         if (stmt != NULL) {
             programAppendStatement(program, stmt);

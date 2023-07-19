@@ -3,6 +3,7 @@
 
 #include <stdint.h> 
 #include "token.h"
+#include "vector.h"
 
 /* This is straight up memory abuse, but all other structs start with the
 * same attributes as node, so each other struct can be cast to node in order to 
@@ -61,15 +62,15 @@ void cleanupLetStatement(LetStatement_t** st);
 
 /* Program struct: handles toplevel ast nodes */
 typedef struct Program {
-    uint32_t statement_cap;
-    uint32_t statement_cnt;
-    Statement_t** statements;
-
+    Vector_t* statements;
 } Program_t;
 
 
 Program_t* createProgram();
 void cleanupProgram(Program_t** prog);
+
+Statement_t** programGetStatements(Program_t* prog);
+uint32_t programGetStatementCount(Program_t* prog);
 void programAppendStatement(Program_t* prog, Statement_t* st);
 const char* programTokenLiteral(Program_t* prog);
 
