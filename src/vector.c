@@ -19,13 +19,14 @@ Vector_t* createVector(size_t elemSize) {
 void cleanupVector(Vector_t** vec) {
     if (*vec == NULL)
         return;
+    
     free((*vec)->buf);
     (*vec)->cnt = 0u;
     (*vec)->cap = 0u;
     (*vec)->buf = NULL;
+    
     free(*vec);
     *vec = NULL;
-
 }
 
 void vectorAppend(Vector_t* vec, void* elem) {

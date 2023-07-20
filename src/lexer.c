@@ -40,6 +40,7 @@ void cleanupLexer(Lexer_t** lexer)
 {
     if (*lexer == NULL)
         return;
+        
     free(*lexer);
     *lexer = NULL;
 }

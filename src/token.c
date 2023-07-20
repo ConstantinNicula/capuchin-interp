@@ -19,6 +19,7 @@ void cleanupToken(Token_t** token)
 {
     if (*token == NULL)
         return;
+        
     free(*token);
     *token = NULL;
 }

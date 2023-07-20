@@ -45,7 +45,8 @@ void cleanupParser(Parser_t** parser) {
         free((void*)errorStr[i]);
     }
     cleanupVector(&(*parser)->errors);
-
+    
+    free(*parser);
     *parser = NULL;
 }
 

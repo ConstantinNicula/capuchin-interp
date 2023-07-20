@@ -1,8 +1,8 @@
 #include "ast.h"
 #include "token.h"
 #include <malloc.h>
-/* Annoying allocation and cleanup code */
 
+/* Annoying allocation and cleanup code */
 Identifier_t* createIdentifier(Token_t* tok, const char* val) {
     Identifier_t* ident = (Identifier_t*)malloc(sizeof(Identifier_t));
     if (ident == NULL)
@@ -14,14 +14,15 @@ Identifier_t* createIdentifier(Token_t* tok, const char* val) {
 void cleanupIdentifier(Identifier_t** ident) {
     if (*ident == NULL)
         return;
+
     free((*ident)->token);
     free((void*)(*ident)->value);
+    
     free(*ident);
     *ident = NULL;
 }
 
 /* Expression node (TO DO)*/
-
 Identifier_t* createExpression() { return NULL; }
 void cleanupExpression(Expression_t** expr) { return;}
 
@@ -46,7 +47,7 @@ void cleanupStatement(Statement_t** st)
             cleanupLetStatement((LetStatement_t**) &((*st)->value));
             break;
         case STATEMENT_RETURN:
-            // TO DO: add handling
+            cleanupReturnStatement((ReturnStatement_t**)&((*st)->value));
             break;
         case STATEMENT_NULL:
             // TO DO: add handling 
@@ -60,7 +61,7 @@ void cleanupStatement(Statement_t** st)
 
 
 
-/* Let statement */
+/* LET STATEMENT functions*/
 LetStatement_t* createLetStatement(Token_t* token) {
     LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t));
     if (st == NULL)
@@ -79,10 +80,32 @@ void cleanupLetStatement(LetStatement_t** st) {
     cleanupToken(&(*st)->token);
     cleanupIdentifier(&(*st)->name);
     cleanupExpression(&(*st)->value);
+    
+    free(*st);
+    *st = NULL;
 }
 
 
-/* Program */
+/* RETURN STATEMENT functions*/
+ReturnStatement_t* createReturnStatement(Token_t* token) {
+    ReturnStatement_t* st = (ReturnStatement_t*)malloc(sizeof(ReturnStatement_t));
+    if (st == NULL)
+        return NULL;
+    st->token = token;
+    st->returnValue = NULL;
+    return st;
+}
+
+void cleanupReturnStatement(ReturnStatement_t** st) {
+    if (*st == NULL)
+        return;
+    cleanupExpression(&(*st)->returnValue);
+    cleanupToken(&(*st)->token);
+    free(*st);
+    *st = NULL;
+}
+
+/* PROGRAM top level AST node functions */
 Program_t* createProgram() {
     Program_t* prog = (Program_t*) malloc(sizeof(Program_t));
     if (prog == NULL)

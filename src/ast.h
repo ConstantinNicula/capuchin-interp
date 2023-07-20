@@ -16,6 +16,7 @@ const char* nodeTokenLiteral(Node_t* node);
 
 
 /* Definition for Identifier node */
+
 typedef struct Identifier {
     Token_t* token;
     const char* value;
@@ -33,7 +34,7 @@ Identifier_t* createExpression();
 void cleanupExpression(Expression_t** expr);
 
 
-/* Definition for generic Statement struct */
+/* Definition for GENERIC STATEMENT */
 typedef enum StatementType {
     STATEMENT_LET,
     STATEMENT_RETURN,
@@ -49,22 +50,31 @@ Statement_t* createStatement(StatementType_t type, void* value);
 void cleanupStatement(Statement_t** st);
 
 
-/* Definition for specific statements */
+/* Definition for LET STATEMENT */
 typedef struct LetStatement {
     Token_t* token;
     Identifier_t* name;
     Expression_t* value; 
 } LetStatement_t;
 
-
 LetStatement_t* createLetStatement(Token_t* token);
 void cleanupLetStatement(LetStatement_t** st);
 
-/* Program struct: handles toplevel ast nodes */
+
+/* Definition for RETURN STATEMENT */
+typedef struct ReturnStatement {
+    Token_t* token;
+    Expression_t* returnValue;
+} ReturnStatement_t;
+
+ReturnStatement_t* createReturnStatement(Token_t* token);
+void cleanupReturnStatement(ReturnStatement_t** st);
+
+
+/* Definition for PROGRAM top level AST node */
 typedef struct Program {
     Vector_t* statements;
 } Program_t;
-
 
 Program_t* createProgram();
 void cleanupProgram(Program_t** prog);
