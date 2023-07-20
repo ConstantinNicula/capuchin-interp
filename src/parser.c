@@ -4,8 +4,10 @@
 
 
 static void parserNextToken(Parser_t* parser);
+
 static Statement_t* parserParseStatement(Parser_t* parser);
 static Statement_t* parserParseLetStatement(Parser_t* parser);
+static Statement_t* parserParseReturnStatement(Parser_t* parser);
 
 static void parserAppendError(Parser_t* parser, const char*);
 
@@ -88,6 +90,8 @@ static Statement_t* parserParseStatement(Parser_t* parser)
     switch (parser->curToken->type) {
         case TOKEN_LET: 
             return parserParseLetStatement(parser);
+        case TOKEN_RETURN: 
+            return parserParseReturnStatement(parser);
         default:
             return NULL;
     }
@@ -120,22 +124,22 @@ cleanup:
     return NULL;
 }
 
-static void parserPeekError(Parser_t* parser, TokenType_t expTokenType) {
-    #define PEEK_ERROR_FMT_STR "Expected next token to be %s, got %s instead"
-    size_t strSize = snprintf(NULL, 0, PEEK_ERROR_FMT_STR, 
-                              tokenTypeToStr(expTokenType), 
-                              tokenTypeToStr(parser->peekToken->type)) + 1;
-    
-    char *strBuffer = malloc(strSize);
 
-    sprintf(strBuffer, PEEK_ERROR_FMT_STR, 
-            tokenTypeToStr(expTokenType), 
-            tokenTypeToStr(parser->peekToken->type));
-    
-    #undef PEEK_ERROR_FMT_STR
+static Statement_t* parserParseReturnStatement(Parser_t* parser)
+{
+    ReturnStatement_t* stmt = createReturnStatement(parser->curToken);
+    parserNextToken(parser);
 
-    parserAppendError(parser, strBuffer);
+    // TODO: We're skipping the expressions until we 
+    // encounter a semicolon
+
+    while(!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
+        parserNextToken(parser);
+    }
+
+    return createStatement(STATEMENT_RETURN, stmt);
 }
+
 
 static bool parserCurTokenIs(Parser_t* parser, TokenType_t tokType) {
     return parser->curToken->type == tokType;
@@ -154,4 +158,21 @@ static bool parserExpectPeek(Parser_t* parser, TokenType_t expTokType) {
         return false;
     }
     
+}
+
+static void parserPeekError(Parser_t* parser, TokenType_t expTokenType) {
+    #define PEEK_ERROR_FMT_STR "Expected next token to be %s, got %s instead"
+    size_t strSize = snprintf(NULL, 0, PEEK_ERROR_FMT_STR, 
+                              tokenTypeToStr(expTokenType), 
+                              tokenTypeToStr(parser->peekToken->type)) + 1;
+    
+    char *strBuffer = malloc(strSize);
+
+    sprintf(strBuffer, PEEK_ERROR_FMT_STR, 
+            tokenTypeToStr(expTokenType), 
+            tokenTypeToStr(parser->peekToken->type));
+    
+    #undef PEEK_ERROR_FMT_STR
+
+    parserAppendError(parser, strBuffer);
 }
