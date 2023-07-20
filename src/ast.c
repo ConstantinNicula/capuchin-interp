@@ -148,14 +148,22 @@ const char* programTokenLiteral(Program_t* prog)
 {
     if (programGetStatementCount(prog) > 0u) 
     {   
-        Statement_t** pst = programGetStatements(prog);
-        return nodeTokenLiteral((Node_t*) pst[0]);
+        Statement_t** stmts = programGetStatements(prog);
+        return statementTokenLiteral(stmts[0]);
     } else  {
         return "";
     }
 }
 
-const char* nodeTokenLiteral(Node_t* node)
-{
-    return tokenCopyLiteral(node->token);
+
+const char* statementTokenLiteral(Statement_t* st) {
+    switch (st->type)
+    {
+        case STATEMENT_LET:
+            return tokenCopyLiteral(((LetStatement_t*)st->value)->token);
+        case STATEMENT_RETURN:
+            return tokenCopyLiteral(((ReturnStatement_t*)st->value)->token);
+        default:
+            return NULL;
+    }
 }

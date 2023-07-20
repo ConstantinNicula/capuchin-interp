@@ -5,15 +5,6 @@
 #include "token.h"
 #include "vector.h"
 
-/* This is straight up memory abuse, but all other structs start with the
-* same attributes as node, so each other struct can be cast to node in order to 
-* access the token literal. This definition should never be explicitly used.
-*/
-typedef struct Node {
-    Token_t* token;
-} Node_t;
-const char* nodeTokenLiteral(Node_t* node);
-
 
 /* Definition for Identifier node */
 
@@ -49,6 +40,7 @@ typedef struct Statement{
 Statement_t* createStatement(StatementType_t type, void* value);
 void cleanupStatement(Statement_t** st);
 
+const char* statementTokenLiteral(Statement_t* st);
 
 /* Definition for LET STATEMENT */
 typedef struct LetStatement {

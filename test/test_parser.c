@@ -56,16 +56,13 @@ void parserTestReturnStatements() {
     TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, programGetStatementCount(program), "Program does not contain 3 statements!");
     
-    const char* tests[] = {
-        "x", "y", "foobar"
-    };
     int num_tests = 3;
     Statement_t** statements = programGetStatements(program);
 
     for (int i = 0 ; i < num_tests; i++) {
         Statement_t* s = statements[i];
         TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_RETURN, s->type, "Check statement type!");
-        TEST_ASSERT_EQUAL_STRING_MESSAGE("return", nodeTokenLiteral((Node_t*)s->value), "Check statement literal!");
+        TEST_ASSERT_EQUAL_STRING_MESSAGE("return", statementTokenLiteral(s), "Check statement literal!");
     }
     
     cleanupParser(&p);
@@ -73,12 +70,12 @@ void parserTestReturnStatements() {
 
 
 void testLetStatement(Statement_t* s, const char* name) {
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("let", nodeTokenLiteral((Node_t*)s->value), "Check statement literal!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("let", statementTokenLiteral(s), "Check statement literal!");
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_LET, s->type, "Check statement type!");
 
     LetStatement_t* letStmt = (LetStatement_t*) s->value;
     TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->value, "Check name value!");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(name, nodeTokenLiteral((Node_t*)letStmt->name), "Check name literal!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(name, tokenCopyLiteral(letStmt->name->token), "Check name literal!");
 }
 
 
