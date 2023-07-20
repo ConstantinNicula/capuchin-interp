@@ -40,7 +40,7 @@ void lexer_simple_test(void) {
         TEST_ASSERT_NOT_NULL_MESSAGE(tok, msg);
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(expToken[i].type, tok->type , msg); 
-        TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(expToken[i].literal, tok->literal, tok->len, msg);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(expToken[i].literal, tok->literal, msg);
     }
 
 }
@@ -108,7 +108,7 @@ void lexer_test_monkey1(void) {
         TEST_ASSERT_NOT_NULL_MESSAGE(tok, msg);
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(expToken[i].type, tok->type , msg); 
-        TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(expToken[i].literal, tok->literal, tok->len, msg);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(expToken[i].literal, tok->literal, msg);
     }
 }
 
@@ -224,7 +224,7 @@ void lexer_test_monkey2(void) {
         TEST_ASSERT_NOT_NULL_MESSAGE(tok, msg);
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(expToken[i].type, tok->type , msg); 
-        TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(expToken[i].literal, tok->literal, tok->len, msg);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(expToken[i].literal, tok->literal, msg);
     }
 }
 

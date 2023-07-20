@@ -1,17 +1,18 @@
 #include <malloc.h> 
 #include <string.h> 
 #include "token.h"
-
+#include "utils.h"
 
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len) {
     Token_t* token = (Token_t*) malloc(sizeof(Token_t));
     if (token == NULL)
         return NULL;
 
-    token->type = type;
-    token->literal = literal;
-    token->len = len;
-
+    token->type = type;    
+    token->literal = cloneSubstring(literal, len); 
+    if (token->literal == NULL)
+        return NULL;
+        
     return token;
 }
 
@@ -19,7 +20,7 @@ void cleanupToken(Token_t** token)
 {
     if (*token == NULL)
         return;
-        
+    free((*token)->literal);
     free(*token);
     *token = NULL;
 }
@@ -66,12 +67,4 @@ const char * tokenTypeToStr(TokenType_t tokType)
         return "INVLAID_TOKEN_TYPE";
     }
     return TokenTypeStrings[tokType];
-}
-
-const char * tokenCopyLiteral(Token_t* token) 
-{
-    char* literal = (char*) malloc(token->len + 1);
-    memmove(literal, token->literal, token->len);
-    literal[token->len] = '\0';
-    return literal;
 }

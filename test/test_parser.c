@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "parser.h"
+#include "ast.h"
 
 void testLetStatement(Statement_t* s, const char* name);
 void checkParserErrors(Parser_t* parser);
@@ -39,7 +40,25 @@ void parserBasicTest(void) {
     }
     
     cleanupParser(&p);
+    cleanupProgram(&program);
 }
+
+void parserWrongLetTest(void) {
+    const char* input = "let x  5;\
+                    let 10;\
+                    let  = 838383;";
+
+    Lexer_t* l = createLexer(input);
+    Parser_t* p = createParser(l);
+    
+    Program_t* program = parserParseProgram(p);
+    //checkParserErrors(p);
+
+    cleanupParser(&p);
+    cleanupProgram(&program);
+}
+
+
 
 void parserTestReturnStatements() {
     const char* input = "return 5;\
@@ -66,6 +85,7 @@ void parserTestReturnStatements() {
     }
     
     cleanupParser(&p);
+    cleanupProgram(&program);
 }
 
 
@@ -75,7 +95,7 @@ void testLetStatement(Statement_t* s, const char* name) {
 
     LetStatement_t* letStmt = (LetStatement_t*) s->value;
     TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->value, "Check name value!");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(name, tokenCopyLiteral(letStmt->name->token), "Check name literal!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->token->literal, "Check name literal!");
 }
 
 
@@ -93,7 +113,10 @@ void checkParserErrors(Parser_t* parser) {
 // not needed when using generate_test_runner.rb
 int main(void) {
     UNITY_BEGIN();
+    
     RUN_TEST(parserBasicTest);
+    RUN_TEST(parserWrongLetTest);
     RUN_TEST(parserTestReturnStatements);
+    
     return UNITY_END();
 }

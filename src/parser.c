@@ -4,6 +4,7 @@
 
 
 static void parserNextToken(Parser_t* parser);
+static void parserConsumeToken(Parser_t* parser);
 
 static Statement_t* parserParseStatement(Parser_t* parser);
 static Statement_t* parserParseLetStatement(Parser_t* parser);
@@ -70,9 +71,11 @@ Program_t* parserParseProgram(Parser_t* parser) {
 
     while (!parserCurTokenIs(parser, TOKEN_EOF)) {
         Statement_t* stmt = parserParseStatement(parser);
+        
         if (stmt != NULL) {
             programAppendStatement(program, stmt);
-        }
+        } 
+    
         parserNextToken(parser);
     }
 
@@ -85,6 +88,10 @@ static void parserNextToken(Parser_t* parser) {
     parser->peekToken = lexerNextToken(parser->lexer);
 }
 
+static void parserConsumeToken(Parser_t* parser) {
+    cleanupToken(&parser->curToken);
+}
+
 static Statement_t* parserParseStatement(Parser_t* parser)
 {
     switch (parser->curToken->type) {
@@ -93,6 +100,7 @@ static Statement_t* parserParseStatement(Parser_t* parser)
         case TOKEN_RETURN: 
             return parserParseReturnStatement(parser);
         default:
+            parserConsumeToken(parser);
             return NULL;
     }
 }
@@ -105,7 +113,7 @@ static Statement_t* parserParseLetStatement(Parser_t* parser)
         goto cleanup;
     }
 
-    stmt->name = createIdentifier(parser->curToken, tokenCopyLiteral(parser->curToken));
+    stmt->name = createIdentifier(parser->curToken, parser->curToken->literal);
 
     if (!parserExpectPeek(parser, TOKEN_ASSIGN)) {
         goto cleanup;
@@ -114,8 +122,12 @@ static Statement_t* parserParseLetStatement(Parser_t* parser)
     // TODO: We're skipping the expression until we 
     // encounter a semicolon
     while (!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
+        cleanupToken(&parser->curToken);
         parserNextToken(parser);
     }
+
+    // Get rid of semicolon
+    parserConsumeToken(parser);
 
     return createStatement(STATEMENT_LET, stmt);
 
@@ -134,8 +146,12 @@ static Statement_t* parserParseReturnStatement(Parser_t* parser)
     // encounter a semicolon
 
     while(!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
+        cleanupToken(&parser->curToken);
         parserNextToken(parser);
     }
+
+    // Get rid of semicolon  
+    parserConsumeToken(parser);
 
     return createStatement(STATEMENT_RETURN, stmt);
 }

@@ -48,8 +48,7 @@ typedef enum TokenType{
 
 typedef struct Token {
     TokenType_t type;
-    const char* literal; // pointer to start of char literal in input string
-    uint16_t len; // length of literal (can be 0, 1, ...)
+    char* literal; 
 } Token_t;
 
 
@@ -58,7 +57,7 @@ const char * tokenTypeToStr(TokenType_t token);
 
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
 void cleanupToken(Token_t** token);
-const char* tokenCopyLiteral(Token_t* token);
+
 
 
 #endif

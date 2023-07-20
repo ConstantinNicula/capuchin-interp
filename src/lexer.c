@@ -52,9 +52,7 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
     uint32_t tokLen = 0u;
 
     lexerSkipWhiteSpace(lexer);
-    
     tokStart = &lexer->input[lexer->position]; 
-
 
     switch(lexer->ch) {
         case '=': 

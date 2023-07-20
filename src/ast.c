@@ -1,6 +1,8 @@
+#include <malloc.h>
+
 #include "ast.h"
 #include "token.h"
-#include <malloc.h>
+#include "utils.h"
 
 /* Annoying allocation and cleanup code */
 Identifier_t* createIdentifier(Token_t* tok, const char* val) {
@@ -8,14 +10,15 @@ Identifier_t* createIdentifier(Token_t* tok, const char* val) {
     if (ident == NULL)
         return NULL; 
     ident->token = tok;
-    ident->value = val;
+    ident->value = cloneString(val);
     return ident;
 }
+
 void cleanupIdentifier(Identifier_t** ident) {
     if (*ident == NULL)
         return;
 
-    free((*ident)->token);
+    cleanupToken(&(*ident)->token);
     free((void*)(*ident)->value);
     
     free(*ident);
@@ -42,6 +45,7 @@ void cleanupStatement(Statement_t** st)
 {
     if (*st == NULL)
         return;
+
     switch((*st)->type) {
         case STATEMENT_LET: 
             cleanupLetStatement((LetStatement_t**) &((*st)->value));
@@ -99,8 +103,10 @@ ReturnStatement_t* createReturnStatement(Token_t* token) {
 void cleanupReturnStatement(ReturnStatement_t** st) {
     if (*st == NULL)
         return;
-    cleanupExpression(&(*st)->returnValue);
+    
     cleanupToken(&(*st)->token);
+    cleanupExpression(&(*st)->returnValue);
+    
     free(*st);
     *st = NULL;
 }
@@ -122,7 +128,7 @@ uint32_t programGetStatementCount(Program_t* prog) {
     return vectorGetCount(prog->statements);
 }
 
-void cleanupProg(Program_t** prog) {
+void cleanupProgram(Program_t** prog) {
     if (*prog == NULL) 
         return;
 
@@ -160,9 +166,9 @@ const char* statementTokenLiteral(Statement_t* st) {
     switch (st->type)
     {
         case STATEMENT_LET:
-            return tokenCopyLiteral(((LetStatement_t*)st->value)->token);
+            return ((LetStatement_t*)st->value)->token->literal;
         case STATEMENT_RETURN:
-            return tokenCopyLiteral(((ReturnStatement_t*)st->value)->token);
+            return ((ReturnStatement_t*)st->value)->token->literal;
         default:
             return NULL;
     }
