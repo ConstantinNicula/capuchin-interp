@@ -3,8 +3,12 @@
 #include "ast.h"
 #include "token.h"
 #include "utils.h"
+#include "sbuf.h"
 
-/* Annoying allocation and cleanup code */
+/************************************ 
+ *         IDENTIFIER NODE          *
+ ************************************/
+
 Identifier_t* createIdentifier(Token_t* tok, const char* val) {
     Identifier_t* ident = (Identifier_t*)malloc(sizeof(Identifier_t));
     if (ident == NULL)
@@ -25,14 +29,33 @@ void cleanupIdentifier(Identifier_t** ident) {
     *ident = NULL;
 }
 
-/* Expression node (TO DO)*/
-Identifier_t* createExpression() { return NULL; }
-void cleanupExpression(Expression_t** expr) { return;}
+char* identifierToString(Identifier_t* ident) {
+    // Return a copy to avoid free errors
+    return cloneString(ident->value);
+}
 
+/************************************ 
+ *         EXPRESSION NODE          *
+ ************************************/
 
-/* Generic statement */
-Statement_t* createStatement(StatementType_t type, void* value)
-{
+Identifier_t* createExpression() { 
+    return NULL; 
+}
+
+void cleanupExpression(Expression_t** expr) { 
+    return;
+}
+
+char* expressionToString(Expression_t* expr) {
+    // Return a copy to avoid free errors 
+    return cloneString("");
+}
+
+/************************************ 
+ *         GENERIC STATEMENT        *
+ ************************************/
+
+Statement_t* createStatement(StatementType_t type, void* value) {
     Statement_t* st = (Statement_t*)malloc(sizeof(Statement_t));
     if( st == NULL)
         return NULL;
@@ -41,8 +64,7 @@ Statement_t* createStatement(StatementType_t type, void* value)
     return st;
 }
 
-void cleanupStatement(Statement_t** st)
-{
+void cleanupStatement(Statement_t** st) {
     if (*st == NULL)
         return;
 
@@ -52,6 +74,9 @@ void cleanupStatement(Statement_t** st)
             break;
         case STATEMENT_RETURN:
             cleanupReturnStatement((ReturnStatement_t**)&((*st)->value));
+            break;
+        case STATEMENT_EXPRESSION:
+            cleanupExpressionStatement((ExpressionStatement_t**)&((*st)->value));
             break;
         case STATEMENT_NULL:
             // TO DO: add handling 
@@ -64,8 +89,42 @@ void cleanupStatement(Statement_t** st)
 }
 
 
+const char* statementTokenLiteral(Statement_t* st) {
+    // Switch statement could be avoided with type punning, left like this for clarity :)
+    switch (st->type)
+    {
+        case STATEMENT_LET:
+            return ((LetStatement_t*)st->value)->token->literal;
+        case STATEMENT_RETURN:
+            return ((ReturnStatement_t*)st->value)->token->literal;
+        case STATEMENT_EXPRESSION:
+            return ((ExpressionStatement_t*)st->value)->token->literal;
+        default:
+            return "";
+    }
+}
 
-/* LET STATEMENT functions*/
+char* statementToString(Statement_t* st) {
+    switch (st->type)
+    {
+        case STATEMENT_LET:
+            return letStatementToString((LetStatement_t*)st->value);
+        case STATEMENT_RETURN:
+            return returnStatementToString((ReturnStatement_t*)st->value);
+        case STATEMENT_EXPRESSION:
+            return expressionStatementToString((ExpressionStatement_t*)st->value);
+        default:
+            return cloneString("");
+    }
+}
+
+
+
+
+/************************************ 
+ *         LET STATEMENT            *
+ ************************************/
+
 LetStatement_t* createLetStatement(Token_t* token) {
     LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t));
     if (st == NULL)
@@ -89,8 +148,37 @@ void cleanupLetStatement(LetStatement_t** st) {
     *st = NULL;
 }
 
+char* letStatementToString(LetStatement_t* st) {
+    Strbuf_t* sbuf = createStrbuf();
+    char *ret = NULL, *tmp = NULL;
+    
+    strbufWrite(sbuf, st->token->literal);
+    strbufWrite(sbuf, " ");
 
-/* RETURN STATEMENT functions*/
+    tmp = identifierToString(st->name);
+    strbufWrite(sbuf, tmp);
+    free(tmp);
+
+    strbufWrite(sbuf, " = ");
+
+    if (st->value != NULL) {
+        tmp = expressionToString(st->value);
+        strbufWrite(sbuf, tmp);
+        free(tmp);
+    }
+
+    strbufWrite(sbuf, ";");
+
+    ret = strbufDetach(sbuf);
+    cleanupStrbuf(&sbuf);
+    return ret;
+}
+
+
+/************************************ 
+ *      RETURN STATEMENT            *
+ ************************************/
+
 ReturnStatement_t* createReturnStatement(Token_t* token) {
     ReturnStatement_t* st = (ReturnStatement_t*)malloc(sizeof(ReturnStatement_t));
     if (st == NULL)
@@ -111,7 +199,63 @@ void cleanupReturnStatement(ReturnStatement_t** st) {
     *st = NULL;
 }
 
-/* PROGRAM top level AST node functions */
+char* returnStatementToString(ReturnStatement_t* st) {
+    Strbuf_t* sbuf = createStrbuf();
+    char *ret  = NULL, *tmp = NULL;
+
+    strbufWrite(sbuf, st->token->literal);
+    strbufWrite(sbuf, " ");
+
+    if (st->returnValue != NULL) {
+        tmp = expressionToString(st->returnValue);
+        strbufWrite(sbuf, tmp);
+        free(tmp);
+    }
+
+    strbufWrite(sbuf, ";");
+    
+    ret = strbufDetach(sbuf);
+    cleanupStrbuf(&sbuf);
+    return ret;
+}
+
+/************************************ 
+ *      EXPRESSION STATEMENT        *
+ ************************************/
+
+ExpressionStatement_t* createExpressionStatement(Token_t* token) {
+    ExpressionStatement_t* st = (ExpressionStatement_t*) malloc(sizeof(ExpressionStatement_t));
+    if (st == NULL)
+        return NULL;
+    st->token = token;
+    st->expression = NULL;
+    return st;
+}
+
+void cleanupExpressionStatement(ExpressionStatement_t** st) {
+    if (*st == NULL)
+        return;
+
+    cleanupToken(&(*st)->token);
+    cleanupExpression(&(*st)->expression);
+
+    free(*st);
+    *st = NULL;
+}
+
+char* expressionStatementToString(ExpressionStatement_t* st) {
+    if (st->expression != NULL) {
+        return expressionToString(st->expression);
+    }
+    return cloneString("");
+}
+
+
+
+/************************************ 
+ *      PROGRAM NODE                *
+ ************************************/
+
 Program_t* createProgram() {
     Program_t* prog = (Program_t*) malloc(sizeof(Program_t));
     if (prog == NULL)
@@ -150,8 +294,7 @@ void programAppendStatement(Program_t* prog, Statement_t* st) {
     vectorAppend(prog->statements, (void*)&st);
 }
 
-const char* programTokenLiteral(Program_t* prog) 
-{
+const char* programTokenLiteral(Program_t* prog) {
     if (programGetStatementCount(prog) > 0u) 
     {   
         Statement_t** stmts = programGetStatements(prog);
@@ -162,14 +305,20 @@ const char* programTokenLiteral(Program_t* prog)
 }
 
 
-const char* statementTokenLiteral(Statement_t* st) {
-    switch (st->type)
-    {
-        case STATEMENT_LET:
-            return ((LetStatement_t*)st->value)->token->literal;
-        case STATEMENT_RETURN:
-            return ((ReturnStatement_t*)st->value)->token->literal;
-        default:
-            return NULL;
+char* programToString(Program_t* prog) {
+    Strbuf_t* sbuf = createStrbuf();
+    char *ret = NULL, *tmp = NULL;
+
+    uint32_t cnt = programGetStatementCount(prog);
+    Statement_t** stmts = programGetStatements(prog);
+
+    for (uint32_t i = 0; i < cnt; i++) {
+        tmp = statementToString(stmts[i]);
+        strbufWrite(sbuf, tmp);
+        free(tmp);
     }
+
+    ret = strbufDetach(sbuf);
+    cleanupStrbuf(&sbuf);
+    return ret;
 }

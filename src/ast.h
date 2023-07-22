@@ -5,8 +5,9 @@
 #include "token.h"
 #include "vector.h"
 
-
-/* Definition for Identifier node */
+/************************************ 
+ *         IDENTIFIER NODE          *
+ ************************************/
 
 typedef struct Identifier {
     Token_t* token;
@@ -16,7 +17,12 @@ typedef struct Identifier {
 Identifier_t* createIdentifier(Token_t* tok, const char* val);
 void cleanupIdentifier(Identifier_t** ident);
 
-/* Definition for Expression */
+char* identifierToString(Identifier_t* ident);
+
+/************************************ 
+ *         EXPRESSION NODE          *
+ ************************************/
+
 typedef struct Expression {
 
 } Expression_t;
@@ -24,11 +30,17 @@ typedef struct Expression {
 Identifier_t* createExpression();
 void cleanupExpression(Expression_t** expr);
 
+char* expressionToString(Expression_t* expr);
 
-/* Definition for GENERIC STATEMENT */
+
+/************************************ 
+ *         GENERIC STATEMENT        *
+ ************************************/
+
 typedef enum StatementType {
     STATEMENT_LET,
     STATEMENT_RETURN,
+    STATEMENT_EXPRESSION,
     STATEMENT_NULL
 } StatementType_t;
 
@@ -41,8 +53,12 @@ Statement_t* createStatement(StatementType_t type, void* value);
 void cleanupStatement(Statement_t** st);
 
 const char* statementTokenLiteral(Statement_t* st);
+char* statementToString(Statement_t* st);
 
-/* Definition for LET STATEMENT */
+/************************************ 
+ *         LET STATEMENT            *
+ ************************************/
+
 typedef struct LetStatement {
     Token_t* token;
     Identifier_t* name;
@@ -52,8 +68,12 @@ typedef struct LetStatement {
 LetStatement_t* createLetStatement(Token_t* token);
 void cleanupLetStatement(LetStatement_t** st);
 
+char* letStatementToString(LetStatement_t* st);
 
-/* Definition for RETURN STATEMENT */
+/************************************ 
+ *      RETURN STATEMENT            *
+ ************************************/
+
 typedef struct ReturnStatement {
     Token_t* token;
     Expression_t* returnValue;
@@ -62,8 +82,26 @@ typedef struct ReturnStatement {
 ReturnStatement_t* createReturnStatement(Token_t* token);
 void cleanupReturnStatement(ReturnStatement_t** st);
 
+char* returnStatementToString(ReturnStatement_t* st);
 
-/* Definition for PROGRAM top level AST node */
+/************************************ 
+ *     EXPRESSION STATEMENT         *
+ ************************************/
+
+typedef struct ExpressionStatement {
+    Token_t* token;
+    Expression_t* expression;
+} ExpressionStatement_t;
+
+ExpressionStatement_t* createExpressionStatement(Token_t* token);
+void cleanupExpressionStatement(ExpressionStatement_t** st);
+
+char* expressionStatementToString(ExpressionStatement_t* st);
+
+/************************************ 
+ *      PROGRAM NODE                *
+ ************************************/
+
 typedef struct Program {
     Vector_t* statements;
 } Program_t;
@@ -75,5 +113,7 @@ Statement_t** programGetStatements(Program_t* prog);
 uint32_t programGetStatementCount(Program_t* prog);
 void programAppendStatement(Program_t* prog, Statement_t* st);
 const char* programTokenLiteral(Program_t* prog);
+char* programToString(Program_t* prog);
+
 
 #endif 
