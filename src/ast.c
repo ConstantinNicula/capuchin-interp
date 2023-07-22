@@ -5,6 +5,59 @@
 #include "utils.h"
 #include "sbuf.h"
 
+
+/************************************ 
+ *         EXPRESSION NODE          *
+ ************************************/
+
+Expression_t* createExpression(ExpressionType_t type, void* value) { 
+    Expression_t* exp = (Expression_t*)malloc(sizeof(Expression_t));
+    if (exp == NULL)
+        return NULL;
+    exp->type = type;
+    exp->value = value;
+    return exp;
+}
+
+void cleanupExpression(Expression_t** expr) { 
+    if (*expr == NULL)
+        return;
+    
+    switch((*expr)->type) {
+        case EXPRESSION_IDENTIFIER:
+            cleanupIdentifier((Identifier_t**)&(*expr)->value);
+            break;
+        case EXPRESSION_INVALID:
+            // TO DO: add handling 
+            break;
+    }
+    (*expr)->type = EXPRESSION_INVALID;
+    free(*expr);
+    *expr=NULL;
+}
+
+char* expressionToString(Expression_t* expr) {
+    switch (expr->type)
+    {
+        case EXPRESSION_IDENTIFIER:
+            return identifierToString((Identifier_t*)expr->value);
+        default:
+            return cloneString("");
+    }
+}
+
+const char* expressionTokenLiteral(Expression_t* expr) {
+    // Switch statement could be avoided with type punning, left like this for clarity :)
+    switch (expr->type)
+    {
+        case EXPRESSION_IDENTIFIER:
+            return ((Identifier_t*)expr->value)->token->literal;
+        default:
+            return "";
+    }
+}
+
+
 /************************************ 
  *         IDENTIFIER NODE          *
  ************************************/
@@ -34,22 +87,6 @@ char* identifierToString(Identifier_t* ident) {
     return cloneString(ident->value);
 }
 
-/************************************ 
- *         EXPRESSION NODE          *
- ************************************/
-
-Identifier_t* createExpression() { 
-    return NULL; 
-}
-
-void cleanupExpression(Expression_t** expr) { 
-    return;
-}
-
-char* expressionToString(Expression_t* expr) {
-    // Return a copy to avoid free errors 
-    return cloneString("");
-}
 
 /************************************ 
  *         GENERIC STATEMENT        *
@@ -78,12 +115,12 @@ void cleanupStatement(Statement_t** st) {
         case STATEMENT_EXPRESSION:
             cleanupExpressionStatement((ExpressionStatement_t**)&((*st)->value));
             break;
-        case STATEMENT_NULL:
+        case STATEMENT_INVALID:
             // TO DO: add handling 
             break;
         
     }
-    (*st)->type = STATEMENT_NULL;
+    (*st)->type = STATEMENT_INVALID;
     free(*st);
     *st = NULL;
 }

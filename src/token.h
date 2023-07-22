@@ -43,7 +43,7 @@ typedef enum TokenType{
     TOKEN_ELSE,
     TOKEN_RETURN,
 
-    _TOKEN_LAST
+    _TOKEN_TYPE_CNT
 } TokenType_t; 
 
 typedef struct Token {

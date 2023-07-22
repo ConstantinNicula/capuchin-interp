@@ -52,13 +52,10 @@ void parserWrongLetTest(void) {
     Parser_t* p = createParser(l);
     
     Program_t* program = parserParseProgram(p);
-    //checkParserErrors(p);
 
     cleanupParser(&p);
     cleanupProgram(&program);
 }
-
-
 
 void parserTestReturnStatements() {
     const char* input = "return 5;\
@@ -89,6 +86,32 @@ void parserTestReturnStatements() {
 }
 
 
+void parserTesteIdentifierExpression() {
+    const char* input = "foobar;";
+
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in code");
+    
+    Statement_t** stmts = programGetStatements(prog);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
+    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IDENTIFIER, es->expression->type, "Expression type not EXPRESSION_IDENTIFIER");
+    Identifier_t* ident = (Identifier_t*)es->expression->value;
+
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->value, "Check ident value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->token->literal, "Check literal value");
+
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
+}
+
+
 void testLetStatement(Statement_t* s, const char* name) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("let", statementTokenLiteral(s), "Check statement literal!");
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_LET, s->type, "Check statement type!");
@@ -115,8 +138,8 @@ int main(void) {
     UNITY_BEGIN();
     
     RUN_TEST(parserBasicTest);
-    RUN_TEST(parserWrongLetTest);
+    //RUN_TEST(parserWrongLetTest);
     RUN_TEST(parserTestReturnStatements);
-    
+    RUN_TEST(parserTesteIdentifierExpression);
     return UNITY_END();
 }

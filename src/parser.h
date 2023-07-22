@@ -4,10 +4,19 @@
 #include "lexer.h"
 #include "ast.h"
 
+typedef struct Parser Parser_t;
+
+typedef Expression_t* (*PrefixParseFn_t) (Parser_t*);
+typedef Expression_t* (*InfixParseFn_t) (Parser_t*, Expression_t*);
+
 typedef struct Parser {
     Lexer_t* lexer;
+
     Token_t* curToken;
     Token_t* peekToken;
+
+    PrefixParseFn_t prefixParseFns[_TOKEN_TYPE_CNT];
+    InfixParseFn_t infixParserFns[_TOKEN_TYPE_CNT];
 
     Vector_t* errors;
 } Parser_t;

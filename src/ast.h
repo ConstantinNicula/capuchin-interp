@@ -5,8 +5,30 @@
 #include "token.h"
 #include "vector.h"
 
+
 /************************************ 
- *         IDENTIFIER NODE          *
+ *     GENERIC EXPRESSION NODE      *
+ ************************************/
+
+typedef enum ExpressionType {
+    EXPRESSION_IDENTIFIER,
+    EXPRESSION_INVALID
+} ExpressionType_t;
+
+typedef struct Expression {
+    ExpressionType_t type;
+    // Pointer to specific expression type, must be typecast to explicit type
+    void* value; 
+} Expression_t;
+
+Expression_t* createExpression(ExpressionType_t type, void* value);
+void cleanupExpression(Expression_t** expr);
+
+char* expressionToString(Expression_t* expr);
+const char* expressionTokenLiteral(Expression_t* expr);
+
+/************************************ 
+ *     IDENTIFIER EXPRESSION        *
  ************************************/
 
 typedef struct Identifier {
@@ -19,19 +41,6 @@ void cleanupIdentifier(Identifier_t** ident);
 
 char* identifierToString(Identifier_t* ident);
 
-/************************************ 
- *         EXPRESSION NODE          *
- ************************************/
-
-typedef struct Expression {
-
-} Expression_t;
-
-Identifier_t* createExpression();
-void cleanupExpression(Expression_t** expr);
-
-char* expressionToString(Expression_t* expr);
-
 
 /************************************ 
  *         GENERIC STATEMENT        *
@@ -41,12 +50,13 @@ typedef enum StatementType {
     STATEMENT_LET,
     STATEMENT_RETURN,
     STATEMENT_EXPRESSION,
-    STATEMENT_NULL
+    STATEMENT_INVALID
 } StatementType_t;
 
 typedef struct Statement{
     StatementType_t type;
-    void* value; // Pointer to specific statement type, must typecast to explicit type :(
+    // Pointer to specific statement type, must typecast to explicit type :(
+    void* value; 
 } Statement_t;
 
 Statement_t* createStatement(StatementType_t type, void* value);

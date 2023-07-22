@@ -43,27 +43,27 @@ TokenType_t lookupIdent(const char* ident, uint32_t len)
         return TOKEN_RETURN;
     return TOKEN_IDENT;
 }
-
+/* C99 designated initializer abuse :) */
 static const char* TokenTypeStrings[32] = {
-    "TOKEN_ILLEGAL", "TOKEN_EOF",
-    "TOKEN_IDENT","TOKEN_INT",
-    "TOKEN_ASSIGN", "TOKEN_PLUS", 
-    "TOKEN_MINUS", "TOKEN_BANG",
-    "TOKEN_ASTERISK", "TOKEN_SLASH",    
-    "TOKEN_LT", "TOKEN_GT",
-    "TOKEN_EQ", "TOKEN_NOT_EQ",
-    "TOKEN_COMMA", "TOKEN_SEMICOLON", 
-    "TOKEN_LPAREN", "TOKEN_RPAREN", 
-    "TOKEN_LBRACE", "TOKEN_RBRACE", 
-    "TOKEN_FUNCTION", "TOKEN_LET",
-    "TOKEN_TRUE", "TOKEN_FALSE",
-    "TOKEN_IF",  "TOKEN_ELSE",
-    "TOKEN_RETURN"
+    [TOKEN_ILLEGAL]="TOKEN_ILLEGAL", [TOKEN_EOF]="TOKEN_EOF",
+    [TOKEN_IDENT]="TOKEN_IDENT", [TOKEN_INT]="TOKEN_INT",
+    [TOKEN_ASSIGN]="TOKEN_ASSIGN", [TOKEN_PLUS]="TOKEN_PLUS", 
+    [TOKEN_MINUS]="TOKEN_MINUS", [TOKEN_BANG]="TOKEN_BANG",
+    [TOKEN_ASTERISK]="TOKEN_ASTERISK", [TOKEN_SLASH]="TOKEN_SLASH",    
+    [TOKEN_LT]="TOKEN_LT", [TOKEN_GT]="TOKEN_GT",
+    [TOKEN_EQ]="TOKEN_EQ", [TOKEN_NOT_EQ]="TOKEN_NOT_EQ",
+    [TOKEN_COMMA]="TOKEN_COMMA", [TOKEN_SEMICOLON]="TOKEN_SEMICOLON", 
+    [TOKEN_LPAREN]="TOKEN_LPAREN", [TOKEN_RPAREN]="TOKEN_RPAREN", 
+    [TOKEN_LBRACE]="TOKEN_LBRACE", [TOKEN_RBRACE]="TOKEN_RBRACE", 
+    [TOKEN_FUNCTION]="TOKEN_FUNCTION", [TOKEN_LET]="TOKEN_LET",
+    [TOKEN_TRUE]="TOKEN_TRUE", [TOKEN_FALSE]="TOKEN_FALSE",
+    [TOKEN_IF]="TOKEN_IF",  [TOKEN_ELSE]="TOKEN_ELSE",
+    [TOKEN_RETURN]="TOKEN_RETURN"
 };
 
 const char * tokenTypeToStr(TokenType_t tokType)
 {
-    if (tokType < 0 || tokType >= _TOKEN_LAST) {
+    if (tokType < 0 || tokType >= _TOKEN_TYPE_CNT) {
         return "INVLAID_TOKEN_TYPE";
     }
     return TokenTypeStrings[tokType];
