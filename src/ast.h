@@ -12,6 +12,7 @@
 
 typedef enum ExpressionType {
     EXPRESSION_IDENTIFIER,
+    EXPRESSION_INTEGER_LITERAL,
     EXPRESSION_INVALID
 } ExpressionType_t;
 
@@ -28,7 +29,7 @@ char* expressionToString(Expression_t* expr);
 const char* expressionTokenLiteral(Expression_t* expr);
 
 /************************************ 
- *     IDENTIFIER EXPRESSION        *
+ *           IDENTIFIER             *
  ************************************/
 
 typedef struct Identifier {
@@ -40,6 +41,21 @@ Identifier_t* createIdentifier(const Token_t* tok, const char* val);
 void cleanupIdentifier(Identifier_t** ident);
 
 char* identifierToString(Identifier_t* ident);
+
+
+/************************************ 
+ *      INTEGER LITERAL             *
+ ************************************/
+
+typedef struct IntegerLiteral {
+    Token_t* token; 
+    int64_t value;
+}IntegerLiteral_t;
+
+IntegerLiteral_t* createIntegerLiteral(const Token_t* tok);
+void cleanupIntegerLiteral(IntegerLiteral_t** il);
+
+char* integerLiteralToString(IntegerLiteral_t* il);
 
 
 /************************************ 

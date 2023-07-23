@@ -1,6 +1,9 @@
 #include <malloc.h>
 #include <stdbool.h>
+#include <string.h> 
+
 #include "parser.h"
+#include "utils.h"
 
 /* Operator precedence */
 typedef enum PrecValue{
@@ -22,6 +25,7 @@ static Statement_t* parserParseExpressionStatement(Parser_t* parser);
 
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence);
 static Expression_t* parserParseIdentifier(Parser_t* parser);
+static Expression_t* parserParseIntegerLiteral(Parser_t* parser);
 
 static void parserRegisterPrefix(Parser_t* parser, TokenType_t tokType, PrefixParseFn_t fn);
 static void parserRegisterInfix(Parser_t* parser, TokenType_t tokType, InfixParseFn_t fn);
@@ -52,6 +56,7 @@ Parser_t* createParser(Lexer_t* lexer) {
 
     memset(parser->prefixParseFns, 0, sizeof(PrefixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterPrefix(parser, TOKEN_IDENT, parserParseIdentifier);
+    parserRegisterPrefix(parser, TOKEN_INT, parserParseIntegerLiteral);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
 
@@ -169,6 +174,7 @@ static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precede
     PrefixParseFn_t prefix = parser->prefixParseFns[parser->curToken->type];
     if( prefix == NULL)
         return NULL;
+
     Expression_t* leftExp = prefix(parser);
 
     return leftExp;
@@ -177,6 +183,18 @@ static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precede
 static Expression_t* parserParseIdentifier(Parser_t* parser) {
     return createExpression(EXPRESSION_IDENTIFIER, 
                             createIdentifier(parser->curToken, parser->curToken->literal));
+}
+
+static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
+    IntegerLiteral_t* lit = createIntegerLiteral(parser->curToken);
+
+    if (!strToInteger(lit->token->literal, &lit->value)) {
+        char* err = strFormat("Could not parser %s as integer", lit->token->literal);
+        parserAppendError(parser, err);
+        return NULL;
+    }
+
+    return createExpression(EXPRESSION_INTEGER_LITERAL, lit);
 }
 
 static void parserRegisterPrefix(Parser_t* parser, TokenType_t tokType, PrefixParseFn_t fn) {
@@ -231,18 +249,8 @@ static void parserAppendError(Parser_t* parser, const char* err) {
 }
 
 static void parserPeekError(Parser_t* parser, TokenType_t expTokenType) {
-    #define PEEK_ERROR_FMT_STR "Expected next token to be %s, got %s instead"
-    size_t strSize = snprintf(NULL, 0, PEEK_ERROR_FMT_STR, 
-                              tokenTypeToStr(expTokenType), 
-                              tokenTypeToStr(parser->peekToken->type)) + 1;
-    
-    char *strBuffer = malloc(strSize);
-
-    sprintf(strBuffer, PEEK_ERROR_FMT_STR, 
-            tokenTypeToStr(expTokenType), 
-            tokenTypeToStr(parser->peekToken->type));
-    
-    #undef PEEK_ERROR_FMT_STR
-
+    char* strBuffer = strFormat("Expected next token to be %s, got %s instead", 
+                                tokenTypeToStr(expTokenType),   
+                                tokenTypeToStr(parser->peekToken->type));
     parserAppendError(parser, strBuffer);
 }

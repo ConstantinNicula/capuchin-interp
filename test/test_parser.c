@@ -13,7 +13,7 @@ void tearDown(void) {
     // clean stuff up here
 }
 
-void parserBasicTest(void) {
+void parseTestLetStatement(void) {
     const char* input = "let x = 5;\
                     let y = 10;\
                     let foobar = 838383;";
@@ -43,7 +43,7 @@ void parserBasicTest(void) {
     cleanupProgram(&program);
 }
 
-void parserWrongLetTest(void) {
+void parserTestInvalidLetStatement(void) {
     const char* input = "let x  5;\
                     let 10;\
                     let  = 838383;";
@@ -86,7 +86,7 @@ void parserTestReturnStatements() {
 }
 
 
-void parserTesteIdentifierExpression() {
+void parserTestIdentifierExpression() {
     const char* input = "foobar;";
 
     Lexer_t* lexer = createLexer(input);
@@ -95,7 +95,6 @@ void parserTesteIdentifierExpression() {
     checkParserErrors(parser);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in code");
-    
     Statement_t** stmts = programGetStatements(prog);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
@@ -106,6 +105,32 @@ void parserTesteIdentifierExpression() {
 
     TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->value, "Check ident value");
     TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->token->literal, "Check literal value");
+
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
+}
+
+
+void parserTestIntegerLiteralExpression() {
+    const char* input = "5;";
+
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in code");
+    
+    Statement_t** stmts = programGetStatements(prog);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
+    
+    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, es->expression->type, "Expression type not EXPRESSION_IDENTIFIER");
+    
+    IntegerLiteral_t* il = (IntegerLiteral_t*)es->expression->value;
+    TEST_ASSERT_EQUAL_INT_MESSAGE(5, il->value, "Check ident value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("5", il->token->literal, "Check literal value");
 
     cleanupParser(&parser);
     cleanupProgram(&prog);
@@ -137,9 +162,10 @@ void checkParserErrors(Parser_t* parser) {
 int main(void) {
     UNITY_BEGIN();
     
-    RUN_TEST(parserBasicTest);
-    //RUN_TEST(parserWrongLetTest);
+    RUN_TEST(parseTestLetStatement);
+    RUN_TEST(parserTestInvalidLetStatement);
     RUN_TEST(parserTestReturnStatements);
-    RUN_TEST(parserTesteIdentifierExpression);
+    RUN_TEST(parserTestIdentifierExpression);
+    RUN_TEST(parserTestIntegerLiteralExpression);
     return UNITY_END();
 }

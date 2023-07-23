@@ -27,6 +27,9 @@ void cleanupExpression(Expression_t** expr) {
         case EXPRESSION_IDENTIFIER:
             cleanupIdentifier((Identifier_t**)&(*expr)->value);
             break;
+        case EXPRESSION_INTEGER_LITERAL:
+            cleanupIntegerLiteral((IntegerLiteral_t**)&(*expr)->value);
+            break;
         case EXPRESSION_INVALID:
             // TO DO: add handling 
             break;
@@ -41,6 +44,8 @@ char* expressionToString(Expression_t* expr) {
     {
         case EXPRESSION_IDENTIFIER:
             return identifierToString((Identifier_t*)expr->value);
+        case EXPRESSION_INTEGER_LITERAL: 
+            return integerLiteralToString((IntegerLiteral_t*)expr->value);
         default:
             return cloneString("");
     }
@@ -52,6 +57,8 @@ const char* expressionTokenLiteral(Expression_t* expr) {
     {
         case EXPRESSION_IDENTIFIER:
             return ((Identifier_t*)expr->value)->token->literal;
+        case EXPRESSION_INTEGER_LITERAL:
+            return ((IntegerLiteral_t*)expr->value)->token->literal;
         default:
             return "";
     }
@@ -59,7 +66,7 @@ const char* expressionTokenLiteral(Expression_t* expr) {
 
 
 /************************************ 
- *         IDENTIFIER NODE          *
+ *           IDENTIFIER             *
  ************************************/
 
 Identifier_t* createIdentifier(const Token_t* tok, const char* val) {
@@ -86,6 +93,36 @@ char* identifierToString(Identifier_t* ident) {
     // Return a copy to avoid free errors
     return cloneString(ident->value);
 }
+
+
+/************************************ 
+ *      INTEGER LITERAL             *
+ ************************************/
+
+IntegerLiteral_t* createIntegerLiteral(const Token_t* tok) {
+    IntegerLiteral_t* il = (IntegerLiteral_t*)malloc(sizeof(IntegerLiteral_t));
+    if (il == NULL)
+        return NULL;
+    il->token = cloneToken(tok);
+    il->value = 0;
+    return il;
+}
+
+void cleanupIntegerLiteral(IntegerLiteral_t** il) {
+    if (*il == NULL)
+        return;
+    
+    cleanupToken(&(*il)->token);
+    
+    free(*il);
+    *il = NULL;
+}
+
+char* integerLiteralToString(IntegerLiteral_t* il) {
+    return cloneString(il->token->literal);
+}
+
+
 
 
 /************************************ 
