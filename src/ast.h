@@ -36,7 +36,7 @@ typedef struct Identifier {
     const char* value;
 } Identifier_t;
 
-Identifier_t* createIdentifier(Token_t* tok, const char* val);
+Identifier_t* createIdentifier(const Token_t* tok, const char* val);
 void cleanupIdentifier(Identifier_t** ident);
 
 char* identifierToString(Identifier_t* ident);
@@ -75,7 +75,7 @@ typedef struct LetStatement {
     Expression_t* value; 
 } LetStatement_t;
 
-LetStatement_t* createLetStatement(Token_t* token);
+LetStatement_t* createLetStatement(const Token_t* token);
 void cleanupLetStatement(LetStatement_t** st);
 
 char* letStatementToString(LetStatement_t* st);
@@ -89,7 +89,7 @@ typedef struct ReturnStatement {
     Expression_t* returnValue;
 } ReturnStatement_t;
 
-ReturnStatement_t* createReturnStatement(Token_t* token);
+ReturnStatement_t* createReturnStatement(const Token_t* token);
 void cleanupReturnStatement(ReturnStatement_t** st);
 
 char* returnStatementToString(ReturnStatement_t* st);
@@ -103,7 +103,7 @@ typedef struct ExpressionStatement {
     Expression_t* expression;
 } ExpressionStatement_t;
 
-ExpressionStatement_t* createExpressionStatement(Token_t* token);
+ExpressionStatement_t* createExpressionStatement(const Token_t* token);
 void cleanupExpressionStatement(ExpressionStatement_t** st);
 
 char* expressionStatementToString(ExpressionStatement_t* st);

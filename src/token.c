@@ -16,6 +16,10 @@ Token_t* createToken(TokenType_t type, const char* literal, uint16_t len) {
     return token;
 }
 
+Token_t* cloneToken(const Token_t* tok) {
+    return createToken(tok->type, tok->literal, strlen(tok->literal));
+}
+
 void cleanupToken(Token_t** token)
 {
     if (*token == NULL)

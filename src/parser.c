@@ -30,7 +30,6 @@ static void parserRegisterInfix(Parser_t* parser, TokenType_t tokType, InfixPars
 /* Token manipulation */
 
 static void parserNextToken(Parser_t* parser);
-static void parserConsumeToken(Parser_t* parser);
 static bool parserCurTokenIs(Parser_t* parser, TokenType_t tokType);
 static bool parserPeekTokenIs(Parser_t* parser, TokenType_t tokType);
 static bool parserExpectPeek(Parser_t* parser, TokenType_t tokType);
@@ -127,12 +126,8 @@ static Statement_t* parserParseLetStatement(Parser_t* parser) {
     // TODO: We're skipping the expression until we 
     // encounter a semicolon
     while (!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
-        cleanupToken(&parser->curToken);
         parserNextToken(parser);
     }
-
-    // Get rid of semicolon
-    parserConsumeToken(parser);
 
     return createStatement(STATEMENT_LET, stmt);
 
@@ -150,12 +145,8 @@ static Statement_t* parserParseReturnStatement(Parser_t* parser) {
     // encounter a semicolon
 
     while(!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
-        cleanupToken(&parser->curToken);
         parserNextToken(parser);
     }
-
-    // Get rid of semicolon  
-    parserConsumeToken(parser);
 
     return createStatement(STATEMENT_RETURN, stmt);
 }
@@ -199,12 +190,10 @@ static void parserRegisterInfix(Parser_t* parser, TokenType_t tokType, InfixPars
 /* Token manipulation functions */
 
 static void parserNextToken(Parser_t* parser) {
+    if (parser->curToken)
+        cleanupToken(&parser->curToken);
     parser->curToken = parser->peekToken;
     parser->peekToken = lexerNextToken(parser->lexer);
-}
-
-static void parserConsumeToken(Parser_t* parser) {
-    cleanupToken(&parser->curToken);
 }
 
 static bool parserCurTokenIs(Parser_t* parser, TokenType_t tokType) {

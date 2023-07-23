@@ -62,11 +62,11 @@ const char* expressionTokenLiteral(Expression_t* expr) {
  *         IDENTIFIER NODE          *
  ************************************/
 
-Identifier_t* createIdentifier(Token_t* tok, const char* val) {
+Identifier_t* createIdentifier(const Token_t* tok, const char* val) {
     Identifier_t* ident = (Identifier_t*)malloc(sizeof(Identifier_t));
     if (ident == NULL)
         return NULL; 
-    ident->token = tok;
+    ident->token = cloneToken(tok);
     ident->value = cloneString(val);
     return ident;
 }
@@ -162,11 +162,11 @@ char* statementToString(Statement_t* st) {
  *         LET STATEMENT            *
  ************************************/
 
-LetStatement_t* createLetStatement(Token_t* token) {
+LetStatement_t* createLetStatement(const Token_t* token) {
     LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = token;
+    st->token = cloneToken(token);
     st->name = NULL;
     st->value = NULL;
     return st;
@@ -216,11 +216,11 @@ char* letStatementToString(LetStatement_t* st) {
  *      RETURN STATEMENT            *
  ************************************/
 
-ReturnStatement_t* createReturnStatement(Token_t* token) {
+ReturnStatement_t* createReturnStatement(const Token_t* token) {
     ReturnStatement_t* st = (ReturnStatement_t*)malloc(sizeof(ReturnStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = token;
+    st->token = cloneToken(token);
     st->returnValue = NULL;
     return st;
 }
@@ -260,11 +260,11 @@ char* returnStatementToString(ReturnStatement_t* st) {
  *      EXPRESSION STATEMENT        *
  ************************************/
 
-ExpressionStatement_t* createExpressionStatement(Token_t* token) {
+ExpressionStatement_t* createExpressionStatement(const Token_t* token) {
     ExpressionStatement_t* st = (ExpressionStatement_t*) malloc(sizeof(ExpressionStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = token;
+    st->token = cloneToken(token);
     st->expression = NULL;
     return st;
 }
