@@ -31,19 +31,17 @@ bool strToInteger(const char* str, int64_t* val) {
 }
 
 char* strFormat(const char* fmt, ...) {
-    va_list argp;
-
-    // get string length 
+    va_list argp, argp2;
+ 
     va_start(argp, fmt);
+    va_copy(argp2, argp);
+
     int len = vsnprintf(NULL, 0, fmt, argp) + 1;
-    
-    // reset argp & allocate mem
-    va_start(argp, fmt);
     char* str = malloc(len);
-
-    // format and cleanup
-    vsnprintf(str, len, fmt, argp);    
+    vsnprintf(str, len, fmt, argp2);    
+   
     va_end(argp);
+    va_end(argp2);
 
     return str;
 }
