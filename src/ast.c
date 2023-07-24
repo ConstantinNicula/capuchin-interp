@@ -30,6 +30,9 @@ void cleanupExpression(Expression_t** expr) {
         case EXPRESSION_INTEGER_LITERAL:
             cleanupIntegerLiteral((IntegerLiteral_t**)&(*expr)->value);
             break;
+        case EXPRESSION_PREFIX_EXPRESSION: 
+            cleanupPrefixExpression((PrefixExpression_t**)&(*expr)->value);
+            break;
         case EXPRESSION_INVALID:
             // TO DO: add handling 
             break;
@@ -46,6 +49,8 @@ char* expressionToString(Expression_t* expr) {
             return identifierToString((Identifier_t*)expr->value);
         case EXPRESSION_INTEGER_LITERAL: 
             return integerLiteralToString((IntegerLiteral_t*)expr->value);
+        case EXPRESSION_PREFIX_EXPRESSION:
+            return prefixExpressionToString((PrefixExpression_t*)expr->value);
         default:
             return cloneString("");
     }
@@ -59,6 +64,8 @@ const char* expressionTokenLiteral(Expression_t* expr) {
             return ((Identifier_t*)expr->value)->token->literal;
         case EXPRESSION_INTEGER_LITERAL:
             return ((IntegerLiteral_t*)expr->value)->token->literal;
+        case EXPRESSION_PREFIX_EXPRESSION:
+            return ((PrefixExpression_t*)expr->value)->token->literal;
         default:
             return "";
     }
@@ -122,6 +129,45 @@ char* integerLiteralToString(IntegerLiteral_t* il) {
     return cloneString(il->token->literal);
 }
 
+
+/************************************ 
+ *      PREFIX EXPRESSION           *
+ ************************************/
+
+PrefixExpression_t* createPrefixExpresion(const Token_t* tok) {
+    PrefixExpression_t* exp = (PrefixExpression_t*)malloc(sizeof(PrefixExpression_t));
+    if (exp == NULL)
+        return NULL;
+    exp->token = cloneToken(tok);
+    exp->operator = NULL;
+    exp->right = NULL;
+    return exp;
+}
+
+void cleanupPrefixExpression(PrefixExpression_t** exp) {
+    if (*exp == NULL)
+        return;
+
+    cleanupToken(&(*exp)->token);
+    free((*exp)->operator);
+    cleanupExpression(&(*exp)->right);
+    
+    free(*exp);
+    *exp = NULL;
+}
+
+char* prefixExpressionToString(PrefixExpression_t* exp) {
+    Strbuf_t* sbuf = createStrbuf();
+
+    strbufWrite(sbuf, "(");
+    strbufWrite(sbuf, exp->operator);
+    strbufWrite(sbuf, expressionToString(exp->right));
+    strbufWrite(sbuf, ")");
+
+    char* retStr = strbufDetach(sbuf);
+    cleanupStrbuf(&sbuf);
+    return retStr;
+}
 
 
 

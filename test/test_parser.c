@@ -1,8 +1,13 @@
+#include <stdlib.h> 
+
 #include "unity.h"
 #include "parser.h"
 #include "ast.h"
+#include "utils.h"
+
 
 void testLetStatement(Statement_t* s, const char* name);
+void testIntegerLiteral(Expression_t* exp, int64_t value);
 void checkParserErrors(Parser_t* parser);
 
 void setUp(void) {
@@ -52,6 +57,7 @@ void parserTestInvalidLetStatement(void) {
     Parser_t* p = createParser(l);
     
     Program_t* program = parserParseProgram(p);
+
 
     cleanupParser(&p);
     cleanupProgram(&program);
@@ -124,16 +130,51 @@ void parserTestIntegerLiteralExpression() {
     
     Statement_t** stmts = programGetStatements(prog);
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-    
     ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
-    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, es->expression->type, "Expression type not EXPRESSION_IDENTIFIER");
-    
-    IntegerLiteral_t* il = (IntegerLiteral_t*)es->expression->value;
-    TEST_ASSERT_EQUAL_INT_MESSAGE(5, il->value, "Check ident value");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("5", il->token->literal, "Check literal value");
+
+    testIntegerLiteral(es->expression, 5);
 
     cleanupParser(&parser);
     cleanupProgram(&prog);
+}
+
+void parserTestPrefixExpressions() {
+    typedef struct TestCase {
+        const char* input;
+        const char* operator;
+        int64_t integerValue;
+    } TestCase_t;
+    
+    TestCase_t prefixTests[] = {
+        {"!5;", "!", 5},
+        {"-15;", "-", 15}
+    };
+
+    uint32_t cnt = sizeof(prefixTests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; ++i) {
+        TestCase_t *tc = &prefixTests[i];
+
+        Lexer_t* lexer = createLexer(tc->input);
+        Parser_t* parser = createParser(lexer);
+        Program_t* prog = parserParseProgram(parser);
+        checkParserErrors(parser);
+
+        TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Statement count check!");
+
+        Statement_t** stmts = programGetStatements(prog);
+        TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
+
+        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+        TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_PREFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_PREFIX_EXPRESSION");
+
+        PrefixExpression_t* pe = (PrefixExpression_t*)es->expression->value;
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, pe->operator, "Operator check!");
+        testIntegerLiteral(pe->right, tc->integerValue);
+
+        cleanupProgram(&prog);
+        cleanupParser(&parser);
+    }
 }
 
 
@@ -146,6 +187,17 @@ void testLetStatement(Statement_t* s, const char* name) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->token->literal, "Check name literal!");
 }
 
+
+void testIntegerLiteral(Expression_t* exp, int64_t value) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, exp->type, "Expression type not EXPRESSION_INTEGER_LITERAL");
+    IntegerLiteral_t* il = (IntegerLiteral_t*)exp->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(value, il->value, "Check ident value");
+
+    char* lit = strFormat("%d", value);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(lit, il->token->literal, "Check literal value");
+    free(lit);
+}
 
 void checkParserErrors(Parser_t* parser) {
     uint32_t errCnt = parserGetErrorCount(parser);
@@ -167,5 +219,6 @@ int main(void) {
     RUN_TEST(parserTestReturnStatements);
     RUN_TEST(parserTestIdentifierExpression);
     RUN_TEST(parserTestIntegerLiteralExpression);
+    RUN_TEST(parserTestPrefixExpressions);
     return UNITY_END();
 }
