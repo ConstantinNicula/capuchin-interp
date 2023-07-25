@@ -5,9 +5,9 @@
 #include "parser.h"
 #include "utils.h"
 
-/* Operator precedence */
+/* Operator precedence levels */
 typedef enum PrecValue{
-    PREC_LOWEST = 1,
+    PREC_LOWEST = 0,
     PREC_EQUALS, 
     PREC_LESSGREATER,
     PREC_SUM, 
@@ -15,6 +15,18 @@ typedef enum PrecValue{
     PREC_PREFIX, 
     PREC_CALL
 } PrecValue_t;
+
+/* Precedences for operators, values which are not define default to 0-PREC_LOWEST*/
+static PrecValue_t _precedences[] = {
+    [TOKEN_EQ]=PREC_EQUALS,
+    [TOKEN_NOT_EQ]=PREC_EQUALS,
+    [TOKEN_LT]=PREC_LESSGREATER,
+    [TOKEN_GT]=PREC_LESSGREATER,
+    [TOKEN_PLUS]=PREC_SUM,
+    [TOKEN_MINUS]=PREC_SUM,
+    [TOKEN_SLASH]=PREC_PRODUCT,
+    [TOKEN_ASTERISK]=PREC_PRODUCT
+};
 
 /* Parsing functions */
 
@@ -26,7 +38,11 @@ static Statement_t* parserParseExpressionStatement(Parser_t* parser);
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence);
 static Expression_t* parserParseIdentifier(Parser_t* parser);
 static Expression_t* parserParseIntegerLiteral(Parser_t* parser);
-static Expression_t* parserPrefixExpression(Parser_t* parser);
+static Expression_t* parserParsePrefixExpression(Parser_t* parser);
+static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left);
+
+static PrecValue_t parserPeekPrecedence(Parser_t* parser);
+static PrecValue_t parserCurPrecedence(Parser_t* parser);
 
 static void parserRegisterPrefix(Parser_t* parser, TokenType_t tokType, PrefixParseFn_t fn);
 static void parserRegisterInfix(Parser_t* parser, TokenType_t tokType, InfixParseFn_t fn);
@@ -59,10 +75,18 @@ Parser_t* createParser(Lexer_t* lexer) {
     memset(parser->prefixParseFns, 0, sizeof(PrefixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterPrefix(parser, TOKEN_IDENT, parserParseIdentifier);
     parserRegisterPrefix(parser, TOKEN_INT, parserParseIntegerLiteral);
-    parserRegisterPrefix(parser, TOKEN_BANG, parserPrefixExpression);
-    parserRegisterPrefix(parser, TOKEN_MINUS, parserPrefixExpression);
+    parserRegisterPrefix(parser, TOKEN_BANG, parserParsePrefixExpression);
+    parserRegisterPrefix(parser, TOKEN_MINUS, parserParsePrefixExpression);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
+    parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_MINUS, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_SLASH, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_ASTERISK, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_EQ, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_NOT_EQ, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_LT, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_GT, parserParseInfixExpression);
 
     parser->errors = createVector(sizeof(char*));
 
@@ -176,12 +200,24 @@ static Statement_t* parserParseExpressionStatement(Parser_t* parser) {
 
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence) { 
     PrefixParseFn_t prefix = parser->prefixParseFns[parser->curToken->type];
+    
     if( prefix == NULL) {
         parserNoPrefixParseFnError(parser, parser->curToken->type);
         return NULL;
     }
 
     Expression_t* leftExp = prefix(parser);
+
+    while (!parserPeekTokenIs(parser, TOKEN_SEMICOLON) && precedence < parserPeekPrecedence(parser)) {
+        InfixParseFn_t infix = parser->infixParserFns[parser->peekToken->type];
+        if (infix == NULL) {
+            return leftExp;
+        }
+
+        parserNextToken(parser);
+
+        leftExp = infix(parser, leftExp);
+    }
 
     return leftExp;
 }
@@ -203,15 +239,35 @@ static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
     return createExpression(EXPRESSION_INTEGER_LITERAL, lit);
 }
 
-static Expression_t* parserPrefixExpression(Parser_t* parser) {
-    PrefixExpression_t* pe = createPrefixExpresion(parser->curToken);
-    pe->operator = cloneString(parser->curToken->literal);
+static Expression_t* parserParsePrefixExpression(Parser_t* parser) {
+    PrefixExpression_t* expression = createPrefixExpresion(parser->curToken);
+    expression->operator = cloneString(parser->curToken->literal);
 
     parserNextToken(parser);
+    expression->right = parserParseExpression(parser, PREC_PREFIX);
 
-    pe->right = parserParseExpression(parser, PREC_PREFIX);
+    return createExpression(EXPRESSION_PREFIX_EXPRESSION, expression);
+}
 
-    return createExpression(EXPRESSION_PREFIX_EXPRESSION, pe);
+static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left) {
+    InfixExpression_t* expression = createInfixExpresion(parser->curToken);
+    expression->left = left;
+    expression->operator = cloneString(parser->curToken->literal);
+    
+    PrecValue_t precedence = parserCurPrecedence(parser);
+    parserNextToken(parser);
+    expression->right = parserParseExpression(parser, precedence);
+
+    return createExpression(EXPRESSION_INFIX_EXPRESSION, expression);
+}
+
+
+static PrecValue_t parserPeekPrecedence(Parser_t* parser) {
+    return _precedences[parser->peekToken->type];
+}
+
+static PrecValue_t parserCurPrecedence(Parser_t* parser) {
+    return _precedences[parser->curToken->type];
 }
 
 

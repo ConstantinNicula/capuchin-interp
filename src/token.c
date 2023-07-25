@@ -31,19 +31,19 @@ void cleanupToken(Token_t** token)
 
 TokenType_t lookupIdent(const char* ident, uint32_t len)
 {
-    if(strncmp(ident, "let", len) == 0)
+    if(strlen("let") == len && strncmp(ident, "let", len) == 0)
         return TOKEN_LET;
-    else if (strncmp(ident, "fn", len) == 0) 
+    else if (strlen("fn") == len && strncmp(ident, "fn", len) == 0) 
         return TOKEN_FUNCTION;
-    else if (strncmp(ident, "true", len) == 0) 
+    else if (strlen("true") == len && strncmp(ident, "true", len) == 0) 
         return TOKEN_TRUE;
-    else if (strncmp(ident, "false", len) == 0) 
+    else if (strlen("false") == len && strncmp(ident, "false", len) == 0) 
         return TOKEN_FALSE;
-    else if (strncmp(ident, "if", len) == 0) 
+    else if (strlen("if") == len && strncmp(ident, "if", len) == 0) 
         return TOKEN_IF;
-    else if (strncmp(ident, "else", len) == 0) 
+    else if (strlen("else") == len && strncmp(ident, "else", len) == 0) 
         return TOKEN_ELSE;
-    else if (strncmp(ident, "return", len) == 0) 
+    else if (strlen("return") == len && strncmp(ident, "return", len) == 0) 
         return TOKEN_RETURN;
     return TOKEN_IDENT;
 }

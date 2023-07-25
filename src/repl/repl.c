@@ -4,12 +4,11 @@
 #include <string.h> 
 
 #include "lexer.h"
-
+#include "utils.h"
 #define PROMPT ">> "
 
 int main() {
     char inputBuffer[256] = "";
-    char tokBuffer[64] = "";
     Lexer_t* lexer = NULL;
     Token_t* tok = NULL;
 
@@ -20,10 +19,8 @@ int main() {
         lexer = createLexer(inputBuffer);
         tok = lexerNextToken(lexer);
         while(tok != NULL && tok->type != TOKEN_EOF)  {
-            strncpy(tokBuffer, tok->literal, tok->len);
-            tokBuffer[tok->len] = '\0';
-
-            printf("{%s : '%s'}\n", tokenTypeToStr(tok->type), tokBuffer);
+            char* tokString = cloneString(tok->literal);
+            printf("{%s : '%s'}\n", tokenTypeToStr(tok->type), tokString);
             
             cleanupToken(&tok);
             tok = lexerNextToken(lexer);

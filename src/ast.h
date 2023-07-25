@@ -14,6 +14,7 @@ typedef enum ExpressionType {
     EXPRESSION_IDENTIFIER,
     EXPRESSION_INTEGER_LITERAL,
     EXPRESSION_PREFIX_EXPRESSION,
+    EXPRESSION_INFIX_EXPRESSION,
     EXPRESSION_INVALID
 } ExpressionType_t;
 
@@ -73,6 +74,23 @@ PrefixExpression_t* createPrefixExpresion(const Token_t* tok);
 void cleanupPrefixExpression(PrefixExpression_t** exp);
 
 char* prefixExpressionToString(PrefixExpression_t* exp);
+
+/************************************ 
+ *      INFIX EXPRESSION           *
+ ************************************/
+
+typedef struct InfixExpression {
+    Token_t* token;
+    Expression_t* left;
+    char* operator;
+    Expression_t* right;
+} InfixExpression_t;
+
+InfixExpression_t* createInfixExpresion(const Token_t* tok);
+void cleanupInfixExpression(InfixExpression_t** exp);
+
+char* infixExpressionToString(InfixExpression_t* exp);
+
 
 /************************************ 
  *         GENERIC STATEMENT        *

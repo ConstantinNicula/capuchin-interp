@@ -126,9 +126,9 @@ void parserTestIntegerLiteralExpression() {
     checkParserErrors(parser);
 
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in code");
-    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in code"); 
     Statement_t** stmts = programGetStatements(prog);
+
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
     ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
 
@@ -161,16 +161,118 @@ void parserTestPrefixExpressions() {
         checkParserErrors(parser);
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Statement count check!");
-
         Statement_t** stmts = programGetStatements(prog);
+        
         TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-
         ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
-        TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_PREFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_PREFIX_EXPRESSION");
 
+        TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_PREFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_PREFIX_EXPRESSION");
         PrefixExpression_t* pe = (PrefixExpression_t*)es->expression->value;
+
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, pe->operator, "Operator check!");
         testIntegerLiteral(pe->right, tc->integerValue);
+
+        cleanupProgram(&prog);
+        cleanupParser(&parser);
+    }
+}
+
+void parserTestInfixExpressions() {
+    typedef struct TestCase{
+        const char* input;
+        int64_t leftValue;
+        const char* operator;
+        int64_t rightValue;
+    }TestCase_t;
+
+    TestCase_t infixTests[] = {
+        {"5 + 5;", 5, "+", 5},
+        {"5 - 5;", 5, "-", 5},
+        {"5 * 5;", 5, "*", 5},
+        {"5 / 5;", 5, "/", 5},
+        {"5 > 5;", 5, ">", 5},
+        {"5 < 5;", 5, "<", 5},
+        {"5 == 5;", 5, "==", 5},
+        {"5 != 5;", 5, "!=", 5}
+    };
+
+    uint32_t cnt = sizeof(infixTests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &infixTests[i];
+
+        Lexer_t* lexer = createLexer(tc->input);
+        Parser_t* parser = createParser(lexer);
+        Program_t* prog = parserParseProgram(parser);
+        checkParserErrors(parser);
+
+        TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Statement count check!");
+        Statement_t** stmts = programGetStatements(prog);
+
+        TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
+        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+
+        TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_INFIX_EXPRESSION");
+        InfixExpression_t* ie = (InfixExpression_t*)es->expression->value;
+
+        testIntegerLiteral(ie->left, tc->leftValue);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, ie->operator, "Operator check!");
+        testIntegerLiteral(ie->right, tc->rightValue);
+
+        cleanupProgram(&prog);
+        cleanupParser(&parser);
+    }
+
+}
+
+void parserTestOperatorPrecedenceParsing() {
+       typedef struct TestCase{
+        const char* input;
+        const char* expected;
+    }TestCase_t;
+
+    TestCase_t tests[] = {
+        { "-a * b", 
+         "((-a) * b)"},
+        { "!-a", 
+          "(!(-a))"},
+        {"a + b + c", 
+         "((a + b) + c)"},
+        {"a + b - c", 
+         "((a + b) - c)"},
+        {"a * b * c", 
+         "((a * b) * c)"},
+        {"a * b / c", 
+         "((a * b) / c)"},
+        {"a + b / c", 
+         "(a + (b / c))"},
+        {"a + b * c + d / e - f", 
+         "(((a + (b * c)) + (d / e)) - f)",},
+        {"3 + 4; -5 * 5", 
+         "(3 + 4)((-5) * 5)",},
+        {"5 > 4 == 3 < 4", 
+         "((5 > 4) == (3 < 4))",},
+        {"5 < 4 != 3 > 4", 
+         "((5 < 4) != (3 > 4))",},
+        {"3 + 4 * 5 == 3 * 1 + 4 * 5", 
+         "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",},
+        {"3 + 4 * 5 == 3 * 1 + 4 * 5", 
+         "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",}
+    };
+
+    uint32_t cnt = 8; //sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+
+        Lexer_t* lexer = createLexer(tc->input);
+        Parser_t* parser = createParser(lexer);
+        Program_t* prog = parserParseProgram(parser);
+        checkParserErrors(parser);
+
+        char* actual = programToString(prog);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->expected, actual, "Check statement");
+        free(actual);
 
         cleanupProgram(&prog);
         cleanupParser(&parser);
@@ -220,5 +322,7 @@ int main(void) {
     RUN_TEST(parserTestIdentifierExpression);
     RUN_TEST(parserTestIntegerLiteralExpression);
     RUN_TEST(parserTestPrefixExpressions);
+    RUN_TEST(parserTestInfixExpressions);
+    RUN_TEST(parserTestOperatorPrecedenceParsing);
     return UNITY_END();
 }
