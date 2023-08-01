@@ -6,8 +6,31 @@
 #include "utils.h"
 
 
+typedef enum {
+    EXPECT_INTEGER,
+    EXPECT_BOOL, 
+    EXPECT_STRING,
+} ExpectType_t;
+
+typedef struct GenericExpect {
+    ExpectType_t type;
+    union {
+        char* sl;
+        int64_t il;
+        bool bl; 
+    };
+} GenericExpect_t;
+
+#define _BOOL(x) {.type=EXPECT_BOOL, .bl=(x)}
+#define _INT(x) {.type=EXPECT_INTEGER, .il=(x)}
+#define _STRING(x) {.type=EXPECT_STRING, .sl=(x)}
+
+
 void testLetStatement(Statement_t* s, const char* name);
+void testLiteralExpression(Expression_t* expression, GenericExpect_t exp);
 void testIntegerLiteral(Expression_t* exp, int64_t value);
+void testBooleanLiteral(Expression_t* exp, bool value);
+void testIdentifier(Expression_t *exp, const char* value);
 void checkParserErrors(Parser_t* parser);
 
 void setUp(void) {
@@ -142,12 +165,12 @@ void parserTestPrefixExpressions() {
     typedef struct TestCase {
         const char* input;
         const char* operator;
-        int64_t integerValue;
+        GenericExpect_t integerValue;
     } TestCase_t;
     
     TestCase_t prefixTests[] = {
-        {"!5;", "!", 5},
-        {"-15;", "-", 15}
+        {"!5;", "!", _INT(5)},
+        {"-15;", "-", _INT(15)}
     };
 
     uint32_t cnt = sizeof(prefixTests) / sizeof(TestCase_t);
@@ -170,7 +193,7 @@ void parserTestPrefixExpressions() {
         PrefixExpression_t* pe = (PrefixExpression_t*)es->expression->value;
 
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, pe->operator, "Operator check!");
-        testIntegerLiteral(pe->right, tc->integerValue);
+        testLiteralExpression(pe->right, tc->integerValue);
 
         cleanupProgram(&prog);
         cleanupParser(&parser);
@@ -180,20 +203,23 @@ void parserTestPrefixExpressions() {
 void parserTestInfixExpressions() {
     typedef struct TestCase{
         const char* input;
-        int64_t leftValue;
+        GenericExpect_t leftValue;
         const char* operator;
-        int64_t rightValue;
+        GenericExpect_t rightValue;
     }TestCase_t;
 
     TestCase_t infixTests[] = {
-        {"5 + 5;", 5, "+", 5},
-        {"5 - 5;", 5, "-", 5},
-        {"5 * 5;", 5, "*", 5},
-        {"5 / 5;", 5, "/", 5},
-        {"5 > 5;", 5, ">", 5},
-        {"5 < 5;", 5, "<", 5},
-        {"5 == 5;", 5, "==", 5},
-        {"5 != 5;", 5, "!=", 5}
+        {"5 + 5;", _INT(5), "+", _INT(5)},
+        {"5 - 5;", _INT(5), "-", _INT(5)},
+        {"5 * 5;", _INT(5), "*", _INT(5)},
+        {"5 / 5;", _INT(5), "/", _INT(5)},
+        {"5 > 5;", _INT(5), ">", _INT(5)},
+        {"5 < 5;", _INT(5), "<", _INT(5)},
+        {"5 == 5;", _INT(5), "==", _INT(5)},
+        {"5 != 5;", _INT(5), "!=", _INT(5)},
+        {"true == true", _BOOL(true), "==", _BOOL(true)},
+        {"true != false", _BOOL(true), "!=", _BOOL(false)},
+        {"false == false", _BOOL(false), "==", _BOOL(false)},
     };
 
     uint32_t cnt = sizeof(infixTests) / sizeof(TestCase_t);
@@ -215,9 +241,9 @@ void parserTestInfixExpressions() {
         TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_INFIX_EXPRESSION");
         InfixExpression_t* ie = (InfixExpression_t*)es->expression->value;
 
-        testIntegerLiteral(ie->left, tc->leftValue);
+        testLiteralExpression(ie->left, tc->leftValue);
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, ie->operator, "Operator check!");
-        testIntegerLiteral(ie->right, tc->rightValue);
+        testLiteralExpression(ie->right, tc->rightValue);
 
         cleanupProgram(&prog);
         cleanupParser(&parser);
@@ -257,10 +283,18 @@ void parserTestOperatorPrecedenceParsing() {
         {"3 + 4 * 5 == 3 * 1 + 4 * 5", 
          "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",},
         {"3 + 4 * 5 == 3 * 1 + 4 * 5", 
-         "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",}
+         "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",},
+        {"true",
+		 "true" },
+		{"false",
+		"false"},
+		{"3 > 5 == false",
+		"((3 > 5) == false)"},
+		{"3 < 5 == true",
+		 "((3 < 5) == true)"},
     };
 
-    uint32_t cnt = 8; //sizeof(tests) / sizeof(TestCase_t);
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
 
     for (uint32_t i = 0; i < cnt; i++ ) {
         TestCase_t *tc = &tests[i];
@@ -290,8 +324,31 @@ void testLetStatement(Statement_t* s, const char* name) {
 }
 
 
+void testLiteralExpression(Expression_t* expression, GenericExpect_t exp) {
+    switch(exp.type){
+        case EXPECT_STRING:
+            testIdentifier(expression, exp.sl);
+            break;
+        case EXPECT_INTEGER: 
+            testIntegerLiteral(expression, exp.il);
+            break;
+        case EXPECT_BOOL:
+            testBooleanLiteral(expression, exp.bl);
+            break;        
+    }
+}
+
+void testIdentifier(Expression_t *exp, const char* value) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IDENTIFIER, exp->type, "Check expression is EXPRESSION_IDENTIFIER");
+    Identifier_t* id = (Identifier_t*)exp->value;
+
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(value, id->value, "Check identifier value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(value, id->token->literal, "Check identifeier literal");
+}
+
+
 void testIntegerLiteral(Expression_t* exp, int64_t value) {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, exp->type, "Expression type not EXPRESSION_INTEGER_LITERAL");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, exp->type, "Check expression is EXPRESSION_INTEGER_LITERAL");
     IntegerLiteral_t* il = (IntegerLiteral_t*)exp->value;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(value, il->value, "Check ident value");
@@ -300,6 +357,15 @@ void testIntegerLiteral(Expression_t* exp, int64_t value) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE(lit, il->token->literal, "Check literal value");
     free(lit);
 }
+
+void testBooleanLiteral(Expression_t* exp, bool value) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_BOOLEAN, exp->type, "Check expression is EXPRESSION_BOOLEAN");
+    Boolean_t* bl = (Boolean_t*)exp->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(value, bl->value, "Check identifier value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE( (value ? "true" : "false"), bl->token->literal, "Check identifeier literal");
+}
+
 
 void checkParserErrors(Parser_t* parser) {
     uint32_t errCnt = parserGetErrorCount(parser);

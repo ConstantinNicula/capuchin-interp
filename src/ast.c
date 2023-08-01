@@ -10,6 +10,25 @@
  *         EXPRESSION NODE          *
  ************************************/
 
+static ExpressionCleanupFn_t expressionCleanupFns[] = {
+    [EXPRESSION_IDENTIFIER]=(ExpressionCleanupFn_t)cleanupIdentifier,
+    [EXPRESSION_INTEGER_LITERAL]=(ExpressionCleanupFn_t)cleanupIntegerLiteral,
+    [EXPRESSION_BOOLEAN]=(ExpressionCleanupFn_t)cleanupBoolean,
+    [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
+    [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
+    [EXPRESSION_INVALID]=NULL
+};
+
+static ExpressionToStringFn_t expressionToStringFns[] = {
+    [EXPRESSION_IDENTIFIER]=(ExpressionToStringFn_t)identifierToString,
+    [EXPRESSION_INTEGER_LITERAL]=(ExpressionToStringFn_t)integerLiteralToString,
+    [EXPRESSION_BOOLEAN]=(ExpressionToStringFn_t)booleanToString,
+    [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
+    [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
+    [EXPRESSION_INVALID]=NULL
+};
+
+
 Expression_t* createExpression(ExpressionType_t type, void* value) { 
     Expression_t* exp = (Expression_t*)malloc(sizeof(Expression_t));
     if (exp == NULL)
@@ -23,59 +42,37 @@ void cleanupExpression(Expression_t** expr) {
     if (*expr == NULL)
         return;
     
-    switch((*expr)->type) {
-        case EXPRESSION_IDENTIFIER:
-            cleanupIdentifier((Identifier_t**)&(*expr)->value);
-            break;
-        case EXPRESSION_INTEGER_LITERAL:
-            cleanupIntegerLiteral((IntegerLiteral_t**)&(*expr)->value);
-            break;
-        case EXPRESSION_PREFIX_EXPRESSION: 
-            cleanupPrefixExpression((PrefixExpression_t**)&(*expr)->value);
-            break;
-        case EXPRESSION_INFIX_EXPRESSION:
-            cleanupInfixExpression((InfixExpression_t**)&(*expr)->value);
-            break;
-        case EXPRESSION_INVALID:
-            // TO DO: add handling 
-            break;
+    if ((*expr)->type  >= 0  && (*expr)->type < EXPRESSION_INVALID) {
+        ExpressionCleanupFn_t cleanupFn = expressionCleanupFns[(*expr)->type];
+        cleanupFn(&(*expr)->value);
     }
+    
     (*expr)->type = EXPRESSION_INVALID;
     free(*expr);
     *expr=NULL;
 }
 
 char* expressionToString(Expression_t* expr) {
-    switch (expr->type)
-    {
-        case EXPRESSION_IDENTIFIER:
-            return identifierToString((Identifier_t*)expr->value);
-        case EXPRESSION_INTEGER_LITERAL: 
-            return integerLiteralToString((IntegerLiteral_t*)expr->value);
-        case EXPRESSION_PREFIX_EXPRESSION:
-            return prefixExpressionToString((PrefixExpression_t*)expr->value);
-        case EXPRESSION_INFIX_EXPRESSION:
-            return infixExpressionToString((InfixExpression_t*)expr->value);
-        default:
-            return cloneString("");
+
+    if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
+        ExpressionToStringFn_t toStringFn = expressionToStringFns[expr->type];
+        return toStringFn(expr->value);
     }
+    return cloneString("");
 }
 
 const char* expressionTokenLiteral(Expression_t* expr) {
-    // Switch statement could be avoided with type punning, left like this for clarity :)
-    switch (expr->type)
-    {
-        case EXPRESSION_IDENTIFIER:
-            return ((Identifier_t*)expr->value)->token->literal;
-        case EXPRESSION_INTEGER_LITERAL:
-            return ((IntegerLiteral_t*)expr->value)->token->literal;
-        case EXPRESSION_PREFIX_EXPRESSION:
-            return ((PrefixExpression_t*)expr->value)->token->literal;
-        case EXPRESSION_INFIX_EXPRESSION:
-            return ((InfixExpression_t*)expr->value)->token->literal;
-        default:
-            return "";
+    // Each structure starts with a Token_t element 
+    typedef struct ExpressionBase {
+        Token_t* token;
+    } ExpressionBase_t;
+    
+    if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
+        ExpressionBase_t* base = (ExpressionBase_t*)expr->value;
+
+        return base->token->literal; 
     }
+    return "";
 }
 
 
@@ -135,6 +132,33 @@ void cleanupIntegerLiteral(IntegerLiteral_t** il) {
 char* integerLiteralToString(IntegerLiteral_t* il) {
     return cloneString(il->token->literal);
 }
+
+
+/************************************ 
+ *          BOOLEAN                 *
+ ************************************/
+
+Boolean_t* createBoolean(const Token_t* tok) {
+    Boolean_t* bl = (Boolean_t*)malloc(sizeof(Boolean_t));
+    if (bl == NULL)
+        return NULL;
+    bl->token = cloneToken(tok);
+    bl->value = false;
+    return bl;
+}
+
+void cleanupBoolean(Boolean_t** bl) {
+    if (*bl == NULL)
+        return;
+    
+    free(*bl);
+    *bl = NULL;
+}
+
+char* booleanToString(Boolean_t* bl) {
+    return bl->value ? cloneString("true") : cloneString("false");
+}
+
 
 
 /************************************ 
@@ -233,6 +257,20 @@ char* infixExpressionToString(InfixExpression_t* exp) {
  *         GENERIC STATEMENT        *
  ************************************/
 
+static StatementCleanupFn_t statementCleanupFns[] = {
+    [STATEMENT_LET]=(StatementCleanupFn_t)cleanupLetStatement,
+    [STATEMENT_RETURN]=(StatementCleanupFn_t)cleanupReturnStatement,
+    [STATEMENT_EXPRESSION]=(StatementCleanupFn_t)cleanupExpressionStatement,
+    [STATEMENT_INVALID]=NULL
+};
+
+static StatementToStringFn_t statementToStringFns[] = {
+    [STATEMENT_LET]=(StatementToStringFn_t)letStatementToString,
+    [STATEMENT_RETURN]=(StatementToStringFn_t)returnStatementToString,
+    [STATEMENT_EXPRESSION]=(StatementToStringFn_t)expressionStatementToString,
+    [STATEMENT_INVALID]=NULL
+};
+
 Statement_t* createStatement(StatementType_t type, void* value) {
     Statement_t* st = (Statement_t*)malloc(sizeof(Statement_t));
     if( st == NULL)
@@ -246,21 +284,11 @@ void cleanupStatement(Statement_t** st) {
     if (*st == NULL)
         return;
 
-    switch((*st)->type) {
-        case STATEMENT_LET: 
-            cleanupLetStatement((LetStatement_t**) &((*st)->value));
-            break;
-        case STATEMENT_RETURN:
-            cleanupReturnStatement((ReturnStatement_t**)&((*st)->value));
-            break;
-        case STATEMENT_EXPRESSION:
-            cleanupExpressionStatement((ExpressionStatement_t**)&((*st)->value));
-            break;
-        case STATEMENT_INVALID:
-            // TO DO: add handling 
-            break;
-        
+    if ((*st)->type >= 0 &&  (*st)->type < STATEMENT_INVALID) {
+        StatementCleanupFn_t cleanupFn = statementCleanupFns[(*st)->type];
+        cleanupFn(&((*st)->value));
     }
+
     (*st)->type = STATEMENT_INVALID;
     free(*st);
     *st = NULL;
@@ -268,35 +296,25 @@ void cleanupStatement(Statement_t** st) {
 
 
 const char* statementTokenLiteral(Statement_t* st) {
-    // Switch statement could be avoided with type punning, left like this for clarity :)
-    switch (st->type)
-    {
-        case STATEMENT_LET:
-            return ((LetStatement_t*)st->value)->token->literal;
-        case STATEMENT_RETURN:
-            return ((ReturnStatement_t*)st->value)->token->literal;
-        case STATEMENT_EXPRESSION:
-            return ((ExpressionStatement_t*)st->value)->token->literal;
-        default:
-            return "";
+    // Each structure starts with a Token_t element 
+    typedef struct StatementBase {
+        Token_t* token;
+    } StatementBase_t;
+    
+    if (st->type >= 0 && st->type <STATEMENT_INVALID ) {
+        return ((StatementBase_t*)st->value)->token->literal;
     }
+    return "";
 }
 
 char* statementToString(Statement_t* st) {
-    switch (st->type)
-    {
-        case STATEMENT_LET:
-            return letStatementToString((LetStatement_t*)st->value);
-        case STATEMENT_RETURN:
-            return returnStatementToString((ReturnStatement_t*)st->value);
-        case STATEMENT_EXPRESSION:
-            return expressionStatementToString((ExpressionStatement_t*)st->value);
-        default:
-            return cloneString("");
+    if ( (st->type >= 0) && (st->type <=STATEMENT_INVALID) ) {
+        StatementToStringFn_t toStringFn = statementToStringFns[st->type];
+        return toStringFn(st->value);
     }
+
+    return cloneString("");
 }
-
-
 
 
 /************************************ 

@@ -40,6 +40,7 @@ static Expression_t* parserParseIdentifier(Parser_t* parser);
 static Expression_t* parserParseIntegerLiteral(Parser_t* parser);
 static Expression_t* parserParsePrefixExpression(Parser_t* parser);
 static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left);
+static Expression_t* parserParseBoolean(Parser_t* parser);
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -77,6 +78,8 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_INT, parserParseIntegerLiteral);
     parserRegisterPrefix(parser, TOKEN_BANG, parserParsePrefixExpression);
     parserRegisterPrefix(parser, TOKEN_MINUS, parserParsePrefixExpression);
+    parserRegisterPrefix(parser, TOKEN_TRUE, parserParseBoolean);
+    parserRegisterPrefix(parser, TOKEN_FALSE, parserParseBoolean);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -259,6 +262,12 @@ static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* 
     expression->right = parserParseExpression(parser, precedence);
 
     return createExpression(EXPRESSION_INFIX_EXPRESSION, expression);
+}
+
+static Expression_t* parserParseBoolean(Parser_t* parser) {
+    Boolean_t* bl = createBoolean(parser->curToken);
+    bl->value = parserCurTokenIs(parser, TOKEN_TRUE);
+    return createExpression(EXPRESSION_BOOLEAN, bl);
 }
 
 

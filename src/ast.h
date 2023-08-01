@@ -2,6 +2,7 @@
 #define _AST_H_
 
 #include <stdint.h> 
+#include <stdbool.h>
 #include "token.h"
 #include "vector.h"
 
@@ -13,6 +14,7 @@
 typedef enum ExpressionType {
     EXPRESSION_IDENTIFIER,
     EXPRESSION_INTEGER_LITERAL,
+    EXPRESSION_BOOLEAN,
     EXPRESSION_PREFIX_EXPRESSION,
     EXPRESSION_INFIX_EXPRESSION,
     EXPRESSION_INVALID
@@ -29,6 +31,10 @@ void cleanupExpression(Expression_t** expr);
 
 char* expressionToString(Expression_t* expr);
 const char* expressionTokenLiteral(Expression_t* expr);
+
+// function pointers for cleanup / expresion to string 
+typedef void (*ExpressionCleanupFn_t) (void **);
+typedef char* (*ExpressionToStringFn_t) (void*);
 
 /************************************ 
  *           IDENTIFIER             *
@@ -58,6 +64,21 @@ IntegerLiteral_t* createIntegerLiteral(const Token_t* tok);
 void cleanupIntegerLiteral(IntegerLiteral_t** il);
 
 char* integerLiteralToString(IntegerLiteral_t* il);
+
+/************************************ 
+ *          BOOLEAN                 *
+ ************************************/
+
+typedef struct Boolean {
+    Token_t* token;
+    bool value;
+} Boolean_t;
+
+Boolean_t* createBoolean(const Token_t* tok);
+void cleanupBoolean(Boolean_t** bl);
+
+char* booleanToString(Boolean_t* bl);
+
 
 
 /************************************ 
@@ -108,6 +129,12 @@ typedef struct Statement{
     // Pointer to specific statement type, must typecast to explicit type :(
     void* value; 
 } Statement_t;
+
+
+// function pointers for cleanup / expresion to string 
+typedef void (*StatementCleanupFn_t) (void **);
+typedef char* (*StatementToStringFn_t) (void*);
+
 
 Statement_t* createStatement(StatementType_t type, void* value);
 void cleanupStatement(Statement_t** st);
