@@ -151,6 +151,8 @@ void cleanupBoolean(Boolean_t** bl) {
     if (*bl == NULL)
         return;
     
+    cleanupToken(&(*bl)->token);
+
     free(*bl);
     *bl = NULL;
 }
