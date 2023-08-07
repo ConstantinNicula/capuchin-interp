@@ -19,8 +19,21 @@ void cleanupStrbuf(Strbuf_t** sbuf) {
     
     if ((*sbuf)->str != NULL)
         free((*sbuf)->str);
+
     (*sbuf)->len = 0u;
     free(*sbuf);
+}
+
+char* detachStrbuf(Strbuf_t** sbuf) {
+    if (*sbuf == NULL) 
+        return NULL;
+
+    char* str = (*sbuf)->str;
+    
+    (*sbuf)->len = 0u;
+    free(*sbuf);
+    
+    return str;
 }
 
 void strbufWrite(Strbuf_t* sbuf, const char* str) {
@@ -41,8 +54,9 @@ void strbufWrite(Strbuf_t* sbuf, const char* str) {
     strcat(sbuf->str, str);
 }
 
-char* strbufDetach(Strbuf_t* sbuf) {
-    char* str = sbuf->str;
-    sbuf->str = NULL;
-    return str;
+void strbufConsume(Strbuf_t* sbuf, char* str) {
+    if (str == NULL)
+        return;
+    strbufWrite(sbuf, str);
+    free(str);
 }

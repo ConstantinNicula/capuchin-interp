@@ -7,6 +7,14 @@
 
 
 /************************************ 
+ *       COMMON UTILS DEF           *
+ ************************************/
+
+static void cleanupStatementVec(Vector_t** statements);
+static char* statementVecToString(Vector_t* statements);
+
+
+/************************************ 
  *         EXPRESSION NODE          *
  ************************************/
 
@@ -191,17 +199,13 @@ void cleanupPrefixExpression(PrefixExpression_t** exp) {
 
 char* prefixExpressionToString(PrefixExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
-    char* expRight = expressionToString(exp->right);
-    
+
     strbufWrite(sbuf, "(");
     strbufWrite(sbuf, exp->operator);
-    strbufWrite(sbuf, expRight);
+    strbufConsume(sbuf, expressionToString(exp->right));
     strbufWrite(sbuf, ")");
-    char* retStr = strbufDetach(sbuf);  
-    
-    free(expRight);
-    cleanupStrbuf(&sbuf);
-    return retStr;
+
+    return detachStrbuf(&sbuf);
 }
 
 
@@ -236,22 +240,16 @@ void cleanupInfixExpression(InfixExpression_t** exp) {
 
 char* infixExpressionToString(InfixExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
-    char* expRight =expressionToString(exp->right); 
-    char* expLeft = expressionToString(exp->left);
 
     strbufWrite(sbuf, "(");
-    strbufWrite(sbuf, expLeft);
+    strbufConsume(sbuf, expressionToString(exp->left));
     strbufWrite(sbuf, " ");
     strbufWrite(sbuf, exp->operator);
     strbufWrite(sbuf, " ");
-    strbufWrite(sbuf, expRight);
+    strbufConsume(sbuf, expressionToString(exp->right));
     strbufWrite(sbuf, ")");
-    char* retStr = strbufDetach(sbuf);
-    
-    free(expLeft);
-    free(expRight);
-    cleanupStrbuf(&sbuf);
-    return retStr;
+
+    return detachStrbuf(&sbuf);
 }
 
 
@@ -348,28 +346,17 @@ void cleanupLetStatement(LetStatement_t** st) {
 
 char* letStatementToString(LetStatement_t* st) {
     Strbuf_t* sbuf = createStrbuf();
-    char *ret = NULL, *tmp = NULL;
     
     strbufWrite(sbuf, st->token->literal);
     strbufWrite(sbuf, " ");
-
-    tmp = identifierToString(st->name);
-    strbufWrite(sbuf, tmp);
-    free(tmp);
-
+    strbufConsume(sbuf, identifierToString(st->name));
     strbufWrite(sbuf, " = ");
-
     if (st->value != NULL) {
-        tmp = expressionToString(st->value);
-        strbufWrite(sbuf, tmp);
-        free(tmp);
+        strbufWrite(sbuf, expressionToString(st->value));
     }
-
     strbufWrite(sbuf, ";");
 
-    ret = strbufDetach(sbuf);
-    cleanupStrbuf(&sbuf);
-    return ret;
+    return detachStrbuf(&sbuf);
 }
 
 
@@ -399,22 +386,16 @@ void cleanupReturnStatement(ReturnStatement_t** st) {
 
 char* returnStatementToString(ReturnStatement_t* st) {
     Strbuf_t* sbuf = createStrbuf();
-    char *ret  = NULL, *tmp = NULL;
 
     strbufWrite(sbuf, st->token->literal);
     strbufWrite(sbuf, " ");
 
     if (st->returnValue != NULL) {
-        tmp = expressionToString(st->returnValue);
-        strbufWrite(sbuf, tmp);
-        free(tmp);
+        strbufConsume(sbuf, expressionToString(st->returnValue));
     }
-
     strbufWrite(sbuf, ";");
-    
-    ret = strbufDetach(sbuf);
-    cleanupStrbuf(&sbuf);
-    return ret;
+
+    return detachStrbuf(&sbuf);
 }
 
 /************************************ 
@@ -451,6 +432,34 @@ char* expressionStatementToString(ExpressionStatement_t* st) {
 
 
 /************************************ 
+ *         BLOCK STATEMENT          *
+ ************************************/
+
+BlockStatement_t* createBlockStatement(const Token_t* token) {
+    BlockStatement_t* st = (BlockStatement_t*) malloc(sizeof(BlockStatement_t));
+    if (st == NULL) 
+        return NULL;
+    st->statements = createVector(sizeof(Statement_t*));
+    return st;
+}
+
+void cleanupBlockStatement(BlockStatement_t** st) {
+    if (*st == NULL)
+        return;
+    
+    cleanupToken(&(*st)->token);
+    cleanupStatementVec(&(*st)->statements);
+    
+    free(*st);
+    *st = NULL;
+}
+
+char* blockStatementToString(BlockStatement_t* st) {
+    return statementVecToString(st->statements);
+}
+
+
+/************************************ 
  *      PROGRAM NODE                *
  ************************************/
 
@@ -474,15 +483,7 @@ void cleanupProgram(Program_t** prog) {
     if (*prog == NULL) 
         return;
 
-    uint32_t cnt = programGetStatementCount(*prog);
-    Statement_t** pst = programGetStatements(*prog);
-
-    for (uint32_t i = 0; i < cnt; i++)
-    {
-        cleanupStatement(&(pst[i]));
-    }    
-
-    cleanupVector(&(*prog)->statements);
+    cleanupStatementVec(&(*prog)->statements);
     
     free(*prog);
     *prog = NULL;
@@ -504,19 +505,36 @@ const char* programTokenLiteral(Program_t* prog) {
 
 
 char* programToString(Program_t* prog) {
-    Strbuf_t* sbuf = createStrbuf();
-    char *ret = NULL, *tmp = NULL;
+    return statementVecToString(prog->statements);
+}
 
-    uint32_t cnt = programGetStatementCount(prog);
-    Statement_t** stmts = programGetStatements(prog);
+
+/************************************ 
+ *         COMMON UTILS              *
+ ************************************/
+
+static void cleanupStatementVec(Vector_t** statements) {
+    uint32_t cnt = vectorGetCount(*statements);
+    Statement_t** pst = (Statement_t**) vectorGetBuffer(*statements);
 
     for (uint32_t i = 0; i < cnt; i++) {
-        tmp = statementToString(stmts[i]);
-        strbufWrite(sbuf, tmp);
-        free(tmp);
+        cleanupStatement(&pst[i]);
+    }
+    
+    cleanupVector(statements);
+    *statements = NULL;
+}
+
+
+static char* statementVecToString(Vector_t* statements) {
+    Strbuf_t* sbuf = createStrbuf();
+    
+    int32_t cnt = vectorGetCount(statements);
+    Statement_t** stmts = (Statement_t**) vectorGetBuffer(statements);
+
+    for (uint32_t i = 0; i < cnt; i++) {
+        strbufWrite(sbuf, statementToString(stmts[i]));
     }
 
-    ret = strbufDetach(sbuf);
-    cleanupStrbuf(&sbuf);
-    return ret;
+    return detachStrbuf(&sbuf);
 }

@@ -41,6 +41,7 @@ static Expression_t* parserParseIntegerLiteral(Parser_t* parser);
 static Expression_t* parserParsePrefixExpression(Parser_t* parser);
 static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left);
 static Expression_t* parserParseBoolean(Parser_t* parser);
+static Expression_t* parserParseGroupedExpression(Parser_t* parser);
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -80,6 +81,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_MINUS, parserParsePrefixExpression);
     parserRegisterPrefix(parser, TOKEN_TRUE, parserParseBoolean);
     parserRegisterPrefix(parser, TOKEN_FALSE, parserParseBoolean);
+    parserRegisterPrefix(parser, TOKEN_LPAREN, parserParseGroupedExpression);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -236,6 +238,7 @@ static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
     if (!strToInteger(lit->token->literal, &lit->value)) {
         char* err = strFormat("Could not parser %s as integer", lit->token->literal);
         parserAppendError(parser, err);
+        cleanupIntegerLiteral(&lit);
         return NULL;
     }
 
@@ -268,6 +271,19 @@ static Expression_t* parserParseBoolean(Parser_t* parser) {
     Boolean_t* bl = createBoolean(parser->curToken);
     bl->value = parserCurTokenIs(parser, TOKEN_TRUE);
     return createExpression(EXPRESSION_BOOLEAN, bl);
+}
+
+static Expression_t* parserParseGroupedExpression(Parser_t* parser) {
+    parserNextToken(parser);
+    
+    Expression_t* exp = parserParseExpression(parser, PREC_LOWEST);
+
+    if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
+        cleanupExpression(&exp);
+        return NULL;
+    }
+
+    return exp;
 }
 
 
@@ -329,7 +345,7 @@ uint32_t parserGetErrorCount(Parser_t* parser) {
 
 
 static void parserNoPrefixParseFnError(Parser_t* parser, TokenType_t tokType) {
-    char* msg = strFormat("No prefi parser function for %s found", tokenTypeToStr(tokType));
+    char* msg = strFormat("No prefix parser function for %s found", tokenTypeToStr(tokType));
     parserAppendError(parser, msg);
 }
 

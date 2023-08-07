@@ -15,12 +15,7 @@ void sbuf_simple(void) {
     strbufWrite(sbuf, "hello ");
     strbufWrite(sbuf, "World");
     strbufWrite(sbuf, "!");
-    char* str = strbufDetach(sbuf);
-    
-    TEST_ASSERT_EQUAL_STRING("hello World!", str);
-    
-    cleanupStrbuf(&sbuf);
-    free(str);
+    TEST_ASSERT_EQUAL_STRING("hello World!", detachStrbuf(&sbuf));
 }
 
 

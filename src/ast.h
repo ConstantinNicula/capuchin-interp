@@ -121,6 +121,7 @@ typedef enum StatementType {
     STATEMENT_LET,
     STATEMENT_RETURN,
     STATEMENT_EXPRESSION,
+    STATEMENT_BLOCK,
     STATEMENT_INVALID
 } StatementType_t;
 
@@ -184,6 +185,22 @@ ExpressionStatement_t* createExpressionStatement(const Token_t* token);
 void cleanupExpressionStatement(ExpressionStatement_t** st);
 
 char* expressionStatementToString(ExpressionStatement_t* st);
+
+
+/************************************ 
+ *         BLOCK STATEMENT          *
+ ************************************/
+
+typedef struct BlockStatement {
+    Token_t* token;
+    Vector_t* statements;
+} BlockStatement_t;
+
+BlockStatement_t* createBlockStatement(const Token_t* token);
+void cleanupBlockStatement(BlockStatement_t** st);
+
+char* blockStatementToString(BlockStatement_t* st);
+
 
 /************************************ 
  *      PROGRAM NODE                *

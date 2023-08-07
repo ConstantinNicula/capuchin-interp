@@ -10,8 +10,11 @@ typedef struct Strbuf {
 
 Strbuf_t* createStrbuf();
 void cleanupStrbuf(Strbuf_t** sbuf);
+char* detachStrbuf(Strbuf_t** sbuf);
 
 void strbufWrite(Strbuf_t* sbuf, const char* str);
-char* strbufDetach(Strbuf_t* sbuf);
+void strbufConsume(Strbuf_t* sbuf, char* str);
+
+
 
 #endif
