@@ -17,6 +17,7 @@ typedef enum ExpressionType {
     EXPRESSION_BOOLEAN,
     EXPRESSION_PREFIX_EXPRESSION,
     EXPRESSION_INFIX_EXPRESSION,
+    EXPRESSION_IF_EXPRESSION,
     EXPRESSION_INVALID
 } ExpressionType_t;
 
@@ -79,8 +80,6 @@ void cleanupBoolean(Boolean_t** bl);
 
 char* booleanToString(Boolean_t* bl);
 
-
-
 /************************************ 
  *      PREFIX EXPRESSION           *
  ************************************/
@@ -111,6 +110,26 @@ InfixExpression_t* createInfixExpresion(const Token_t* tok);
 void cleanupInfixExpression(InfixExpression_t** exp);
 
 char* infixExpressionToString(InfixExpression_t* exp);
+
+
+/************************************ 
+ *          IF EXPRESSION           *
+ ************************************/
+typedef struct BlockStatement BlockStatement_t;
+
+typedef struct IfExpression {
+    Token_t* token;
+    Expression_t* condition;
+    BlockStatement_t* consequence;
+    BlockStatement_t* alternative;
+} IfExpression_t;
+
+IfExpression_t* createIfExpresion(const Token_t* tok);
+void cleanupIfExpression(IfExpression_t** exp);
+
+char* ifExpressionToString(IfExpression_t* exp);
+
+
 
 
 /************************************ 
@@ -200,7 +219,9 @@ BlockStatement_t* createBlockStatement(const Token_t* token);
 void cleanupBlockStatement(BlockStatement_t** st);
 
 char* blockStatementToString(BlockStatement_t* st);
-
+uint32_t blockStatementGetStatementCount(BlockStatement_t* st);
+Statement_t** blockStatementGetStatements(BlockStatement_t* st);
+void blockStatementAppendStatement(BlockStatement_t* block, Statement_t* st);
 
 /************************************ 
  *      PROGRAM NODE                *

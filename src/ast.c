@@ -24,6 +24,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_BOOLEAN]=(ExpressionCleanupFn_t)cleanupBoolean,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
+    [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -33,6 +34,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_BOOLEAN]=(ExpressionToStringFn_t)booleanToString,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
+    [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -254,6 +256,50 @@ char* infixExpressionToString(InfixExpression_t* exp) {
 
 
 /************************************ 
+ *          IF EXPRESSION           *
+ ************************************/
+
+IfExpression_t* createIfExpresion(const Token_t* tok) {
+    IfExpression_t* exp = (IfExpression_t*) malloc(sizeof(IfExpression_t));
+    if (exp == NULL)
+        return NULL;
+    exp->token = cloneToken(tok);
+    exp->condition = NULL;
+    exp->consequence = NULL;
+    exp->alternative = NULL;
+    return exp;
+}
+
+void cleanupIfExpression(IfExpression_t** exp) {
+    if (*exp == NULL)
+        return;
+
+    cleanupToken(&(*exp)->token);
+    cleanupExpression(&(*exp)->condition);
+    cleanupBlockStatement(&(*exp)->consequence);
+    cleanupBlockStatement(&(*exp)->alternative);
+
+}
+
+char* ifExpressionToString(IfExpression_t* exp) {
+    Strbuf_t* sbuf = createStrbuf();
+
+    strbufWrite(sbuf, "if");
+    strbufConsume(sbuf, expressionToString(exp->condition));
+    strbufWrite(sbuf, " ");
+    strbufConsume(sbuf, blockStatementToString(exp->consequence));
+
+    if (exp->alternative) {
+        strbufWrite(sbuf, "else ");
+        strbufConsume(sbuf, blockStatementToString(exp->consequence));
+    }
+
+    return detachStrbuf(&sbuf);
+}
+
+
+
+/************************************ 
  *         GENERIC STATEMENT        *
  ************************************/
 
@@ -261,6 +307,7 @@ static StatementCleanupFn_t statementCleanupFns[] = {
     [STATEMENT_LET]=(StatementCleanupFn_t)cleanupLetStatement,
     [STATEMENT_RETURN]=(StatementCleanupFn_t)cleanupReturnStatement,
     [STATEMENT_EXPRESSION]=(StatementCleanupFn_t)cleanupExpressionStatement,
+    [STATEMENT_BLOCK]=(StatementCleanupFn_t)cleanupBlockStatement,
     [STATEMENT_INVALID]=NULL
 };
 
@@ -268,6 +315,7 @@ static StatementToStringFn_t statementToStringFns[] = {
     [STATEMENT_LET]=(StatementToStringFn_t)letStatementToString,
     [STATEMENT_RETURN]=(StatementToStringFn_t)returnStatementToString,
     [STATEMENT_EXPRESSION]=(StatementToStringFn_t)expressionStatementToString,
+    [STATEMENT_BLOCK]=(StatementToStringFn_t)blockStatementToString,
     [STATEMENT_INVALID]=NULL
 };
 
@@ -439,6 +487,7 @@ BlockStatement_t* createBlockStatement(const Token_t* token) {
     BlockStatement_t* st = (BlockStatement_t*) malloc(sizeof(BlockStatement_t));
     if (st == NULL) 
         return NULL;
+    st->token = cloneToken(token);
     st->statements = createVector(sizeof(Statement_t*));
     return st;
 }
@@ -456,6 +505,18 @@ void cleanupBlockStatement(BlockStatement_t** st) {
 
 char* blockStatementToString(BlockStatement_t* st) {
     return statementVecToString(st->statements);
+}
+
+uint32_t blockStatementGetStatementCount(BlockStatement_t* st) {
+    return vectorGetCount(st->statements);
+}
+
+Statement_t** blockStatementGetStatements(BlockStatement_t* st) {
+    return (Statement_t**) vectorGetBuffer(st->statements);
+}
+
+void blockStatementAppendStatement(BlockStatement_t* block, Statement_t* st) {
+    vectorAppend(block->statements, (void*)&st);
 }
 
 

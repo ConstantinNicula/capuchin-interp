@@ -28,6 +28,7 @@ typedef struct GenericExpect {
 
 void testLetStatement(Statement_t* s, const char* name);
 void testLiteralExpression(Expression_t* expression, GenericExpect_t exp);
+void testInifxExpression(Expression_t* exp, GenericExpect_t expL, const char* op, GenericExpect_t expR);
 void testIntegerLiteral(Expression_t* exp, int64_t value);
 void testBooleanLiteral(Expression_t* exp, bool value);
 void testIdentifier(Expression_t *exp, const char* value);
@@ -46,12 +47,12 @@ void parseTestLetStatement(void) {
                     let y = 10;\
                     let foobar = 838383;";
 
-    Lexer_t* l = createLexer(input);
-    Parser_t* p = createParser(l);
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
     
-    Program_t* program = parserParseProgram(p);
+    Program_t* program = parserParseProgram(parser);
     
-    checkParserErrors(p);
+    checkParserErrors(parser);
 
 
     TEST_ASSERT_NOT_NULL_MESSAGE(program, "parserParseProgram returned NULL");
@@ -67,7 +68,7 @@ void parseTestLetStatement(void) {
         testLetStatement(statements[i], tests[i]);
     }
     
-    cleanupParser(&p);
+    cleanupParser(&parser);
     cleanupProgram(&program);
 }
 
@@ -76,13 +77,13 @@ void parserTestInvalidLetStatement(void) {
                     let 10;\
                     let  = 838383;";
 
-    Lexer_t* l = createLexer(input);
-    Parser_t* p = createParser(l);
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
     
-    Program_t* program = parserParseProgram(p);
+    Program_t* program = parserParseProgram(parser);
 
 
-    cleanupParser(&p);
+    cleanupParser(&parser);
     cleanupProgram(&program);
 }
 
@@ -91,11 +92,11 @@ void parserTestReturnStatements() {
                         return 10;\
                         return 993322;";
 
-    Lexer_t* l = createLexer(input);
-    Parser_t* p = createParser(l);
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
     
-    Program_t* program = parserParseProgram(p);
-    checkParserErrors(p);
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
 
 
     TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
@@ -110,8 +111,88 @@ void parserTestReturnStatements() {
         TEST_ASSERT_EQUAL_STRING_MESSAGE("return", statementTokenLiteral(s), "Check statement literal!");
     }
     
-    cleanupParser(&p);
+    cleanupParser(&parser);
     cleanupProgram(&program);
+}
+
+
+void parserTestIfStatement() {
+    const char* input = "if (x < y) { x }";
+
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    
+    checkParserErrors(parser);
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statement!");
+    Statement_t* stmt = programGetStatements(program)[0];
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement type not STATEMENT_EXPRESSION");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IF_EXPRESSION, exprStmt->expression->type, "Expresion type not EXPRESSION_IF_EXPRESSION");
+    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression->value;
+
+    // Condition
+    testInifxExpression(ifExpr->condition, (GenericExpect_t)_STRING("x"), "<", (GenericExpect_t)_STRING("y"));
+
+    // Consequence block 
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, blockStatementGetStatementCount(ifExpr->consequence), "Consequence block does not contain 1 statement!");
+    Statement_t* conseqStmt = blockStatementGetStatements(ifExpr->consequence)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, conseqStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
+    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt->value;
+
+    testIdentifier(conseqExprStmt->expression, "x");
+
+    // Alternative block 
+    TEST_ASSERT_NULL_MESSAGE(ifExpr->alternative, "Alternative block statement not null");
+}
+
+void parserTestIfElseStatement() {
+    const char* input = "if (x < y) { x } else { y }";
+
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    
+    checkParserErrors(parser);
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statement!");
+    Statement_t* stmt = programGetStatements(program)[0];
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement type not STATEMENT_EXPRESSION");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IF_EXPRESSION, exprStmt->expression->type, "Expresion type not EXPRESSION_IF_EXPRESSION");
+    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression->value;
+
+    // Condition
+    testInifxExpression(ifExpr->condition, (GenericExpect_t)_STRING("x"), "<", (GenericExpect_t)_STRING("y"));
+
+    // Consequence block 
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, blockStatementGetStatementCount(ifExpr->consequence), "Consequence block does not contain 1 statement!");
+    Statement_t* conseqStmt = blockStatementGetStatements(ifExpr->consequence)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, conseqStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
+    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt->value;
+
+    testIdentifier(conseqExprStmt->expression, "x");
+
+    // Alternative block 
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, blockStatementGetStatementCount(ifExpr->alternative), "Consequence block does not contain 1 statement!");
+    Statement_t* alterStmt = blockStatementGetStatements(ifExpr->alternative)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, alterStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
+    ExpressionStatement_t* alterExprStmt = (ExpressionStatement_t*) alterStmt->value;
+
+    testIdentifier(alterExprStmt->expression, "y");
+    
 }
 
 
@@ -312,6 +393,18 @@ void testLetStatement(Statement_t* s, const char* name) {
 }
 
 
+void testInifxExpression(Expression_t* expr, GenericExpect_t expL, const char* op, GenericExpect_t expR) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INFIX_EXPRESSION, expr->type, "Expression not EXPRESSION_INFIX_EXPRESSION");
+    InfixExpression_t* infExpr = (InfixExpression_t*) expr->value; 
+
+    testLiteralExpression(infExpr->left, expL);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(infExpr->operator, op, "Infix expression has wrong operator");
+    testLiteralExpression(infExpr->right, expR);
+}
+
+
+
+
 void testLiteralExpression(Expression_t* expression, GenericExpect_t exp) {
     switch(exp.type){
         case EXPECT_STRING:
@@ -378,5 +471,7 @@ int main(void) {
     RUN_TEST(parserTestPrefixExpressions);
     RUN_TEST(parserTestInfixExpressions);
     RUN_TEST(parserTestOperatorPrecedenceParsing);
+    RUN_TEST(parserTestIfStatement);
+    RUN_TEST(parserTestIfElseStatement);
     return UNITY_END();
 }

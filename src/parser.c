@@ -34,6 +34,7 @@ static Statement_t* parserParseStatement(Parser_t* parser);
 static Statement_t* parserParseLetStatement(Parser_t* parser);
 static Statement_t* parserParseReturnStatement(Parser_t* parser);
 static Statement_t* parserParseExpressionStatement(Parser_t* parser);
+static BlockStatement_t* parserParseBlockStatement(Parser_t* parser);
 
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence);
 static Expression_t* parserParseIdentifier(Parser_t* parser);
@@ -42,6 +43,8 @@ static Expression_t* parserParsePrefixExpression(Parser_t* parser);
 static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left);
 static Expression_t* parserParseBoolean(Parser_t* parser);
 static Expression_t* parserParseGroupedExpression(Parser_t* parser);
+static Expression_t* parserParseIfExpression(Parser_t* parser);
+
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -82,6 +85,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_TRUE, parserParseBoolean);
     parserRegisterPrefix(parser, TOKEN_FALSE, parserParseBoolean);
     parserRegisterPrefix(parser, TOKEN_LPAREN, parserParseGroupedExpression);
+    parserRegisterPrefix(parser, TOKEN_IF, parserParseIfExpression);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -203,6 +207,23 @@ static Statement_t* parserParseExpressionStatement(Parser_t* parser) {
     return createStatement(STATEMENT_EXPRESSION, stmt);
 }
 
+
+static BlockStatement_t* parserParseBlockStatement(Parser_t* parser) {
+    BlockStatement_t* block = createBlockStatement(parser->curToken);
+    parserNextToken(parser);
+
+    while (!parserCurTokenIs(parser, TOKEN_RBRACE) && !parserCurTokenIs(parser, TOKEN_EOF)) {
+        Statement_t* stmt = parserParseStatement(parser);
+        if (stmt != NULL) {
+            blockStatementAppendStatement(block, stmt);
+        }
+        parserNextToken(parser);
+    }
+
+    return block;
+}
+
+
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence) { 
     PrefixParseFn_t prefix = parser->prefixParseFns[parser->curToken->type];
     
@@ -284,6 +305,44 @@ static Expression_t* parserParseGroupedExpression(Parser_t* parser) {
     }
 
     return exp;
+}
+
+static Expression_t* parserParseIfExpression(Parser_t* parser) {
+    IfExpression_t* expression = createIfExpresion(parser->curToken);
+
+    if (!parserExpectPeek(parser, TOKEN_LPAREN)) {
+        cleanupIfExpression(&expression);
+        return NULL;
+    }
+    
+    parserNextToken(parser);
+    expression->condition = parserParseExpression(parser, PREC_LOWEST);
+
+    if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
+        cleanupIfExpression(&expression);
+        return NULL;
+    }
+
+    if (!parserExpectPeek(parser, TOKEN_LBRACE)) {
+        cleanupIfExpression(&expression);
+        return NULL;
+    }
+    
+    expression->consequence = parserParseBlockStatement(parser);
+
+    if (parserPeekTokenIs(parser, TOKEN_ELSE)) {
+        parserNextToken(parser);
+        
+        if (!parserExpectPeek(parser, TOKEN_LBRACE)) {
+            cleanupIfExpression(&expression);
+            return NULL;
+        }
+
+        expression->alternative = parserParseBlockStatement(parser);
+    }
+
+    return createExpression(EXPRESSION_IF_EXPRESSION, expression);
+
 }
 
 

@@ -2,7 +2,13 @@
     "files.associations": {
         "token.h": "c",
         "ast.h": "c",
-        "malloc.h": "c"
+        "malloc.h": "c",
+        "array": "c",
+        "compare": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     },
     "cmake.configureOnOpen": false
 }
