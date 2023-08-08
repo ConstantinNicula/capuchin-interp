@@ -17,7 +17,7 @@ typedef enum PrecValue{
 } PrecValue_t;
 
 /* Precedences for operators, values which are not define default to 0-PREC_LOWEST*/
-static PrecValue_t _precedences[] = {
+static PrecValue_t _precedences[_TOKEN_TYPE_CNT] = {
     [TOKEN_EQ]=PREC_EQUALS,
     [TOKEN_NOT_EQ]=PREC_EQUALS,
     [TOKEN_LT]=PREC_LESSGREATER,
@@ -25,7 +25,8 @@ static PrecValue_t _precedences[] = {
     [TOKEN_PLUS]=PREC_SUM,
     [TOKEN_MINUS]=PREC_SUM,
     [TOKEN_SLASH]=PREC_PRODUCT,
-    [TOKEN_ASTERISK]=PREC_PRODUCT
+    [TOKEN_ASTERISK]=PREC_PRODUCT,
+    [TOKEN_LPAREN]=PREC_CALL
 };
 
 /* Parsing functions */
@@ -46,6 +47,9 @@ static Expression_t* parserParseGroupedExpression(Parser_t* parser);
 static Expression_t* parserParseIfExpression(Parser_t* parser);
 static Expression_t* parserParseFunctionLiteral(Parser_t* parser);
 static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl);
+
+static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* function);
+static void parserParseCallArguments(Parser_t* parser, CallExpression_t* exp);
 
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
@@ -99,6 +103,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterInfix(parser, TOKEN_NOT_EQ, parserParseInfixExpression);
     parserRegisterInfix(parser, TOKEN_LT, parserParseInfixExpression);
     parserRegisterInfix(parser, TOKEN_GT, parserParseInfixExpression);
+    parserRegisterInfix(parser, TOKEN_LPAREN, parserParseCallExpression);
 
     parser->errors = createVector(sizeof(char*));
 
@@ -392,6 +397,40 @@ static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* f
     if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
         return ;
     }
+}
+
+
+static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* function) {
+    CallExpression_t* expression = createCallExpression(parser->curToken);
+    expression->function = function;
+    parserParseCallArguments(parser, expression);
+    return createExpression(EXPRESSION_CALL_EXPRESSION, expression);
+}
+
+static void parserParseCallArguments(Parser_t* parser, CallExpression_t* exp) {
+    Expression_t* arg = NULL;
+    
+    if (parserPeekTokenIs(parser, TOKEN_RPAREN)){
+        parserNextToken(parser);
+        return;
+    }
+
+    parserNextToken(parser);
+    arg = parserParseExpression(parser, PREC_LOWEST);
+    callExpressionAppendArgument(exp, arg);
+
+    while (parserPeekTokenIs(parser, TOKEN_COMMA))
+    {
+        parserNextToken(parser);
+        parserNextToken(parser);    
+        arg = parserParseExpression(parser, PREC_LOWEST);
+        callExpressionAppendArgument(exp, arg);
+    }
+
+    if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
+        return;
+    }
+
 }
 
 

@@ -19,6 +19,7 @@ typedef enum ExpressionType {
     EXPRESSION_INFIX_EXPRESSION,
     EXPRESSION_IF_EXPRESSION,
     EXPRESSION_FUNCTION_LITERAL,
+    EXPRESSION_CALL_EXPRESSION,
     EXPRESSION_INVALID
 } ExpressionType_t;
 
@@ -150,7 +151,24 @@ void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param)
 uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp);
 Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp);
 
+/************************************ 
+ *        CALL EXPRESSION           *
+ ************************************/
 
+typedef struct CallExpression {
+    Token_t* token;
+    Expression_t* function;
+    Vector_t* arguments;
+} CallExpression_t;
+
+
+CallExpression_t* createCallExpression(Token_t* tok);
+void cleanupCallExpression(CallExpression_t** exp);
+
+char* callExpressionToString(CallExpression_t* exp);
+void callExpressionAppendArgument(CallExpression_t* exp, Expression_t* arg);
+uint32_t callExpresionGetArgumentCount(CallExpression_t* exp);
+Expression_t** callExpressionGetArguments(CallExpression_t* exp);
 
 
 /************************************ 

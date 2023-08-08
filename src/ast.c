@@ -26,6 +26,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
     [EXPRESSION_FUNCTION_LITERAL]=(ExpressionCleanupFn_t)cleanupFunctionLiteral,
+    [EXPRESSION_CALL_EXPRESSION]=(ExpressionCleanupFn_t)cleanupCallExpression,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -37,6 +38,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
     [EXPRESSION_FUNCTION_LITERAL]=(ExpressionToStringFn_t)functionLiteralToString,
+    [EXPRESSION_CALL_EXPRESSION]=(ExpressionToStringFn_t)callExpressionToString,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -359,6 +361,71 @@ uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp) {
 Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp) {
     return (Identifier_t**) vectorGetBuffer(exp->parameters);
 }
+
+
+/************************************ 
+ *        CALL EXPRESSION           *
+ ************************************/
+
+CallExpression_t* createCallExpression(Token_t* tok) {
+    CallExpression_t* exp = (CallExpression_t*) malloc(sizeof(CallExpression_t));
+    if (exp == NULL)
+        return NULL;
+
+    exp->token = cloneToken(tok);
+    exp->function = NULL;
+    exp->arguments = createVector(sizeof(Expression_t*));
+
+    return exp;
+}
+
+void cleanupCallExpression(CallExpression_t** exp) {
+    if (*exp == NULL)
+        return;
+    
+    cleanupToken(&(*exp)->token);
+    cleanupExpression(&(*exp)->function);
+    cleanupVectorContents((*exp)->arguments, (VectorElementCleanupFn_t) cleanupExpression);
+    cleanupVector(&(*exp)->arguments);
+
+    free(*exp);
+    *exp = NULL;
+}
+
+char* callExpressionToString(CallExpression_t* exp) {
+    Strbuf_t* sbuf = createStrbuf();
+
+    strbufConsume(sbuf, expressionToString(exp->function));
+    strbufWrite(sbuf, "(");
+    
+    uint32_t argCnt = callExpresionGetArgumentCount(exp);
+    Expression_t** args = callExpressionGetArguments(exp);
+
+    for (uint32_t i = 0; i < argCnt; i++) {
+        strbufConsume(sbuf, expressionToString(args[i]));
+        if (i != argCnt - 1) {
+            strbufWrite(sbuf, ", ");
+        }
+    }
+
+    strbufWrite(sbuf, ")");
+    return detachStrbuf(&sbuf);
+}
+
+
+void callExpressionAppendArgument(CallExpression_t* exp, Expression_t* arg) {
+    vectorAppend(exp->arguments, (void*) &arg);
+}
+uint32_t callExpresionGetArgumentCount(CallExpression_t* exp) {
+    return vectorGetCount(exp->arguments);
+}
+
+Expression_t** callExpressionGetArguments(CallExpression_t* exp) {
+    return (Expression_t**) vectorGetBuffer(exp->arguments);
+}
+
+
+
 
 
 /************************************ 

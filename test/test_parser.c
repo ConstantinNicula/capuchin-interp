@@ -366,7 +366,10 @@ void parserTestOperatorPrecedenceParsing() {
         {"(5 + 5) * 2", "((5 + 5) * 2)"},
         {"2 / (5 + 5)", "(2 / (5 + 5))"},
         {"-(5 + 5)", "(-(5 + 5))"},
-        {"!(true == true)", "(!(true == true))"}
+        {"!(true == true)", "(!(true == true))"},
+        {"a + add(b * c) + d","((a + add((b * c))) + d)"},
+        {"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
+        {"add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"}
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
@@ -421,7 +424,7 @@ void parserTestFunctionLiteral() {
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, bodyStmt->type, "Body statement is not Expression Statement");
     ExpressionStatement_t* bodyExprStmt = (ExpressionStatement_t*)bodyStmt->value;
 
-    testInifxExpression(bodyExprStmt->expression, (GenericExpect_t)_STRING("x"), "+", (GenericExpect_t)_STRING("y"));
+    testInifxExpression(bodyExprStmt->expression, _STRING("x"), "+", _STRING("y"));
 
     cleanupParser(&parser);
     cleanupProgram(&prog);
@@ -467,6 +470,37 @@ void parserTestFunctionParameterParsing() {
     }
 
 
+}
+
+
+void parserTestCallExpressionParsing() {
+    const char* input = "add(1, 2 * 3, 4 + 5)";
+    
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in program");
+    Statement_t* stmt = programGetStatements(prog)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_CALL_EXPRESSION, exprStmt->expression->type, "Expression type not EXPRESSION_CALL_EXPRESSION");
+    CallExpression_t* callExp = (CallExpression_t*)exprStmt->expression->value;
+
+    testIdentifier(callExp->function, "add");
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, callExpresionGetArgumentCount(callExp), "Wrong number of arguments");
+    Expression_t** args = callExpressionGetArguments(callExp);
+
+    testLiteralExpression(args[0], _INT(1));
+    testInifxExpression(args[1], _INT(2), "*", _INT(3));
+    testInifxExpression(args[2], _INT(4), "+", _INT(5));
+
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
 }
 
 
@@ -562,5 +596,6 @@ int main(void) {
     RUN_TEST(parserTestIfElseStatement);
     RUN_TEST(parserTestFunctionLiteral);
     RUN_TEST(parserTestFunctionParameterParsing);
+    RUN_TEST(parserTestCallExpressionParsing);
     return UNITY_END();
 }
