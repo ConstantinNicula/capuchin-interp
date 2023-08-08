@@ -21,9 +21,9 @@ typedef struct GenericExpect {
     };
 } GenericExpect_t;
 
-#define _BOOL(x) {.type=EXPECT_BOOL, .bl=(x)}
-#define _INT(x) {.type=EXPECT_INTEGER, .il=(x)}
-#define _STRING(x) {.type=EXPECT_STRING, .sl=(x)}
+#define _BOOL(x) (GenericExpect_t){.type=EXPECT_BOOL, .bl=(x)}
+#define _INT(x) (GenericExpect_t){.type=EXPECT_INTEGER, .il=(x)}
+#define _STRING(x) (GenericExpect_t){.type=EXPECT_STRING, .sl=(x)}
 
 
 void testLetStatement(Statement_t* s, const char* name);
@@ -430,8 +430,43 @@ void parserTestFunctionLiteral() {
 void parserTestFunctionParameterParsing() {
     typedef struct TestCase{
         const char* input;
-        const char* expected;
+        GenericExpect_t expectedParams[10];
+        uint32_t cnt;
     }TestCase_t;
+
+    TestCase_t tests[] = {
+        {.input="fn() {};", .expectedParams={}, .cnt=0},
+        {.input="fn(x) {};", .expectedParams={_STRING("x")}, .cnt=1},
+        {.input="fn(x, yes) {};", .expectedParams={_STRING("x"), _STRING("yes")}, .cnt=2},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+
+        Lexer_t* lexer = createLexer(tc->input);
+        Parser_t* parser = createParser(lexer);
+        Program_t* prog = parserParseProgram(parser);
+        checkParserErrors(parser);
+
+        ExpressionStatement_t* stmt = (ExpressionStatement_t*)programGetStatements(prog)[0]->value;
+        FunctionLiteral_t* function = (FunctionLiteral_t*)stmt->expression->value; 
+
+        TEST_ASSERT_EQUAL_UINT32_MESSAGE(tc->cnt, functionLiteralGetParameterCount(function), "Invalid parameter count");
+        Identifier_t** params = functionLiteralGetParameters(function);
+
+        for (uint32_t j = 0; j < tc->cnt; j++) {
+            Expression_t* tmp = createExpression(EXPRESSION_IDENTIFIER, params[j]);
+            testLiteralExpression(tmp, tc->expectedParams[j]);
+            free(tmp);
+        }
+
+        cleanupProgram(&prog);
+        cleanupParser(&parser);
+    }
+
+
 }
 
 
@@ -526,5 +561,6 @@ int main(void) {
     RUN_TEST(parserTestIfStatement);
     RUN_TEST(parserTestIfElseStatement);
     RUN_TEST(parserTestFunctionLiteral);
+    RUN_TEST(parserTestFunctionParameterParsing);
     return UNITY_END();
 }
