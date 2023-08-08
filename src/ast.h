@@ -115,6 +115,7 @@ char* infixExpressionToString(InfixExpression_t* exp);
 /************************************ 
  *          IF EXPRESSION           *
  ************************************/
+
 typedef struct BlockStatement BlockStatement_t;
 
 typedef struct IfExpression {
@@ -128,6 +129,25 @@ IfExpression_t* createIfExpresion(const Token_t* tok);
 void cleanupIfExpression(IfExpression_t** exp);
 
 char* ifExpressionToString(IfExpression_t* exp);
+
+
+/************************************ 
+ *    FUNCTION EXPRESSION           *
+ ************************************/
+
+typedef struct FunctionLiteral {
+    Token_t* token;
+    Vector_t* parameters;
+    BlockStatement_t* body;
+} FunctionLiteral_t;
+
+FunctionLiteral_t* createFunctionLiteral(const Token_t* tok);
+void cleanupFunctionLiteral(FunctionLiteral_t** exp);
+
+char* functionLiteralToString(FunctionLiteral_t* exp);
+void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param);
+uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp);
+Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp);
 
 
 
@@ -222,6 +242,8 @@ char* blockStatementToString(BlockStatement_t* st);
 uint32_t blockStatementGetStatementCount(BlockStatement_t* st);
 Statement_t** blockStatementGetStatements(BlockStatement_t* st);
 void blockStatementAppendStatement(BlockStatement_t* block, Statement_t* st);
+
+
 
 /************************************ 
  *      PROGRAM NODE                *

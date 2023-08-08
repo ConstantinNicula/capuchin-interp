@@ -5,6 +5,8 @@
 #include <stddef.h>
 
 
+typedef void (*VectorElementCleanupFn_t) (void** elem);
+
 typedef struct Vector {
     uint32_t cap;
     uint32_t cnt;
@@ -14,6 +16,7 @@ typedef struct Vector {
 
 
 Vector_t* createVector(size_t elemSize);
+void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn);
 void cleanupVector(Vector_t** vec); 
 
 void vectorAppend(Vector_t* vec, void* elem);

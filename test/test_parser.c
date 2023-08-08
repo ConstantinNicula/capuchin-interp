@@ -150,6 +150,9 @@ void parserTestIfStatement() {
 
     // Alternative block 
     TEST_ASSERT_NULL_MESSAGE(ifExpr->alternative, "Alternative block statement not null");
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
 }
 
 void parserTestIfElseStatement() {
@@ -192,6 +195,9 @@ void parserTestIfElseStatement() {
     ExpressionStatement_t* alterExprStmt = (ExpressionStatement_t*) alterStmt->value;
 
     testIdentifier(alterExprStmt->expression, "y");
+    
+    cleanupParser(&parser);
+    cleanupProgram(&program);
     
 }
 

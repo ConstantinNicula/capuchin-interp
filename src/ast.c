@@ -279,6 +279,8 @@ void cleanupIfExpression(IfExpression_t** exp) {
     cleanupBlockStatement(&(*exp)->consequence);
     cleanupBlockStatement(&(*exp)->alternative);
 
+    free(*exp);
+    *exp = NULL;
 }
 
 char* ifExpressionToString(IfExpression_t* exp) {
@@ -296,6 +298,42 @@ char* ifExpressionToString(IfExpression_t* exp) {
 
     return detachStrbuf(&sbuf);
 }
+
+
+
+/************************************ 
+ *    FUNCTION EXPRESSION           *
+ ************************************/
+
+FunctionLiteral_t* createFunctionLiteral(const Token_t* tok) {
+    FunctionLiteral_t *exp = (FunctionLiteral_t*)malloc(sizeof(FunctionLiteral_t));
+    if (exp == NULL) 
+        return exp;
+    
+    exp->token = cloneToken(tok);
+    exp->parameters = createVector(sizeof(Identifier_t*));
+    exp->body = NULL;
+
+    return exp;
+}
+
+void cleanupFunctionLiteral(FunctionLiteral_t** exp) {
+    if (*exp == NULL)
+        return;
+
+    cleanupToken(&(*exp)->token);
+    cleanupVectorContents((*exp)->parameters, (VectorElementCleanupFn_t)cleanupIdentifier);
+    cleanupVector(&(*exp)->parameters);
+    cleanupBlockStatement(&(*exp)->body);
+
+    free(*exp);
+    *exp = NULL;
+}
+
+char* functionLiteralToString(FunctionLiteral_t* exp);
+void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param);
+uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp);
+Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp);
 
 
 
@@ -575,13 +613,7 @@ char* programToString(Program_t* prog) {
  ************************************/
 
 static void cleanupStatementVec(Vector_t** statements) {
-    uint32_t cnt = vectorGetCount(*statements);
-    Statement_t** pst = (Statement_t**) vectorGetBuffer(*statements);
-
-    for (uint32_t i = 0; i < cnt; i++) {
-        cleanupStatement(&pst[i]);
-    }
-    
+    cleanupVectorContents(*statements, (VectorElementCleanupFn_t)cleanupStatement);
     cleanupVector(statements);
     *statements = NULL;
 }
@@ -594,7 +626,7 @@ static char* statementVecToString(Vector_t* statements) {
     Statement_t** stmts = (Statement_t**) vectorGetBuffer(statements);
 
     for (uint32_t i = 0; i < cnt; i++) {
-        strbufWrite(sbuf, statementToString(stmts[i]));
+        strbufConsume(sbuf, statementToString(stmts[i]));
     }
 
     return detachStrbuf(&sbuf);

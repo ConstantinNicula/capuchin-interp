@@ -16,6 +16,21 @@ Vector_t* createVector(size_t elemSize) {
 }
 
 
+void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
+    if (cleanupFn == NULL)
+        return;
+
+    char* eptr = vec->buf;
+    for (uint32_t i = 0; i < vec->cnt; i++)
+    {
+        cleanupFn((void**) eptr);
+        eptr += vec->elemSize;
+    }
+    memset(vec->buf, 0, vec->cnt * vec->elemSize);
+    vec->cnt = 0;
+}
+
+
 void cleanupVector(Vector_t** vec) {
     if (*vec == NULL)
         return;
