@@ -44,6 +44,8 @@ static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* 
 static Expression_t* parserParseBoolean(Parser_t* parser);
 static Expression_t* parserParseGroupedExpression(Parser_t* parser);
 static Expression_t* parserParseIfExpression(Parser_t* parser);
+static Expression_t* parserParseFunctionLiteral(Parser_t* parser);
+static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl);
 
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
@@ -86,6 +88,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_FALSE, parserParseBoolean);
     parserRegisterPrefix(parser, TOKEN_LPAREN, parserParseGroupedExpression);
     parserRegisterPrefix(parser, TOKEN_IF, parserParseIfExpression);
+    parserRegisterPrefix(parser, TOKEN_FUNCTION, parserParseFunctionLiteral);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -344,6 +347,53 @@ static Expression_t* parserParseIfExpression(Parser_t* parser) {
     return createExpression(EXPRESSION_IF_EXPRESSION, expression);
 
 }
+
+static Expression_t* parserParseFunctionLiteral(Parser_t* parser) {
+    FunctionLiteral_t* expression = createFunctionLiteral(parser->curToken);
+
+    if (!parserExpectPeek(parser, TOKEN_LPAREN)) {
+        cleanupFunctionLiteral(&expression);
+        return NULL;
+    }
+
+    parserParseFunctionParameters(parser, expression);
+
+    if (!parserExpectPeek(parser, TOKEN_LBRACE)) {
+        cleanupFunctionLiteral(&expression);
+        return NULL;
+    }
+
+    expression->body = parserParseBlockStatement(parser);
+
+    return createExpression(EXPRESSION_FUNCTION_LITERAL, expression);
+}
+
+
+static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl) {
+    Identifier_t* ident = NULL;
+
+    if (parserPeekTokenIs(parser, TOKEN_RPAREN)) {
+        parserNextToken(parser);
+        return;
+    }
+
+    parserNextToken(parser);
+
+    ident = createIdentifier(parser->curToken, parser->curToken->literal);
+    functionLiteralAppendParameter(fl, ident);
+
+    while (parserPeekTokenIs(parser, TOKEN_COMMA)) {
+        parserNextToken(parser);
+        parserNextToken(parser);
+        ident = createIdentifier(parser->curToken, parser->curToken->literal);
+        functionLiteralAppendParameter(fl, ident);
+    }
+
+    if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
+        return ;
+    }
+}
+
 
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser) {

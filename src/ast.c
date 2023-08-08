@@ -25,6 +25,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
+    [EXPRESSION_FUNCTION_LITERAL]=(ExpressionCleanupFn_t)cleanupFunctionLiteral,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -35,6 +36,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
+    [EXPRESSION_FUNCTION_LITERAL]=(ExpressionToStringFn_t)functionLiteralToString,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -330,11 +332,33 @@ void cleanupFunctionLiteral(FunctionLiteral_t** exp) {
     *exp = NULL;
 }
 
-char* functionLiteralToString(FunctionLiteral_t* exp);
-void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param);
-uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp);
-Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp);
+char* functionLiteralToString(FunctionLiteral_t* exp) {
+    Strbuf_t* sbuf = createStrbuf();
 
+    strbufWrite(sbuf, exp->token->literal);
+    strbufWrite(sbuf, "(");
+    uint32_t paramCnt = functionLiteralGetParameterCount(exp);
+    Identifier_t** params = functionLiteralGetParameters(exp);
+    for (uint32_t i = 0; i < paramCnt; i++) {
+        strbufConsume(sbuf, identifierToString(params[i]));
+    }
+    strbufWrite(sbuf, ")");
+    strbufConsume(sbuf, blockStatementToString(exp->body));
+
+    return detachStrbuf(&sbuf);
+}
+
+void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param) {
+    vectorAppend(exp->parameters, (void*) &param);
+}
+
+uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp) {
+    return vectorGetCount(exp->parameters);
+}
+
+Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp) {
+    return (Identifier_t**) vectorGetBuffer(exp->parameters);
+}
 
 
 /************************************ 

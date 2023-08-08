@@ -339,7 +339,7 @@ void parserTestInfixExpressions() {
 }
 
 void parserTestOperatorPrecedenceParsing() {
-       typedef struct TestCase{
+    typedef struct TestCase{
         const char* input;
         const char* expected;
     }TestCase_t;
@@ -386,6 +386,52 @@ void parserTestOperatorPrecedenceParsing() {
         cleanupProgram(&prog);
         cleanupParser(&parser);
     }
+}
+
+
+void parserTestFunctionLiteral() {
+    const char* input = "fn ( x, y) { x + y; }";
+    
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in program");
+    Statement_t* stmt = programGetStatements(prog)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt->value;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_FUNCTION_LITERAL, exprStmt->expression->type, "Expression type not EXPRESSION_FUNCTION_LITERAL");
+    FunctionLiteral_t* fl = (FunctionLiteral_t*)exprStmt->expression->value;
+
+    Identifier_t** params = functionLiteralGetParameters(fl);
+    // test paramters 
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("x", params[0]->value, "Check identifier value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("x", params[0]->token->literal, "Check identifeier literal");
+
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("y", params[1]->value, "Check identifier value");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("y", params[1]->token->literal, "Check identifeier literal");
+
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, blockStatementGetStatementCount(fl->body), "Not enough statements in function body");
+    Statement_t* bodyStmt = blockStatementGetStatements(fl->body)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, bodyStmt->type, "Body statement is not Expression Statement");
+    ExpressionStatement_t* bodyExprStmt = (ExpressionStatement_t*)bodyStmt->value;
+
+    testInifxExpression(bodyExprStmt->expression, (GenericExpect_t)_STRING("x"), "+", (GenericExpect_t)_STRING("y"));
+
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
+}
+
+void parserTestFunctionParameterParsing() {
+    typedef struct TestCase{
+        const char* input;
+        const char* expected;
+    }TestCase_t;
 }
 
 
@@ -479,5 +525,6 @@ int main(void) {
     RUN_TEST(parserTestOperatorPrecedenceParsing);
     RUN_TEST(parserTestIfStatement);
     RUN_TEST(parserTestIfElseStatement);
+    RUN_TEST(parserTestFunctionLiteral);
     return UNITY_END();
 }
