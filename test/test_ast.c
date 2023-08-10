@@ -19,7 +19,7 @@ void ast_create_test(void) {
     LetStatement_t* ls = createLetStatement(createToken(TOKEN_IDENT, lt, 3u));
     ls->name = createIdentifier(createToken(TOKEN_IDENT, name, 5u), name);
     ls->value = NULL;
-    programAppendStatement(prog, createStatement(STATEMENT_LET, ls));
+    programAppendStatement(prog, (Statement_t*)ls);
 
     char* prog_str = programToString(prog);
     TEST_ASSERT_EQUAL_INT_MESSAGE(1u, programGetStatementCount(prog), "Invalid statement count");    

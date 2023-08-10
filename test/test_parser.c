@@ -43,33 +43,43 @@ void tearDown(void) {
 }
 
 void parseTestLetStatement(void) {
-    const char* input = "let x = 5;\
-                    let y = 10;\
-                    let foobar = 838383;";
-
-    Lexer_t* lexer = createLexer(input);
-    Parser_t* parser = createParser(lexer);
-    
-    Program_t* program = parserParseProgram(parser);
-    
-    checkParserErrors(parser);
+    typedef struct TestCase{
+        const char* input;
+        const char* expIdent;
+        GenericExpect_t expValue;
+    }TestCase_t;
 
 
-    TEST_ASSERT_NOT_NULL_MESSAGE(program, "parserParseProgram returned NULL");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, programGetStatementCount(program), "program does not contain 3 statements");
-    
-    const char* tests[] = {
-        "x", "y", "foobar"
+    TestCase_t tests[] = {
+        {"let x = 5;", "x", _INT(5)},
+        {"let y = true;", "y", _BOOL(true)},
+        {"let foobar = y;", "foobar", _STRING("y")},
     };
-    int num_tests = 3;
-    Statement_t** statements = programGetStatements(program);
 
-    for (int i = 0 ; i < num_tests; i++) {
-        testLetStatement(statements[i], tests[i]);
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+
+        Lexer_t* lexer = createLexer(tc->input);
+        Parser_t* parser = createParser(lexer);
+        Program_t* program = parserParseProgram(parser);
+        checkParserErrors(parser);
+
+
+        TEST_ASSERT_NOT_NULL_MESSAGE(program, "parserParseProgram returned NULL");
+        TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "program does not contain 1 statement(s)");
+    
+        Statement_t** statements = programGetStatements(program);
+    
+        testLetStatement(statements[0], tc->expIdent);
+
+        testLiteralExpression(((LetStatement_t*)statements[0])->value, tc->expValue);
+
+        cleanupParser(&parser);
+        cleanupProgram(&program);
     }
     
-    cleanupParser(&parser);
-    cleanupProgram(&program);
 }
 
 void parserTestInvalidLetStatement(void) {
@@ -131,10 +141,10 @@ void parserTestIfStatement() {
     Statement_t* stmt = programGetStatements(program)[0];
     
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement type not STATEMENT_EXPRESSION");
-    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt->value;
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IF_EXPRESSION, exprStmt->expression->type, "Expresion type not EXPRESSION_IF_EXPRESSION");
-    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression->value;
+    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression;
 
     // Condition
     testInifxExpression(ifExpr->condition, (GenericExpect_t)_STRING("x"), "<", (GenericExpect_t)_STRING("y"));
@@ -144,7 +154,7 @@ void parserTestIfStatement() {
     Statement_t* conseqStmt = blockStatementGetStatements(ifExpr->consequence)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, conseqStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
-    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt->value;
+    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt;
 
     testIdentifier(conseqExprStmt->expression, "x");
 
@@ -170,10 +180,10 @@ void parserTestIfElseStatement() {
     Statement_t* stmt = programGetStatements(program)[0];
     
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement type not STATEMENT_EXPRESSION");
-    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt->value;
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*) stmt;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IF_EXPRESSION, exprStmt->expression->type, "Expresion type not EXPRESSION_IF_EXPRESSION");
-    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression->value;
+    IfExpression_t* ifExpr = (IfExpression_t*) exprStmt->expression;
 
     // Condition
     testInifxExpression(ifExpr->condition, (GenericExpect_t)_STRING("x"), "<", (GenericExpect_t)_STRING("y"));
@@ -183,7 +193,7 @@ void parserTestIfElseStatement() {
     Statement_t* conseqStmt = blockStatementGetStatements(ifExpr->consequence)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, conseqStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
-    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt->value;
+    ExpressionStatement_t* conseqExprStmt = (ExpressionStatement_t*) conseqStmt;
 
     testIdentifier(conseqExprStmt->expression, "x");
 
@@ -192,7 +202,7 @@ void parserTestIfElseStatement() {
     Statement_t* alterStmt = blockStatementGetStatements(ifExpr->alternative)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, alterStmt->type, "Consequence statement type not STATEMENT_EXPRESSION");
-    ExpressionStatement_t* alterExprStmt = (ExpressionStatement_t*) alterStmt->value;
+    ExpressionStatement_t* alterExprStmt = (ExpressionStatement_t*) alterStmt;
 
     testIdentifier(alterExprStmt->expression, "y");
     
@@ -214,10 +224,10 @@ void parserTestIdentifierExpression() {
     Statement_t** stmts = programGetStatements(prog);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IDENTIFIER, es->expression->type, "Expression type not EXPRESSION_IDENTIFIER");
-    Identifier_t* ident = (Identifier_t*)es->expression->value;
+    Identifier_t* ident = (Identifier_t*)es->expression;
 
     TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->value, "Check ident value");
     TEST_ASSERT_EQUAL_STRING_MESSAGE("foobar", ident->token->literal, "Check literal value");
@@ -240,7 +250,7 @@ void parserTestIntegerLiteralExpression() {
     Statement_t** stmts = programGetStatements(prog);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+    ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0];
 
     testIntegerLiteral(es->expression, 5);
 
@@ -274,10 +284,10 @@ void parserTestPrefixExpressions() {
         Statement_t** stmts = programGetStatements(prog);
         
         TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0];
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_PREFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_PREFIX_EXPRESSION");
-        PrefixExpression_t* pe = (PrefixExpression_t*)es->expression->value;
+        PrefixExpression_t* pe = (PrefixExpression_t*)es->expression;
 
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, pe->operator, "Operator check!");
         testLiteralExpression(pe->right, tc->integerValue);
@@ -323,10 +333,10 @@ void parserTestInfixExpressions() {
         Statement_t** stmts = programGetStatements(prog);
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmts[0]->type, "Statements[0] is not Expression Statement");
-        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0]->value;
+        ExpressionStatement_t* es = (ExpressionStatement_t*)stmts[0];
 
         TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INFIX_EXPRESSION, es->expression->type, "Expression type not EXPRESSION_INFIX_EXPRESSION");
-        InfixExpression_t* ie = (InfixExpression_t*)es->expression->value;
+        InfixExpression_t* ie = (InfixExpression_t*)es->expression;
 
         testLiteralExpression(ie->left, tc->leftValue);
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->operator, ie->operator, "Operator check!");
@@ -404,25 +414,20 @@ void parserTestFunctionLiteral() {
     Statement_t* stmt = programGetStatements(prog)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
-    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt->value;
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_FUNCTION_LITERAL, exprStmt->expression->type, "Expression type not EXPRESSION_FUNCTION_LITERAL");
-    FunctionLiteral_t* fl = (FunctionLiteral_t*)exprStmt->expression->value;
+    FunctionLiteral_t* fl = (FunctionLiteral_t*)exprStmt->expression;
 
     Identifier_t** params = functionLiteralGetParameters(fl);
-    // test paramters 
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("x", params[0]->value, "Check identifier value");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("x", params[0]->token->literal, "Check identifeier literal");
-
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("y", params[1]->value, "Check identifier value");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("y", params[1]->token->literal, "Check identifeier literal");
-
+    testIdentifier((Expression_t*)params[0], "x");
+    testIdentifier((Expression_t*)params[1], "y");
     
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, blockStatementGetStatementCount(fl->body), "Not enough statements in function body");
     Statement_t* bodyStmt = blockStatementGetStatements(fl->body)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, bodyStmt->type, "Body statement is not Expression Statement");
-    ExpressionStatement_t* bodyExprStmt = (ExpressionStatement_t*)bodyStmt->value;
+    ExpressionStatement_t* bodyExprStmt = (ExpressionStatement_t*)bodyStmt;
 
     testInifxExpression(bodyExprStmt->expression, _STRING("x"), "+", _STRING("y"));
 
@@ -453,16 +458,14 @@ void parserTestFunctionParameterParsing() {
         Program_t* prog = parserParseProgram(parser);
         checkParserErrors(parser);
 
-        ExpressionStatement_t* stmt = (ExpressionStatement_t*)programGetStatements(prog)[0]->value;
-        FunctionLiteral_t* function = (FunctionLiteral_t*)stmt->expression->value; 
+        ExpressionStatement_t* stmt = (ExpressionStatement_t*)programGetStatements(prog)[0];
+        FunctionLiteral_t* function = (FunctionLiteral_t*)stmt->expression; 
 
         TEST_ASSERT_EQUAL_UINT32_MESSAGE(tc->cnt, functionLiteralGetParameterCount(function), "Invalid parameter count");
         Identifier_t** params = functionLiteralGetParameters(function);
 
         for (uint32_t j = 0; j < tc->cnt; j++) {
-            Expression_t* tmp = createExpression(EXPRESSION_IDENTIFIER, params[j]);
-            testLiteralExpression(tmp, tc->expectedParams[j]);
-            free(tmp);
+            testLiteralExpression((Expression_t*)params[j], tc->expectedParams[j]);
         }
 
         cleanupProgram(&prog);
@@ -485,10 +488,10 @@ void parserTestCallExpressionParsing() {
     Statement_t* stmt = programGetStatements(prog)[0];
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
-    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt->value;
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_CALL_EXPRESSION, exprStmt->expression->type, "Expression type not EXPRESSION_CALL_EXPRESSION");
-    CallExpression_t* callExp = (CallExpression_t*)exprStmt->expression->value;
+    CallExpression_t* callExp = (CallExpression_t*)exprStmt->expression;
 
     testIdentifier(callExp->function, "add");
 
@@ -506,9 +509,10 @@ void parserTestCallExpressionParsing() {
 
 void testLetStatement(Statement_t* s, const char* name) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("let", statementTokenLiteral(s), "Check statement literal!");
+    
     TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_LET, s->type, "Check statement type!");
+    LetStatement_t* letStmt = (LetStatement_t*) s;
 
-    LetStatement_t* letStmt = (LetStatement_t*) s->value;
     TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->value, "Check name value!");
     TEST_ASSERT_EQUAL_STRING_MESSAGE(name, letStmt->name->token->literal, "Check name literal!");
 }
@@ -516,7 +520,7 @@ void testLetStatement(Statement_t* s, const char* name) {
 
 void testInifxExpression(Expression_t* expr, GenericExpect_t expL, const char* op, GenericExpect_t expR) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INFIX_EXPRESSION, expr->type, "Expression not EXPRESSION_INFIX_EXPRESSION");
-    InfixExpression_t* infExpr = (InfixExpression_t*) expr->value; 
+    InfixExpression_t* infExpr = (InfixExpression_t*) expr; 
 
     testLiteralExpression(infExpr->left, expL);
     TEST_ASSERT_EQUAL_STRING_MESSAGE(infExpr->operator, op, "Infix expression has wrong operator");
@@ -542,7 +546,7 @@ void testLiteralExpression(Expression_t* expression, GenericExpect_t exp) {
 
 void testIdentifier(Expression_t *exp, const char* value) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_IDENTIFIER, exp->type, "Check expression is EXPRESSION_IDENTIFIER");
-    Identifier_t* id = (Identifier_t*)exp->value;
+    Identifier_t* id = (Identifier_t*)exp;
 
     TEST_ASSERT_EQUAL_STRING_MESSAGE(value, id->value, "Check identifier value");
     TEST_ASSERT_EQUAL_STRING_MESSAGE(value, id->token->literal, "Check identifeier literal");
@@ -551,7 +555,7 @@ void testIdentifier(Expression_t *exp, const char* value) {
 
 void testIntegerLiteral(Expression_t* exp, int64_t value) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INTEGER_LITERAL, exp->type, "Check expression is EXPRESSION_INTEGER_LITERAL");
-    IntegerLiteral_t* il = (IntegerLiteral_t*)exp->value;
+    IntegerLiteral_t* il = (IntegerLiteral_t*)exp;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(value, il->value, "Check ident value");
 
@@ -562,7 +566,7 @@ void testIntegerLiteral(Expression_t* exp, int64_t value) {
 
 void testBooleanLiteral(Expression_t* exp, bool value) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_BOOLEAN, exp->type, "Check expression is EXPRESSION_BOOLEAN");
-    Boolean_t* bl = (Boolean_t*)exp->value;
+    Boolean_t* bl = (Boolean_t*)exp;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(value, bl->value, "Check identifier value");
     TEST_ASSERT_EQUAL_STRING_MESSAGE( (value ? "true" : "false"), bl->token->literal, "Check identifeier literal");

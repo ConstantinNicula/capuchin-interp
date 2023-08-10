@@ -25,11 +25,10 @@ typedef enum ExpressionType {
 
 typedef struct Expression {
     ExpressionType_t type;
-    // Pointer to specific expression type, must be typecast to explicit type
-    void* value; 
+    Token_t* token;
 } Expression_t;
 
-Expression_t* createExpression(ExpressionType_t type, void* value);
+
 void cleanupExpression(Expression_t** expr);
 
 char* expressionToString(Expression_t* expr);
@@ -44,6 +43,7 @@ typedef char* (*ExpressionToStringFn_t) (void*);
  ************************************/
 
 typedef struct Identifier {
+    ExpressionType_t type;
     Token_t* token;
     const char* value;
 } Identifier_t;
@@ -59,7 +59,8 @@ char* identifierToString(Identifier_t* ident);
  ************************************/
 
 typedef struct IntegerLiteral {
-    Token_t* token; 
+    ExpressionType_t type;
+    Token_t* token;
     int64_t value;
 }IntegerLiteral_t;
 
@@ -73,6 +74,7 @@ char* integerLiteralToString(IntegerLiteral_t* il);
  ************************************/
 
 typedef struct Boolean {
+    ExpressionType_t type;
     Token_t* token;
     bool value;
 } Boolean_t;
@@ -87,6 +89,7 @@ char* booleanToString(Boolean_t* bl);
  ************************************/
 
 typedef struct PrefixExpression {
+    ExpressionType_t type;
     Token_t* token;
     char* operator;
     Expression_t* right;
@@ -102,6 +105,7 @@ char* prefixExpressionToString(PrefixExpression_t* exp);
  ************************************/
 
 typedef struct InfixExpression {
+    ExpressionType_t type;
     Token_t* token;
     Expression_t* left;
     char* operator;
@@ -121,6 +125,7 @@ char* infixExpressionToString(InfixExpression_t* exp);
 typedef struct BlockStatement BlockStatement_t;
 
 typedef struct IfExpression {
+    ExpressionType_t type;
     Token_t* token;
     Expression_t* condition;
     BlockStatement_t* consequence;
@@ -138,6 +143,7 @@ char* ifExpressionToString(IfExpression_t* exp);
  ************************************/
 
 typedef struct FunctionLiteral {
+    ExpressionType_t type;
     Token_t* token;
     Vector_t* parameters;
     BlockStatement_t* body;
@@ -156,6 +162,7 @@ Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp);
  ************************************/
 
 typedef struct CallExpression {
+    ExpressionType_t type;
     Token_t* token;
     Expression_t* function;
     Vector_t* arguments;
@@ -185,8 +192,7 @@ typedef enum StatementType {
 
 typedef struct Statement{
     StatementType_t type;
-    // Pointer to specific statement type, must typecast to explicit type :(
-    void* value; 
+    Token_t* token;
 } Statement_t;
 
 
@@ -194,8 +200,6 @@ typedef struct Statement{
 typedef void (*StatementCleanupFn_t) (void **);
 typedef char* (*StatementToStringFn_t) (void*);
 
-
-Statement_t* createStatement(StatementType_t type, void* value);
 void cleanupStatement(Statement_t** st);
 
 const char* statementTokenLiteral(Statement_t* st);
@@ -206,6 +210,7 @@ char* statementToString(Statement_t* st);
  ************************************/
 
 typedef struct LetStatement {
+    StatementType_t type;
     Token_t* token;
     Identifier_t* name;
     Expression_t* value; 
@@ -221,6 +226,7 @@ char* letStatementToString(LetStatement_t* st);
  ************************************/
 
 typedef struct ReturnStatement {
+    StatementType_t type;
     Token_t* token;
     Expression_t* returnValue;
 } ReturnStatement_t;
@@ -235,6 +241,7 @@ char* returnStatementToString(ReturnStatement_t* st);
  ************************************/
 
 typedef struct ExpressionStatement {
+    StatementType_t type;
     Token_t* token;
     Expression_t* expression;
 } ExpressionStatement_t;
@@ -250,6 +257,7 @@ char* expressionStatementToString(ExpressionStatement_t* st);
  ************************************/
 
 typedef struct BlockStatement {
+    StatementType_t type;
     Token_t* token;
     Vector_t* statements;
 } BlockStatement_t;

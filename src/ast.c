@@ -43,48 +43,27 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
 };
 
 
-Expression_t* createExpression(ExpressionType_t type, void* value) { 
-    Expression_t* exp = (Expression_t*)malloc(sizeof(Expression_t));
-    if (exp == NULL)
-        return NULL;
-    exp->type = type;
-    exp->value = value;
-    return exp;
-}
-
 void cleanupExpression(Expression_t** expr) { 
     if (*expr == NULL)
         return;
     
     if ((*expr)->type  >= 0  && (*expr)->type < EXPRESSION_INVALID) {
         ExpressionCleanupFn_t cleanupFn = expressionCleanupFns[(*expr)->type];
-        cleanupFn(&(*expr)->value);
+        cleanupFn((void**)expr);
     }
-    
-    (*expr)->type = EXPRESSION_INVALID;
-    free(*expr);
-    *expr=NULL;
 }
 
 char* expressionToString(Expression_t* expr) {
-
     if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
         ExpressionToStringFn_t toStringFn = expressionToStringFns[expr->type];
-        return toStringFn(expr->value);
+        return toStringFn(expr);
     }
     return cloneString("");
 }
 
 const char* expressionTokenLiteral(Expression_t* expr) {
-    // Each structure starts with a Token_t element 
-    typedef struct ExpressionBase {
-        Token_t* token;
-    } ExpressionBase_t;
-    
     if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
-        ExpressionBase_t* base = (ExpressionBase_t*)expr->value;
-
-        return base->token->literal; 
+        return expr->token->literal; 
     }
     return "";
 }
@@ -98,8 +77,13 @@ Identifier_t* createIdentifier(const Token_t* tok, const char* val) {
     Identifier_t* ident = (Identifier_t*)malloc(sizeof(Identifier_t));
     if (ident == NULL)
         return NULL; 
-    ident->token = cloneToken(tok);
-    ident->value = cloneString(val);
+
+    *ident =  (Identifier_t) {
+        .type = EXPRESSION_IDENTIFIER,
+        .token = cloneToken(tok),
+        .value = cloneString(val)
+    };
+
     return ident;
 }
 
@@ -128,8 +112,12 @@ IntegerLiteral_t* createIntegerLiteral(const Token_t* tok) {
     IntegerLiteral_t* il = (IntegerLiteral_t*)malloc(sizeof(IntegerLiteral_t));
     if (il == NULL)
         return NULL;
-    il->token = cloneToken(tok);
-    il->value = 0;
+
+    *il = (IntegerLiteral_t) {
+        .type = EXPRESSION_INTEGER_LITERAL,
+        .token = cloneToken(tok),
+        .value = 0
+    };
     return il;
 }
 
@@ -155,9 +143,14 @@ char* integerLiteralToString(IntegerLiteral_t* il) {
 Boolean_t* createBoolean(const Token_t* tok) {
     Boolean_t* bl = (Boolean_t*)malloc(sizeof(Boolean_t));
     if (bl == NULL)
-        return NULL;
-    bl->token = cloneToken(tok);
-    bl->value = false;
+        return NULL;    
+
+    *bl = (Boolean_t) {
+        .type = EXPRESSION_BOOLEAN,
+        .token = cloneToken(tok),
+        .value = false
+    };
+
     return bl;
 }
 
@@ -185,9 +178,14 @@ PrefixExpression_t* createPrefixExpresion(const Token_t* tok) {
     PrefixExpression_t* exp = (PrefixExpression_t*)malloc(sizeof(PrefixExpression_t));
     if (exp == NULL)
         return NULL;
-    exp->token = cloneToken(tok);
-    exp->operator = NULL;
-    exp->right = NULL;
+
+    *exp = (PrefixExpression_t) {
+        .type = EXPRESSION_PREFIX_EXPRESSION,
+        .token = cloneToken(tok),
+        .operator = NULL,
+        .right = NULL
+    };
+
     return exp;
 }
 
@@ -224,10 +222,15 @@ InfixExpression_t* createInfixExpresion(const Token_t* tok) {
     InfixExpression_t* exp = (InfixExpression_t*)malloc(sizeof(InfixExpression_t));
     if (exp == NULL)
         return NULL;
-    exp->token = cloneToken(tok);
-    exp->left = NULL;
-    exp->operator = NULL;
-    exp->right = NULL;
+
+    *exp = (InfixExpression_t) {
+        .type = EXPRESSION_INFIX_EXPRESSION,
+        .token = cloneToken(tok),
+        .left = NULL, 
+        .operator = NULL, 
+        .right = NULL
+    };
+
     return exp;
 }
 
@@ -267,10 +270,15 @@ IfExpression_t* createIfExpresion(const Token_t* tok) {
     IfExpression_t* exp = (IfExpression_t*) malloc(sizeof(IfExpression_t));
     if (exp == NULL)
         return NULL;
-    exp->token = cloneToken(tok);
-    exp->condition = NULL;
-    exp->consequence = NULL;
-    exp->alternative = NULL;
+
+    *exp = (IfExpression_t) {
+        .type = EXPRESSION_IF_EXPRESSION, 
+        .token = cloneToken(tok),
+        .condition = NULL, 
+        .consequence = NULL, 
+        .alternative = NULL
+    };
+
     return exp;
 }
 
@@ -314,9 +322,12 @@ FunctionLiteral_t* createFunctionLiteral(const Token_t* tok) {
     if (exp == NULL) 
         return exp;
     
-    exp->token = cloneToken(tok);
-    exp->parameters = createVector(sizeof(Identifier_t*));
-    exp->body = NULL;
+    *exp = (FunctionLiteral_t) {
+        .type = EXPRESSION_FUNCTION_LITERAL, 
+        .token = cloneToken(tok),
+        .parameters = createVector(sizeof(Identifier_t*)),
+        .body = NULL
+    };
 
     return exp;
 }
@@ -372,10 +383,13 @@ CallExpression_t* createCallExpression(Token_t* tok) {
     if (exp == NULL)
         return NULL;
 
-    exp->token = cloneToken(tok);
-    exp->function = NULL;
-    exp->arguments = createVector(sizeof(Expression_t*));
-
+    *exp = (CallExpression_t) {
+        .type = EXPRESSION_CALL_EXPRESSION, 
+        .token =  cloneToken(tok),
+        .function = NULL, 
+        .arguments = createVector(sizeof(Expression_t*))
+    };
+ 
     return exp;
 }
 
@@ -448,14 +462,6 @@ static StatementToStringFn_t statementToStringFns[] = {
     [STATEMENT_INVALID]=NULL
 };
 
-Statement_t* createStatement(StatementType_t type, void* value) {
-    Statement_t* st = (Statement_t*)malloc(sizeof(Statement_t));
-    if( st == NULL)
-        return NULL;
-    st->type = type;
-    st->value = value;
-    return st;
-}
 
 void cleanupStatement(Statement_t** st) {
     if (*st == NULL)
@@ -463,23 +469,14 @@ void cleanupStatement(Statement_t** st) {
 
     if ((*st)->type >= 0 &&  (*st)->type < STATEMENT_INVALID) {
         StatementCleanupFn_t cleanupFn = statementCleanupFns[(*st)->type];
-        cleanupFn(&((*st)->value));
+        cleanupFn((void**) st);
     }
-
-    (*st)->type = STATEMENT_INVALID;
-    free(*st);
-    *st = NULL;
 }
 
 
 const char* statementTokenLiteral(Statement_t* st) {
-    // Each structure starts with a Token_t element 
-    typedef struct StatementBase {
-        Token_t* token;
-    } StatementBase_t;
-    
     if (st->type >= 0 && st->type <STATEMENT_INVALID ) {
-        return ((StatementBase_t*)st->value)->token->literal;
+        return st->token->literal;
     }
     return "";
 }
@@ -487,7 +484,7 @@ const char* statementTokenLiteral(Statement_t* st) {
 char* statementToString(Statement_t* st) {
     if ( (st->type >= 0) && (st->type <=STATEMENT_INVALID) ) {
         StatementToStringFn_t toStringFn = statementToStringFns[st->type];
-        return toStringFn(st->value);
+        return toStringFn(st);
     }
 
     return cloneString("");
@@ -502,9 +499,14 @@ LetStatement_t* createLetStatement(const Token_t* token) {
     LetStatement_t* st = (LetStatement_t*)malloc(sizeof(LetStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = cloneToken(token);
-    st->name = NULL;
-    st->value = NULL;
+
+    *st = (LetStatement_t) {
+        .type = STATEMENT_LET, 
+        .token = cloneToken(token),
+        .name = NULL,
+        .value = NULL
+    };
+
     return st;
 }
 
@@ -545,8 +547,12 @@ ReturnStatement_t* createReturnStatement(const Token_t* token) {
     ReturnStatement_t* st = (ReturnStatement_t*)malloc(sizeof(ReturnStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = cloneToken(token);
-    st->returnValue = NULL;
+    
+    *st = (ReturnStatement_t) {
+        .type = STATEMENT_RETURN,
+        .token = cloneToken(token),
+        .returnValue = NULL 
+    };
     return st;
 }
 
@@ -583,8 +589,12 @@ ExpressionStatement_t* createExpressionStatement(const Token_t* token) {
     ExpressionStatement_t* st = (ExpressionStatement_t*) malloc(sizeof(ExpressionStatement_t));
     if (st == NULL)
         return NULL;
-    st->token = cloneToken(token);
-    st->expression = NULL;
+    *st = (ExpressionStatement_t) {
+        .type = STATEMENT_EXPRESSION, 
+        .token = cloneToken(token),
+        .expression = NULL
+    };
+
     return st;
 }
 
@@ -616,8 +626,12 @@ BlockStatement_t* createBlockStatement(const Token_t* token) {
     BlockStatement_t* st = (BlockStatement_t*) malloc(sizeof(BlockStatement_t));
     if (st == NULL) 
         return NULL;
-    st->token = cloneToken(token);
-    st->statements = createVector(sizeof(Statement_t*));
+    
+    *st = (BlockStatement_t) {
+        .type = STATEMENT_BLOCK, 
+        .token = cloneToken(token),
+        .statements = createVector(sizeof(Statement_t*))
+    };
     return st;
 }
 

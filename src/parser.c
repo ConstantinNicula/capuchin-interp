@@ -173,13 +173,16 @@ static Statement_t* parserParseLetStatement(Parser_t* parser) {
         goto cleanup;
     }
 
-    // TODO: We're skipping the expression until we 
-    // encounter a semicolon
-    while (!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
+    parserNextToken(parser);
+
+    stmt->value = parserParseExpression(parser, PREC_LOWEST);
+
+    if (parserPeekTokenIs(parser, TOKEN_SEMICOLON))
+    {
         parserNextToken(parser);
     }
 
-    return createStatement(STATEMENT_LET, stmt);
+    return (Statement_t*)stmt;
 
 cleanup:
     cleanupLetStatement(&stmt);
@@ -191,14 +194,14 @@ static Statement_t* parserParseReturnStatement(Parser_t* parser) {
     ReturnStatement_t* stmt = createReturnStatement(parser->curToken);
     parserNextToken(parser);
 
-    // TODO: We're skipping the expressions until we 
-    // encounter a semicolon
+    stmt->returnValue = parserParseExpression(parser, PREC_LOWEST);
 
-    while(!parserCurTokenIs(parser, TOKEN_SEMICOLON)) {
+    if (parserPeekTokenIs(parser, TOKEN_SEMICOLON))
+    {
         parserNextToken(parser);
     }
 
-    return createStatement(STATEMENT_RETURN, stmt);
+    return (Statement_t*)stmt;
 }
 
 
@@ -212,7 +215,7 @@ static Statement_t* parserParseExpressionStatement(Parser_t* parser) {
         parserNextToken(parser);
     }
 
-    return createStatement(STATEMENT_EXPRESSION, stmt);
+    return (Statement_t*)stmt;
 }
 
 
@@ -257,8 +260,7 @@ static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precede
 }
 
 static Expression_t* parserParseIdentifier(Parser_t* parser) {
-    return createExpression(EXPRESSION_IDENTIFIER, 
-                            createIdentifier(parser->curToken, parser->curToken->literal));
+    return (Expression_t*)createIdentifier(parser->curToken, parser->curToken->literal);
 }
 
 static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
@@ -271,7 +273,7 @@ static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
         return NULL;
     }
 
-    return createExpression(EXPRESSION_INTEGER_LITERAL, lit);
+    return (Expression_t*)lit;
 }
 
 static Expression_t* parserParsePrefixExpression(Parser_t* parser) {
@@ -281,7 +283,7 @@ static Expression_t* parserParsePrefixExpression(Parser_t* parser) {
     parserNextToken(parser);
     expression->right = parserParseExpression(parser, PREC_PREFIX);
 
-    return createExpression(EXPRESSION_PREFIX_EXPRESSION, expression);
+    return (Expression_t*)expression;
 }
 
 static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left) {
@@ -293,13 +295,13 @@ static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* 
     parserNextToken(parser);
     expression->right = parserParseExpression(parser, precedence);
 
-    return createExpression(EXPRESSION_INFIX_EXPRESSION, expression);
+    return (Expression_t*)expression;
 }
 
 static Expression_t* parserParseBoolean(Parser_t* parser) {
     Boolean_t* bl = createBoolean(parser->curToken);
     bl->value = parserCurTokenIs(parser, TOKEN_TRUE);
-    return createExpression(EXPRESSION_BOOLEAN, bl);
+    return (Expression_t*)bl;
 }
 
 static Expression_t* parserParseGroupedExpression(Parser_t* parser) {
@@ -349,7 +351,7 @@ static Expression_t* parserParseIfExpression(Parser_t* parser) {
         expression->alternative = parserParseBlockStatement(parser);
     }
 
-    return createExpression(EXPRESSION_IF_EXPRESSION, expression);
+    return (Expression_t*)expression;
 
 }
 
@@ -370,9 +372,8 @@ static Expression_t* parserParseFunctionLiteral(Parser_t* parser) {
 
     expression->body = parserParseBlockStatement(parser);
 
-    return createExpression(EXPRESSION_FUNCTION_LITERAL, expression);
+    return (Expression_t*)expression;
 }
-
 
 static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl) {
     Identifier_t* ident = NULL;
@@ -404,7 +405,7 @@ static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* f
     CallExpression_t* expression = createCallExpression(parser->curToken);
     expression->function = function;
     parserParseCallArguments(parser, expression);
-    return createExpression(EXPRESSION_CALL_EXPRESSION, expression);
+    return (Expression_t*)expression;
 }
 
 static void parserParseCallArguments(Parser_t* parser, CallExpression_t* exp) {
