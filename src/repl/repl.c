@@ -3,29 +3,40 @@
 #include <stdbool.h>
 #include <string.h> 
 
-#include "lexer.h"
-#include "utils.h"
+#include "../parser.h"
+#include "../lexer.h"
+#include "../utils.h"
+
 #define PROMPT ">> "
+
+static void printParserErrors(const char**err, uint32_t cnt){
+    printf("Woops! We ran into some monkey business here!\n");
+    printf(" parser errors:\n");
+
+    for (uint32_t i = 0; i < cnt ; i++) {
+        printf ("\t%s\n", err[i]);
+    }
+}
 
 int main() {
     char inputBuffer[256] = "";
-    Lexer_t* lexer = NULL;
-    Token_t* tok = NULL;
 
     while (true) {
         printf("%s", PROMPT);
         gets(inputBuffer);
+    
+        Lexer_t* lexer = createLexer(inputBuffer);
+        Parser_t* parser = createParser(lexer);
 
-        lexer = createLexer(inputBuffer);
-        tok = lexerNextToken(lexer);
-        while(tok != NULL && tok->type != TOKEN_EOF)  {
-            char* tokString = cloneString(tok->literal);
-            printf("{%s : '%s'}\n", tokenTypeToStr(tok->type), tokString);
-            
-            cleanupToken(&tok);
-            tok = lexerNextToken(lexer);
+        Program_t* program = parserParseProgram(parser);
+        if (parserGetErrorCount(parser) != 0) {
+            printParserErrors(parserGetErrors(parser), parserGetErrorCount(parser));
+        } else {
+            printf("%s\n", programToString(program));
         }
-        cleanupLexer(&lexer);
+
+        cleanupParser(&parser);
+        cleanupProgram(&program);
     }
 
 
