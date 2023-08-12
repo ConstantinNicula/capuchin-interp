@@ -8,16 +8,24 @@
 
 
 static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
-    [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger
+    [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
+    [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
+    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull
 };
 
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
-    [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect
+    [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect,
+    [OBJECT_BOOLEAN]=(ObjectInspectFn_t)booleanInspect,
+    [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect
 };
 
 void cleanupObject(Object_t* obj) {
+    if (!obj)
+        return;
+        
     if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectCleanupFn_t cleanupFn = objectCleanupFns[obj->type];
+        if (!cleanupFn) return;
         cleanupFn((void**)&obj);
     }
 }
@@ -25,6 +33,7 @@ void cleanupObject(Object_t* obj) {
 char* objectInspect(Object_t* obj) {
     if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectInspectFn_t inspectFn = objectInsepctFns[obj->type];
+        if (!inspectFn) return NULL;
         return inspectFn(obj);
     }
     return NULL;
@@ -69,22 +78,14 @@ char* integerInspect(Integer_t* obj) {
  *     BOOLEAN OBJECT TYPE          *
  ************************************/
 
+static Boolean_t TRUE_OBJ =  {.type = OBJECT_BOOLEAN, .value = true};
+static Boolean_t FALSE_OBJ =  {.type = OBJECT_BOOLEAN, .value = false};
+
 Boolean_t* createBoolean(bool value) {
-    Boolean_t* obj = malloc(sizeof(Boolean_t));
-    if (obj == NULL)
-        return NULL;
-
-    *obj = (Boolean_t) {
-        .type = OBJECT_BOOLEAN, 
-        .value = value
-    };
-
-    return obj;
+    return value ? &TRUE_OBJ : &FALSE_OBJ;
 }
+
 void cleanupBoolean(Boolean_t** obj) {
-    if (*obj == NULL)
-        return;
-    free(*obj);
     *obj = NULL;
 }
 
@@ -96,15 +97,14 @@ char* booleanInspect(Boolean_t* obj) {
  *        NULL OBJECT TYPE          *
  ************************************/
 
+static Null_t NULL_OBJ = {.type = OBJECT_NULL};
+
 Null_t* createNull() {
-    return malloc(sizeof(Null_t));
+    return &NULL_OBJ;
 }
 
 void cleanupNull(Null_t** obj) {
-     if (*obj == NULL)
-        return;
     free(*obj);
-    *obj = NULL;
 }
 
 char* nulllInspect(Null_t* obj) {

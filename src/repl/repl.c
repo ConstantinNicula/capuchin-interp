@@ -6,6 +6,7 @@
 #include "../parser.h"
 #include "../lexer.h"
 #include "../utils.h"
+#include "../evaluator.h"
 
 #define PROMPT ">> "
 
@@ -32,7 +33,15 @@ int main() {
         if (parserGetErrorCount(parser) != 0) {
             printParserErrors(parserGetErrors(parser), parserGetErrorCount(parser));
         } else {
-            printf("%s\n", programToString(program));
+            Object_t* evalRes = evalProgram(program);
+            
+            if (evalRes != NULL) {
+                printf("%s\n", objectInspect(evalRes));
+            } else {
+                printf("Eval failed \n");
+            }
+
+            cleanupObject(evalRes);
         }
 
         cleanupParser(&parser);
