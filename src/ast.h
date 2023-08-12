@@ -73,16 +73,16 @@ char* integerLiteralToString(IntegerLiteral_t* il);
  *          BOOLEAN                 *
  ************************************/
 
-typedef struct Boolean {
+typedef struct BooleanLiteral {
     ExpressionType_t type;
     Token_t* token;
     bool value;
-} Boolean_t;
+} BooleanLiteral_t;
 
-Boolean_t* createBoolean(const Token_t* tok);
-void cleanupBoolean(Boolean_t** bl);
+BooleanLiteral_t* createBooleanLiteral(const Token_t* tok);
+void cleanupBooleanLiteral(BooleanLiteral_t** bl);
 
-char* booleanToString(Boolean_t* bl);
+char* booleanLiteralToString(BooleanLiteral_t* bl);
 
 /************************************ 
  *      PREFIX EXPRESSION           *

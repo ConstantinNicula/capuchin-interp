@@ -566,7 +566,7 @@ void testIntegerLiteral(Expression_t* exp, int64_t value) {
 
 void testBooleanLiteral(Expression_t* exp, bool value) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_BOOLEAN, exp->type, "Check expression is EXPRESSION_BOOLEAN");
-    Boolean_t* bl = (Boolean_t*)exp;
+    BooleanLiteral_t* bl = (BooleanLiteral_t*)exp;
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(value, bl->value, "Check identifier value");
     TEST_ASSERT_EQUAL_STRING_MESSAGE( (value ? "true" : "false"), bl->token->literal, "Check identifeier literal");

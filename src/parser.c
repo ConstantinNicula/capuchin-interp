@@ -299,7 +299,7 @@ static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* 
 }
 
 static Expression_t* parserParseBoolean(Parser_t* parser) {
-    Boolean_t* bl = createBoolean(parser->curToken);
+    BooleanLiteral_t* bl = createBooleanLiteral(parser->curToken);
     bl->value = parserCurTokenIs(parser, TOKEN_TRUE);
     return (Expression_t*)bl;
 }

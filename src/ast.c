@@ -21,7 +21,7 @@ static char* statementVecToString(Vector_t* statements);
 static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCleanupFn_t)cleanupIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCleanupFn_t)cleanupIntegerLiteral,
-    [EXPRESSION_BOOLEAN]=(ExpressionCleanupFn_t)cleanupBoolean,
+    [EXPRESSION_BOOLEAN]=(ExpressionCleanupFn_t)cleanupBooleanLiteral,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
@@ -33,7 +33,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
 static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionToStringFn_t)identifierToString,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionToStringFn_t)integerLiteralToString,
-    [EXPRESSION_BOOLEAN]=(ExpressionToStringFn_t)booleanToString,
+    [EXPRESSION_BOOLEAN]=(ExpressionToStringFn_t)booleanLiteralToString,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
@@ -140,12 +140,12 @@ char* integerLiteralToString(IntegerLiteral_t* il) {
  *          BOOLEAN                 *
  ************************************/
 
-Boolean_t* createBoolean(const Token_t* tok) {
-    Boolean_t* bl = (Boolean_t*)malloc(sizeof(Boolean_t));
+BooleanLiteral_t* createBooleanLiteral(const Token_t* tok) {
+    BooleanLiteral_t* bl = (BooleanLiteral_t*)malloc(sizeof(BooleanLiteral_t));
     if (bl == NULL)
         return NULL;    
 
-    *bl = (Boolean_t) {
+    *bl = (BooleanLiteral_t) {
         .type = EXPRESSION_BOOLEAN,
         .token = cloneToken(tok),
         .value = false
@@ -154,7 +154,7 @@ Boolean_t* createBoolean(const Token_t* tok) {
     return bl;
 }
 
-void cleanupBoolean(Boolean_t** bl) {
+void cleanupBooleanLiteral(BooleanLiteral_t** bl) {
     if (*bl == NULL)
         return;
     
@@ -164,7 +164,7 @@ void cleanupBoolean(Boolean_t** bl) {
     *bl = NULL;
 }
 
-char* booleanToString(Boolean_t* bl) {
+char* booleanLiteralToString(BooleanLiteral_t* bl) {
     return bl->value ? cloneString("true") : cloneString("false");
 }
 
