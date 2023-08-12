@@ -37,7 +37,7 @@ void evaluatorTestEvalIntegerExpression() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testIntegerObject(evalRes, tc->expected);
-        cleanupObject(evalRes);
+        cleanupObject(&evalRes);
     }
 }
 
@@ -58,7 +58,33 @@ void evaluatorTestEvalBooleanExpression() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testBooleanObject(evalRes, tc->expected);
-        cleanupObject(evalRes);
+        cleanupObject(&evalRes);
+    }
+}
+
+
+void evaluatorTestBangOperator() {
+    typedef struct TestCase {
+        const char* input;
+        bool expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"!true", false},
+        {"!false", true},
+        {"!5", false},
+        {"!!true", true},
+        {"!!false", false},
+        {"!!5", true}
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+        testBooleanObject(evalRes, tc->expected);
+        cleanupObject(&evalRes);
     }
 }
 
@@ -97,7 +123,7 @@ int main(void) {
     
     RUN_TEST(evaluatorTestEvalIntegerExpression);
     RUN_TEST(evaluatorTestEvalBooleanExpression);
-    
+    RUN_TEST(evaluatorTestBangOperator);
 
     return UNITY_END();
 }

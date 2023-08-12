@@ -27,7 +27,7 @@ typedef struct Object {
 typedef char* (*ObjectInspectFn_t) (void*);
 typedef void (*ObjectCleanupFn_t) (void**);
 
-void cleanupObject(Object_t* obj);
+void cleanupObject(Object_t** obj);
 
 char* objectInspect(Object_t* obj);
 ObjectType_t objectGetType(Object_t* obj);

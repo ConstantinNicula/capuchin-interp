@@ -19,14 +19,14 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect
 };
 
-void cleanupObject(Object_t* obj) {
+void cleanupObject(Object_t** obj) {
     if (!obj)
         return;
         
-    if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
-        ObjectCleanupFn_t cleanupFn = objectCleanupFns[obj->type];
+    if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
+        ObjectCleanupFn_t cleanupFn = objectCleanupFns[(*obj)->type];
         if (!cleanupFn) return;
-        cleanupFn((void**)&obj);
+        cleanupFn((void**)obj);
     }
 }
 
