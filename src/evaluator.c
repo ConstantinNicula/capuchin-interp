@@ -26,6 +26,9 @@ Object_t* evalProgram(Program_t* prog) {
             cleanupObject(&result);
 
         result = evalStatement(stmts[i]);
+        
+        if (!result)
+            return (Object_t*) createError(cloneString("evalStatement return NULL ptr"));
 
         switch(result->type) {
             case OBJECT_RETURN_VALUE: { 
@@ -51,9 +54,13 @@ static Object_t* evalStatement(Statement_t* stmt) {
             return evalExpression(((ExpressionStatement_t*)stmt)->expression);
         case STATEMENT_BLOCK: 
             return evalBlockStatement((BlockStatement_t*)stmt);
-        case STATEMENT_RETURN: 
-            return (Object_t*)createReturnValue(evalExpression(((ReturnStatement_t*)stmt)->returnValue));
-        default:
+        case STATEMENT_RETURN: {
+            Object_t* evalRes = evalExpression(((ReturnStatement_t*)stmt)->returnValue);
+            if (isError(evalRes)){
+                return evalRes;
+            }
+            return (Object_t*)createReturnValue(evalRes);
+        } default:
             return NULL;
     }
 }
@@ -95,7 +102,12 @@ static Object_t* evalExpression(Expression_t* expr) {
 
         case EXPRESSION_PREFIX_EXPRESSION: {
             TokenType_t op =  ((PrefixExpression_t*) expr)->token->type;
+            
             Object_t* evalRight = evalExpression(((PrefixExpression_t*) expr)->right);
+            if (isError(evalRight)) {
+                return evalRight;
+            }
+            
             Object_t* evalRes = evalPrefixExpression(op, evalRight);
             
             cleanupObject(&evalRight);
@@ -104,25 +116,41 @@ static Object_t* evalExpression(Expression_t* expr) {
 
         case EXPRESSION_INFIX_EXPRESSION: {
             TokenType_t op = ((InfixExpression_t*) expr)->token->type;
+            
             Object_t* evalLeft = evalExpression(((InfixExpression_t*) expr)->left);
+            if (isError(evalLeft)) {
+                return evalLeft;
+            }
+
             Object_t* evalRight = evalExpression(((InfixExpression_t*) expr)->right);
-        
+            if (isError(evalRight)) {
+                cleanupObject(&evalLeft);
+                return evalRight;
+            }
+
             Object_t* evalRes = evalInfixExpression(op, evalLeft, evalRight);
+
             cleanupObject(&evalLeft);
             cleanupObject(&evalRight);
             return evalRes;
         }
 
         default: 
-            return NULL;
+            char* message = strFormat("unknown expression type: %d(%s)", 
+                                    expr->type, 
+                                    expr->token->literal);
+            return (Object_t*)createError(message);
     }
 }
 
 
 static Object_t* evalIfExpression(IfExpression_t* expr) {
     Object_t* condition = evalExpression(expr->condition);
-    Object_t* evalRes = NULL;
+    if (isError(condition)) {
+        return condition;
+    }
 
+    Object_t* evalRes = NULL;
     if (isTruthy(condition)) {
         evalRes = evalStatement((Statement_t*)expr->consequence);
     } else if (expr->alternative) {
