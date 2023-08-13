@@ -1,38 +1,72 @@
 #include "evaluator.h"
 
 
-static Object_t* evalStatment(Statement_t* stmt);
-static Object_t* evalExpression(Expression_t* expr);
+static Object_t* evalStatement(Statement_t* stmt);
+static Object_t* evalBlockStatement(BlockStatement_t* stmt);
 
+static Object_t* evalExpression(Expression_t* expr);
+static Object_t* evalIfExpression(IfExpression_t* expr);
 static Object_t* evalPrefixExpression(TokenType_t operator, Object_t* right);
 static Object_t* evalBangOperatorPrefixExpression(Object_t* right);
 static Object_t* evalMinusOperatorPrefixExpression(Object_t* right);
-
-
 static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Object_t* right);
 static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* left, Integer_t* right);
 
+static bool isTruthy(Object_t* obj);
 
 Object_t* evalProgram(Program_t* prog) {
-    uint32_t stmtsCount = programGetStatementCount(prog);
+    uint32_t count = programGetStatementCount(prog);
     Statement_t** stmts = programGetStatements(prog);
-    
     Object_t* result = NULL;
-    for (uint32_t i = 0; i < stmtsCount; i++) {
-        result = evalStatment(stmts[i]);
+
+    for (uint32_t i = 0; i < count; i++) {
+        result = evalStatement(stmts[i]);
+
+        if (result && result->type == OBJECT_RETURN_VALUE) {
+            Object_t* value = ((ReturnValue_t*)result)->value;
+            cleanupObject(&result);
+            return value;
+        }
+
+        if (i < count-1 ){
+            cleanupObject(&result);
+        }
     }
     return result;
+
 }
 
-
-static Object_t* evalStatment(Statement_t* stmt) {
+static Object_t* evalStatement(Statement_t* stmt) {
     switch (stmt->type)
     {
         case STATEMENT_EXPRESSION: 
             return evalExpression(((ExpressionStatement_t*)stmt)->expression);
+        case STATEMENT_BLOCK: 
+            return evalBlockStatement((BlockStatement_t*)stmt);
+        case STATEMENT_RETURN: 
+            return (Object_t*)createReturnValue(evalExpression(((ReturnStatement_t*)stmt)->returnValue));
         default:
             return NULL;
     }
+}
+
+static Object_t* evalBlockStatement(BlockStatement_t* stmt) {
+    Statement_t** stmts = blockStatementGetStatements((BlockStatement_t*)stmt);
+    uint32_t count = blockStatementGetStatementCount((BlockStatement_t*)stmt);
+
+    Object_t* result = NULL;
+    for (uint32_t i = 0; i < count; i++) {
+        result = evalStatement(stmts[i]);
+        
+        if (result && result->type == OBJECT_RETURN_VALUE) {
+            return result;
+        }
+        
+        if (i < count-1 ){
+            cleanupObject(&result);
+        }
+    }
+    return result;
 }
 
 
@@ -45,6 +79,10 @@ static Object_t* evalExpression(Expression_t* expr) {
 
         case EXPRESSION_BOOLEAN_LITERAL: {
             return (Object_t*)createBoolean(((BooleanLiteral_t*)expr)->value);
+        }
+
+        case EXPRESSION_IF_EXPRESSION: {
+            return (Object_t*)evalIfExpression((IfExpression_t*)expr);
         }
 
         case EXPRESSION_PREFIX_EXPRESSION: {
@@ -67,10 +105,26 @@ static Object_t* evalExpression(Expression_t* expr) {
             return evalRes;
         }
 
-
         default: 
             return NULL;
     }
+}
+
+
+static Object_t* evalIfExpression(IfExpression_t* expr) {
+    Object_t* condition = evalExpression(expr->condition);
+    Object_t* evalRes = NULL;
+
+    if (isTruthy(condition)) {
+        evalRes = evalStatement((Statement_t*)expr->consequence);
+    } else if (expr->alternative) {
+        evalRes = evalStatement((Statement_t*)expr->alternative);
+    } else {
+        evalRes = (Object_t*)createNull();
+    }
+    
+    cleanupObject(&condition);
+    return evalRes; 
 }
 
 
@@ -155,5 +209,16 @@ static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* lef
         
         default: 
             return NULL;
+    }
+}
+
+static bool isTruthy(Object_t* obj) {
+    switch(obj->type) {
+        case OBJECT_BOOLEAN:
+            return ((Boolean_t*)obj)->value;
+        case OBJECT_NULL:
+            return false; 
+        default:    
+            return true;
     }
 }

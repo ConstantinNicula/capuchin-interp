@@ -9,6 +9,7 @@ typedef enum ObjectType{
     OBJECT_INTEGER,
     OBJECT_BOOLEAN, 
     OBJECT_NULL,
+    OBJECT_RETURN_VALUE,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -74,6 +75,21 @@ Null_t* createNull();
 void cleanupNull(Null_t** obj);
 
 char* nulllInspect(Null_t* obj);
+
+
+/************************************ 
+ *      RETURN OBJECT TYPE          *
+ ************************************/
+
+typedef struct ReturnValue {
+    OBJECT_BASE_ATTRS;
+    Object_t* value;
+}ReturnValue_t;
+
+ReturnValue_t* createReturnValue(Object_t*);
+void cleanupReturnValue(ReturnValue_t** obj);
+
+char* returnValueInspect(ReturnValue_t* obj);
 
 
 

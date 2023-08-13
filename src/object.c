@@ -10,13 +10,15 @@
 static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
     [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
-    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull
+    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
+    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue
 };
 
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect,
     [OBJECT_BOOLEAN]=(ObjectInspectFn_t)booleanInspect,
-    [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect
+    [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect,
+    [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect
 };
 
 void cleanupObject(Object_t** obj) {
@@ -104,9 +106,38 @@ Null_t* createNull() {
 }
 
 void cleanupNull(Null_t** obj) {
-    free(*obj);
+    *obj = NULL;
 }
 
 char* nulllInspect(Null_t* obj) {
     return cloneString("null");
 }
+
+/************************************ 
+ *      RETURN OBJECT TYPE          *
+ ************************************/
+
+ReturnValue_t* createReturnValue(Object_t* value) {
+    ReturnValue_t* ret = (ReturnValue_t*) malloc(sizeof(ReturnValue_t));
+    if (!ret)
+        return NULL;
+    *ret= (ReturnValue_t) {
+        .type = OBJECT_RETURN_VALUE, 
+        .value = value
+    };
+
+    return ret;
+}
+
+void cleanupReturnValue(ReturnValue_t** obj) {
+    if (!(*obj))
+        return;
+    // Note: intenionally does not free inner obj. 
+    free(*obj);
+    *obj = NULL;    
+}
+
+char* returnValueInspect(ReturnValue_t* obj) {
+    return objectInspect(obj->value);
+}
+

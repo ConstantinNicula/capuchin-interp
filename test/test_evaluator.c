@@ -15,9 +15,31 @@ void tearDown(void) {
     // clean stuff up here
 }
 
+typedef enum {
+    EXPECT_INTEGER,
+    EXPECT_BOOL, 
+    EXPECT_STRING,
+    EXPECT_NULL
+} ExpectType_t;
+
+typedef struct GenericExpect {
+    ExpectType_t type;
+    union {
+        int64_t il;
+        bool bl;
+        const char* sl;
+    };
+}GenericExpect_t;
+
+#define _BOOL(x) (GenericExpect_t){.type=EXPECT_BOOL, .bl=(x)}
+#define _INT(x) (GenericExpect_t){.type=EXPECT_INTEGER, .il=(x)}
+#define _STRING(x) (GenericExpect_t){.type=EXPECT_STRING, .sl=(x)}
+#define _NIL (GenericExpect_t){.type=EXPECT_NULL}
+
 Object_t* testEval(const char* input);
 void testIntegerObject(Object_t* obj, int64_t expected);
 void testBooleanObject(Object_t* obj, bool expected);
+void testNullObject(Object_t* obj);
 
 
 void evaluatorTestEvalIntegerExpression() {
@@ -118,6 +140,64 @@ void evaluatorTestBangOperator() {
     }
 }
 
+void evaluatorTestIfElseExpression() {
+    typedef struct TestCase {
+        const char* input;
+        GenericExpect_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"if (true) { 10 }", _INT(10)},
+        {"if (false) { 10 }", _NIL},
+        {"if (1) { 10 }", _INT(10)},
+        {"if (1 < 2) { 10 }", _INT(10)},
+        {"if (1 > 2) { 10 }", _NIL},
+        {"if (1 > 2) { 10 } else { 20 }", _INT(20)},
+        {"if (1 < 2) { 10 } else { 20 }", _INT(10)}
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+
+        switch(tc->expected.type) {
+            case EXPECT_INTEGER:
+                testIntegerObject(evalRes, tc->expected.il);
+                break;
+            default: 
+                testNullObject(evalRes);
+        }
+
+        cleanupObject(&evalRes);
+    } 
+}
+
+void evaluatorTestReturnStatements() {
+    typedef struct TestCase {
+        const char* input;
+        int64_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"return 10;", 10},
+        {"return 10; 9;", 10},
+        {"return 2 * 5; 9;", 10},
+        {"9; return 2 * 5; 9;", 10},
+        {"if(10 > 1) {if ( 10>1) {return 10;} return 1;}", 10},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+        testIntegerObject(evalRes, tc->expected);
+        cleanupObject(&evalRes);
+    }
+}
+
 
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
@@ -146,6 +226,9 @@ void testBooleanObject(Object_t* obj, bool expected) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(expected, boolObj->value, "Object value is not correct");
 }
 
+void testNullObject(Object_t* obj) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_NULL, obj->type, "Object type not OBJECT_BOOLEAN");
+}
 
 // not needed when using generate_test_runner.rb
 int main(void) {
@@ -154,6 +237,8 @@ int main(void) {
     RUN_TEST(evaluatorTestEvalIntegerExpression);
     RUN_TEST(evaluatorTestEvalBooleanExpression);
     RUN_TEST(evaluatorTestBangOperator);
+    RUN_TEST(evaluatorTestIfElseExpression);
+    RUN_TEST(evaluatorTestReturnStatements);
 
     return UNITY_END();
 }
