@@ -41,7 +41,7 @@ int main() {
                 printf("Eval failed \n");
             }
 
-            cleanupObject(evalRes);
+            cleanupObject(&evalRes);
         }
 
         cleanupParser(&parser);

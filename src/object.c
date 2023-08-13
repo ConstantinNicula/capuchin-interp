@@ -20,7 +20,7 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
 };
 
 void cleanupObject(Object_t** obj) {
-    if (!obj)
+    if (!(*obj))
         return;
         
     if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
