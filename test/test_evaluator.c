@@ -40,6 +40,7 @@ Object_t* testEval(const char* input);
 void testIntegerObject(Object_t* obj, int64_t expected);
 void testBooleanObject(Object_t* obj, bool expected);
 void testNullObject(Object_t* obj);
+void testErrorObject(Object_t* obj, const char* expected);
 
 
 void evaluatorTestEvalIntegerExpression() {
@@ -199,6 +200,45 @@ void evaluatorTestReturnStatements() {
 }
 
 
+void evaluatorTestErrorHandling() {
+    typedef struct TestCase {
+        const char* input;
+        const char* expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"5 + true;",
+         "type mismatch: INTEGER + BOOLEAN"},
+        {"5 + true; 5;",
+        "type mismatch: INTEGER + BOOLEAN"},
+        {"-true",
+        "unknown operator: -BOOLEAN"},
+        {"true + false;",
+        "unknown operator: BOOLEAN + BOOLEAN"},
+        {"5; true + false; 5",
+        "unknown operator: BOOLEAN + BOOLEAN"},
+        {"if (10 > 1) { true + false; }",
+        "unknown operator: BOOLEAN + BOOLEAN"},
+        {"if (10 > 1) {"
+            "if (10 > 1) {"
+                "return true + false;"
+            "}"
+            "return 1;"
+        "}",
+        "unknown operator: BOOLEAN + BOOLEAN"}
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+
+        testErrorObject(evalRes, tc->expected);
+        cleanupObject(&evalRes);
+    }
+}
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -230,6 +270,13 @@ void testNullObject(Object_t* obj) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_NULL, obj->type, "Object type not OBJECT_BOOLEAN");
 }
 
+void testErrorObject(Object_t* obj, const char* expected) {
+    TEST_ASSERT_NOT_NULL_MESSAGE(obj, "Object is null");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_ERROR, obj->type, "Object type not OBJECT_ERROR");
+    Error_t* errObj = (Error_t*) obj;
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(expected, errObj->message, "Wrong error message");
+}
+
 // not needed when using generate_test_runner.rb
 int main(void) {
     UNITY_BEGIN();
@@ -239,6 +286,7 @@ int main(void) {
     RUN_TEST(evaluatorTestBangOperator);
     RUN_TEST(evaluatorTestIfElseExpression);
     RUN_TEST(evaluatorTestReturnStatements);
+    RUN_TEST(evaluatorTestErrorHandling);
 
     return UNITY_END();
 }

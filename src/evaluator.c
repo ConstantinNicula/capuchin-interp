@@ -1,5 +1,5 @@
 #include "evaluator.h"
-
+#include "utils.h"
 
 static Object_t* evalStatement(Statement_t* stmt);
 static Object_t* evalBlockStatement(BlockStatement_t* stmt);
@@ -13,6 +13,8 @@ static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Objec
 static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* left, Integer_t* right);
 
 static bool isTruthy(Object_t* obj);
+static bool isError(Object_t* obj);
+
 
 Object_t* evalProgram(Program_t* prog) {
     uint32_t count = programGetStatementCount(prog);
@@ -20,16 +22,22 @@ Object_t* evalProgram(Program_t* prog) {
     Object_t* result = NULL;
 
     for (uint32_t i = 0; i < count; i++) {
+        if (result != NULL)
+            cleanupObject(&result);
+
         result = evalStatement(stmts[i]);
 
-        if (result && result->type == OBJECT_RETURN_VALUE) {
-            Object_t* value = ((ReturnValue_t*)result)->value;
-            cleanupObject(&result);
-            return value;
-        }
-
-        if (i < count-1 ){
-            cleanupObject(&result);
+        switch(result->type) {
+            case OBJECT_RETURN_VALUE: { 
+                Object_t* value = ((ReturnValue_t*)result)->value;
+                cleanupObject(&result);
+                return value;
+            }   
+            case OBJECT_ERROR: {
+                return result;
+            }
+            default:
+                break; // nothing to do  
         }
     }
     return result;
@@ -58,7 +66,7 @@ static Object_t* evalBlockStatement(BlockStatement_t* stmt) {
     for (uint32_t i = 0; i < count; i++) {
         result = evalStatement(stmts[i]);
         
-        if (result && result->type == OBJECT_RETURN_VALUE) {
+        if (result->type == OBJECT_RETURN_VALUE || result->type == OBJECT_ERROR) {
             return result;
         }
         
@@ -136,7 +144,10 @@ static Object_t* evalPrefixExpression(TokenType_t operator, Object_t* right) {
         case TOKEN_MINUS: 
             return evalMinusOperatorPrefixExpression(right);
         default: 
-            return NULL;
+            char* err = strFormat("unknown operator: %s%s", 
+                                    tokenTypeToStr(operator),
+                                    objectTypeToString(right->type));
+            return (Object_t*)createError(err);
     }
 }
 
@@ -154,7 +165,8 @@ static Object_t* evalBangOperatorPrefixExpression(Object_t* right) {
 
 static Object_t* evalMinusOperatorPrefixExpression(Object_t* right) {
     if (right->type != OBJECT_INTEGER) {
-        return NULL;
+        char* message = strFormat("unknown operator: -%s", objectTypeToString(right->type));
+        return (Object_t*)createError(message);
     }
 
     int64_t value = ((Integer_t*)right)->value;
@@ -163,13 +175,21 @@ static Object_t* evalMinusOperatorPrefixExpression(Object_t* right) {
 
 
 static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Object_t* right) {
-    
-    // Integer only 
+    // Early exit on mismatched types     
+    if (left->type != right->type) {
+        char* message = strFormat("type mismatch: %s %s %s", 
+                            objectTypeToString(left->type), 
+                            tokenTypeToStr(operator), 
+                            objectTypeToString(right->type));
+        return (Object_t*) createError(message);
+    }
+
+    // Integers
     if (left->type == OBJECT_INTEGER && right->type == OBJECT_INTEGER) {
         return evalIntegerInfixExpression(operator, (Integer_t*)left, (Integer_t*)right);
     }
 
-    // Boolean only 
+    // Booleans
     if (left->type == OBJECT_BOOLEAN && right->type == OBJECT_BOOLEAN) {
         bool leftVal = ((Boolean_t*) left)->value;
         bool rightVal = ((Boolean_t*) right)->value;
@@ -180,11 +200,17 @@ static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Objec
             case TOKEN_NOT_EQ:
                 return (Object_t*) createBoolean(leftVal != rightVal);
             default: 
-                return NULL;
+                // Do nothing (no op)
+                break;
         }
     }
 
-    return NULL;
+    // No Op found 
+    char* message = strFormat("unknown operator: %s %s %s",  
+                            objectTypeToString(left->type), 
+                            tokenTypeToStr(operator), 
+                            objectTypeToString(right->type));
+    return (Object_t*) createError(message);
 }
 
 static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* left, Integer_t* right) {
@@ -208,7 +234,11 @@ static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* lef
             return (Object_t*) createBoolean(left->value != right->value);
         
         default: 
-            return NULL;
+            char* message = strFormat("unkown operator: %s %s %s", 
+                            objectTypeToString(left->type), 
+                            tokenTypeToStr(operator), 
+                            objectTypeToString(right->type));
+            return (Object_t*)createError(message);
     }
 }
 
@@ -221,4 +251,12 @@ static bool isTruthy(Object_t* obj) {
         default:    
             return true;
     }
+}
+
+static bool isError(Object_t* obj) {
+    if (obj) {
+        return obj->type == OBJECT_ERROR;
+    }
+
+    return false;
 }

@@ -10,7 +10,8 @@
         "type_traits": "c",
         "utility": "c",
         "stdint.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "system_error": "c"
     },
     "cmake.configureOnOpen": false
 }

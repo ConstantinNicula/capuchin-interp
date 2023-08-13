@@ -2,6 +2,26 @@
 
 #include <stdlib.h>
 #include "utils.h"
+
+
+const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
+    [OBJECT_INTEGER]="INTEGER",
+    [OBJECT_BOOLEAN]="BOOLEAN", 
+    [OBJECT_NULL]="NULL",
+    [OBJECT_ERROR]="ERROR",
+    [OBJECT_RETURN_VALUE]="RETURN_VALUE"
+};
+
+const char* objectTypeToString(ObjectType_t type) {
+    if (0 <= type && type <= _OBJECT_TYPE_CNT) {
+        return tokenTypeStrings[type];
+    }
+    
+    return "";
+}
+
+
+
 /************************************ 
  *     GENERIC OBJECT TYPE          *
  ************************************/
@@ -11,14 +31,16 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
     [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
     [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
-    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue
+    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue,
+    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError
 };
 
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect,
     [OBJECT_BOOLEAN]=(ObjectInspectFn_t)booleanInspect,
     [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect,
-    [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect
+    [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect,
+    [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect
 };
 
 void cleanupObject(Object_t** obj) {
@@ -139,5 +161,33 @@ void cleanupReturnValue(ReturnValue_t** obj) {
 
 char* returnValueInspect(ReturnValue_t* obj) {
     return objectInspect(obj->value);
+}
+
+/************************************ 
+ *      ERROR OBJECT TYPE          *
+ ************************************/
+
+Error_t* createError(char* message) {
+    Error_t* err = (Error_t*) malloc(sizeof(Error_t));
+    if (!err) 
+        return NULL;
+
+    *err = (Error_t) {
+        .type = OBJECT_ERROR,
+        .message = message
+    };
+
+    return err;
+}
+void cleanupError(Error_t** err) {
+    if (!(*err))
+        return;
+    free((*err)->message);
+    free(*err);
+    *err = NULL;
+}
+
+char* errorInspect(Error_t* err) {
+    return strFormat("ERROR: %s", err->message);
 }
 

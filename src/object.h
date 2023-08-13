@@ -10,9 +10,12 @@ typedef enum ObjectType{
     OBJECT_BOOLEAN, 
     OBJECT_NULL,
     OBJECT_RETURN_VALUE,
+    OBJECT_ERROR,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
+
+const char* objectTypeToString(ObjectType_t type);
 
 #define OBJECT_BASE_ATTRS \
     ObjectType_t type
@@ -90,6 +93,21 @@ ReturnValue_t* createReturnValue(Object_t*);
 void cleanupReturnValue(ReturnValue_t** obj);
 
 char* returnValueInspect(ReturnValue_t* obj);
+
+
+/************************************ 
+ *      ERROR OBJECT TYPE          *
+ ************************************/
+
+typedef struct Error {
+    OBJECT_BASE_ATTRS;
+    char* message;
+}Error_t;
+
+Error_t* createError(char* message);
+void cleanupError(Error_t** obj);
+
+char* errorInspect(Error_t* obj);
 
 
 
