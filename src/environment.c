@@ -17,7 +17,8 @@ void cleanupEnvironment(Environment_t**env) {
 }
 
 Object_t* environmentGet(Environment_t* env, const char* name){
-    return hashMapGet(env->store, name);
+    Object_t* obj = hashMapGet(env->store, name); 
+    return obj ? cloneObject(obj) : NULL;
 }
 
 Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){

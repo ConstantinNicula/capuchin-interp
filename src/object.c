@@ -43,6 +43,14 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect
 };
 
+static ObjectCloneFn_t objectCloneFns[_OBJECT_TYPE_CNT] = {
+    [OBJECT_INTEGER]=(ObjectCloneFn_t)cloneInteger,
+    [OBJECT_BOOLEAN]=(ObjectCloneFn_t)cloneBoolean,
+    [OBJECT_NULL]=(ObjectCloneFn_t)cloneNull,
+    [OBJECT_RETURN_VALUE]=(ObjectCloneFn_t)cloneReturnValue,
+    [OBJECT_ERROR]=(ObjectCloneFn_t)cloneError
+};
+
 void cleanupObject(Object_t** obj) {
     if (!(*obj))
         return;
@@ -61,6 +69,15 @@ char* objectInspect(Object_t* obj) {
         return inspectFn(obj);
     }
     return cloneString(""); 
+}
+
+Object_t* cloneObject(Object_t* obj) {
+    if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+        ObjectCloneFn_t cloneFn = objectCloneFns[obj->type];
+        if (!cloneFn) return (Object_t*)createNull();
+        return cloneFn(obj);
+    }
+    return (Object_t*)createNull();
 }
 
 ObjectType_t objectGetType(Object_t* obj) {
@@ -92,6 +109,10 @@ void cleanupInteger(Integer_t** obj) {
     *obj = NULL;
 }
 
+Integer_t* cloneInteger(Integer_t* obj) {
+    return createInteger(obj->value);
+}
+
 char* integerInspect(Integer_t* obj) {
     return strFormat("%d", obj->value);
 }
@@ -113,6 +134,10 @@ void cleanupBoolean(Boolean_t** obj) {
     *obj = NULL;
 }
 
+Boolean_t* cloneBoolean(Boolean_t* obj) {
+    return createBoolean(obj->value);
+}
+
 char* booleanInspect(Boolean_t* obj) {
     return obj->value ? cloneString("true") : cloneString("false");
 }
@@ -129,6 +154,10 @@ Null_t* createNull() {
 
 void cleanupNull(Null_t** obj) {
     *obj = NULL;
+}
+
+Null_t* cloneNull(Null_t* obj) {
+    return createNull();
 }
 
 char* nulllInspect(Null_t* obj) {
@@ -159,6 +188,10 @@ void cleanupReturnValue(ReturnValue_t** obj) {
     *obj = NULL;    
 }
 
+ReturnValue_t* cloneReturnValue(ReturnValue_t* obj) {
+    return createReturnValue(cloneObject(obj->value));
+}
+
 char* returnValueInspect(ReturnValue_t* obj) {
     return objectInspect(obj->value);
 }
@@ -179,6 +212,11 @@ Error_t* createError(char* message) {
 
     return err;
 }
+
+Error_t* cloneError(Error_t* obj) {
+    return createError(cloneString(obj->message));
+}
+
 void cleanupError(Error_t** err) {
     if (!(*err))
         return;

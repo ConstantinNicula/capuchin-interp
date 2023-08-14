@@ -273,9 +273,9 @@ Object_t* testEval(const char* input) {
     if (ret->type == OBJECT_ERROR) {
         TEST_MESSAGE(((Error_t*)ret)->message);
     }
-    //cleanupProgram(&program);
-    //cleanupParser(&parser);
-    // cleanupEnvironment(&env);
+    cleanupProgram(&program);
+    cleanupParser(&parser);
+    cleanupEnvironment(&env);
 
     return ret; 
 }
@@ -309,12 +309,12 @@ void testErrorObject(Object_t* obj, const char* expected) {
 int main(void) {
     UNITY_BEGIN();
     
-    // RUN_TEST(evaluatorTestEvalIntegerExpression);
-    // RUN_TEST(evaluatorTestEvalBooleanExpression);
-    // RUN_TEST(evaluatorTestBangOperator);
-    // RUN_TEST(evaluatorTestIfElseExpression);
-    // RUN_TEST(evaluatorTestReturnStatements);
-    // RUN_TEST(evaluatorTestErrorHandling);
+    RUN_TEST(evaluatorTestEvalIntegerExpression);
+    RUN_TEST(evaluatorTestEvalBooleanExpression);
+    RUN_TEST(evaluatorTestBangOperator);
+    RUN_TEST(evaluatorTestIfElseExpression);
+    RUN_TEST(evaluatorTestReturnStatements);
+    RUN_TEST(evaluatorTestErrorHandling);
     RUN_TEST(evaluatorTestLetStatements);
     return UNITY_END();
 }
