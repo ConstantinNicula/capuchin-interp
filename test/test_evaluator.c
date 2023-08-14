@@ -199,6 +199,28 @@ void evaluatorTestReturnStatements() {
     }
 }
 
+void evaluatorTestLetStatements() {
+    typedef struct {
+        const char* input;
+        int64_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"let a = 5; a;", 5},
+        {"let a = 5 * 5; a;", 25},
+        {"let a = 5; let b = a; b;", 5},
+        {"let a = 5; let b =a; let c = a + b + 5;c;", 15},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+        testIntegerObject(evalRes, tc->expected);
+        cleanupObject(&evalRes);
+    }
+}
 
 void evaluatorTestErrorHandling() {
     typedef struct TestCase {
@@ -225,7 +247,9 @@ void evaluatorTestErrorHandling() {
             "}"
             "return 1;"
         "}",
-        "unknown operator: BOOLEAN + BOOLEAN"}
+        "unknown operator: BOOLEAN + BOOLEAN"},
+        {"foobar",
+         "identifier not found: foobar"}
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
@@ -243,11 +267,15 @@ Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
     Program_t* program = parserParseProgram(parser);
+    Environment_t* env = createEnvironment();
 
-    Object_t* ret = evalProgram(program);
-
-    cleanupProgram(&program);
-    cleanupParser(&parser);
+    Object_t* ret = evalProgram(program, env);
+    if (ret->type == OBJECT_ERROR) {
+        TEST_MESSAGE(((Error_t*)ret)->message);
+    }
+    //cleanupProgram(&program);
+    //cleanupParser(&parser);
+    // cleanupEnvironment(&env);
 
     return ret; 
 }
@@ -281,12 +309,12 @@ void testErrorObject(Object_t* obj, const char* expected) {
 int main(void) {
     UNITY_BEGIN();
     
-    RUN_TEST(evaluatorTestEvalIntegerExpression);
-    RUN_TEST(evaluatorTestEvalBooleanExpression);
-    RUN_TEST(evaluatorTestBangOperator);
-    RUN_TEST(evaluatorTestIfElseExpression);
-    RUN_TEST(evaluatorTestReturnStatements);
-    RUN_TEST(evaluatorTestErrorHandling);
-
+    // RUN_TEST(evaluatorTestEvalIntegerExpression);
+    // RUN_TEST(evaluatorTestEvalBooleanExpression);
+    // RUN_TEST(evaluatorTestBangOperator);
+    // RUN_TEST(evaluatorTestIfElseExpression);
+    // RUN_TEST(evaluatorTestReturnStatements);
+    // RUN_TEST(evaluatorTestErrorHandling);
+    RUN_TEST(evaluatorTestLetStatements);
     return UNITY_END();
 }

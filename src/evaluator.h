@@ -2,9 +2,10 @@
 #define _EVALUATOR_H_
 
 #include "object.h"
+#include "environment.h"
 #include "ast.h"
 
-Object_t* evalProgram(Program_t* prog);
+Object_t* evalProgram(Program_t* prog, Environment_t* env);
 
 
 #endif

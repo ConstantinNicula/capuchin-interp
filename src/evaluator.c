@@ -1,11 +1,12 @@
 #include "evaluator.h"
 #include "utils.h"
 
-static Object_t* evalStatement(Statement_t* stmt);
-static Object_t* evalBlockStatement(BlockStatement_t* stmt);
+static Object_t* evalStatement(Statement_t* stmt, Environment_t* env);
+static Object_t* evalBlockStatement(BlockStatement_t* stmt, Environment_t* env);
 
-static Object_t* evalExpression(Expression_t* expr);
-static Object_t* evalIfExpression(IfExpression_t* expr);
+static Object_t* evalExpression(Expression_t* expr, Environment_t* env);
+static Object_t* evalIfExpression(IfExpression_t* expr, Environment_t* env);
+
 static Object_t* evalPrefixExpression(TokenType_t operator, Object_t* right);
 static Object_t* evalBangOperatorPrefixExpression(Object_t* right);
 static Object_t* evalMinusOperatorPrefixExpression(Object_t* right);
@@ -16,7 +17,7 @@ static bool isTruthy(Object_t* obj);
 static bool isError(Object_t* obj);
 
 
-Object_t* evalProgram(Program_t* prog) {
+Object_t* evalProgram(Program_t* prog, Environment_t* env) {
     uint32_t count = programGetStatementCount(prog);
     Statement_t** stmts = programGetStatements(prog);
     Object_t* result = NULL;
@@ -25,7 +26,7 @@ Object_t* evalProgram(Program_t* prog) {
         if (result != NULL)
             cleanupObject(&result);
 
-        result = evalStatement(stmts[i]);
+        result = evalStatement(stmts[i], env);
         
         if (!result)
             return (Object_t*) createError(cloneString("evalStatement return NULL ptr"));
@@ -47,31 +48,36 @@ Object_t* evalProgram(Program_t* prog) {
 
 }
 
-static Object_t* evalStatement(Statement_t* stmt) {
+static Object_t* evalStatement(Statement_t* stmt, Environment_t* env) {
     switch (stmt->type)
     {
         case STATEMENT_EXPRESSION: 
-            return evalExpression(((ExpressionStatement_t*)stmt)->expression);
+            return evalExpression(((ExpressionStatement_t*)stmt)->expression, env);
         case STATEMENT_BLOCK: 
-            return evalBlockStatement((BlockStatement_t*)stmt);
+            return evalBlockStatement((BlockStatement_t*)stmt, env);
         case STATEMENT_RETURN: {
-            Object_t* evalRes = evalExpression(((ReturnStatement_t*)stmt)->returnValue);
-            if (isError(evalRes)){
-                return evalRes;
-            }
+            Object_t* evalRes = evalExpression(((ReturnStatement_t*)stmt)->returnValue, env);
+            if (isError(evalRes)) return evalRes;
             return (Object_t*)createReturnValue(evalRes);
-        } default:
+        } 
+        case STATEMENT_LET: {
+            Object_t* evalRes = evalExpression(((LetStatement_t*)stmt)->value, env);
+            if (isError(evalRes)) return evalRes;
+            environmentSet(env, ((LetStatement_t*)stmt)->name->value, evalRes);
+            return (Object_t*)createNull();
+        }
+        default:
             return NULL;
     }
 }
 
-static Object_t* evalBlockStatement(BlockStatement_t* stmt) {
+static Object_t* evalBlockStatement(BlockStatement_t* stmt, Environment_t* env) {
     Statement_t** stmts = blockStatementGetStatements((BlockStatement_t*)stmt);
     uint32_t count = blockStatementGetStatementCount((BlockStatement_t*)stmt);
 
     Object_t* result = NULL;
     for (uint32_t i = 0; i < count; i++) {
-        result = evalStatement(stmts[i]);
+        result = evalStatement(stmts[i], env);
         
         if (result->type == OBJECT_RETURN_VALUE || result->type == OBJECT_ERROR) {
             return result;
@@ -85,7 +91,7 @@ static Object_t* evalBlockStatement(BlockStatement_t* stmt) {
 }
 
 
-static Object_t* evalExpression(Expression_t* expr) {
+static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
     switch(expr->type) 
     {
         case EXPRESSION_INTEGER_LITERAL: {
@@ -97,13 +103,13 @@ static Object_t* evalExpression(Expression_t* expr) {
         }
 
         case EXPRESSION_IF_EXPRESSION: {
-            return (Object_t*)evalIfExpression((IfExpression_t*)expr);
+            return (Object_t*)evalIfExpression((IfExpression_t*)expr, env);
         }
 
         case EXPRESSION_PREFIX_EXPRESSION: {
             TokenType_t op =  ((PrefixExpression_t*) expr)->token->type;
             
-            Object_t* evalRight = evalExpression(((PrefixExpression_t*) expr)->right);
+            Object_t* evalRight = evalExpression(((PrefixExpression_t*) expr)->right, env);
             if (isError(evalRight)) {
                 return evalRight;
             }
@@ -117,12 +123,12 @@ static Object_t* evalExpression(Expression_t* expr) {
         case EXPRESSION_INFIX_EXPRESSION: {
             TokenType_t op = ((InfixExpression_t*) expr)->token->type;
             
-            Object_t* evalLeft = evalExpression(((InfixExpression_t*) expr)->left);
+            Object_t* evalLeft = evalExpression(((InfixExpression_t*) expr)->left, env);
             if (isError(evalLeft)) {
                 return evalLeft;
             }
 
-            Object_t* evalRight = evalExpression(((InfixExpression_t*) expr)->right);
+            Object_t* evalRight = evalExpression(((InfixExpression_t*) expr)->right, env);
             if (isError(evalRight)) {
                 cleanupObject(&evalLeft);
                 return evalRight;
@@ -135,6 +141,14 @@ static Object_t* evalExpression(Expression_t* expr) {
             return evalRes;
         }
 
+        case EXPRESSION_IDENTIFIER: {
+            Object_t* val = environmentGet(env, ((Identifier_t*)expr)->value);
+            if (!val) {
+                char* message = strFormat("identifier not found: %s", ((Identifier_t*)expr)->value);
+                return (Object_t*)createError(message);
+            }
+            return val;
+        }
         default: 
             char* message = strFormat("unknown expression type: %d(%s)", 
                                     expr->type, 
@@ -144,17 +158,17 @@ static Object_t* evalExpression(Expression_t* expr) {
 }
 
 
-static Object_t* evalIfExpression(IfExpression_t* expr) {
-    Object_t* condition = evalExpression(expr->condition);
+static Object_t* evalIfExpression(IfExpression_t* expr, Environment_t* env) {
+    Object_t* condition = evalExpression(expr->condition, env);
     if (isError(condition)) {
         return condition;
     }
 
     Object_t* evalRes = NULL;
     if (isTruthy(condition)) {
-        evalRes = evalStatement((Statement_t*)expr->consequence);
+        evalRes = evalStatement((Statement_t*)expr->consequence, env);
     } else if (expr->alternative) {
-        evalRes = evalStatement((Statement_t*)expr->alternative);
+        evalRes = evalStatement((Statement_t*)expr->alternative, env);
     } else {
         evalRes = (Object_t*)createNull();
     }

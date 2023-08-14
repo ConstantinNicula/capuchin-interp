@@ -7,7 +7,7 @@
 #include "../lexer.h"
 #include "../utils.h"
 #include "../evaluator.h"
-
+#include "../environment.h"
 #define PROMPT ">> "
 
 static void printParserErrors(const char**err, uint32_t cnt){
@@ -21,19 +21,19 @@ static void printParserErrors(const char**err, uint32_t cnt){
 
 int main() {
     char inputBuffer[256] = "";
-
+    Environment_t* env = createEnvironment();
     while (true) {
         printf("%s", PROMPT);
         gets(inputBuffer);
     
         Lexer_t* lexer = createLexer(inputBuffer);
         Parser_t* parser = createParser(lexer);
-
+    
         Program_t* program = parserParseProgram(parser);
         if (parserGetErrorCount(parser) != 0) {
             printParserErrors(parserGetErrors(parser), parserGetErrorCount(parser));
         } else {
-            Object_t* evalRes = evalProgram(program);
+            Object_t* evalRes = evalProgram(program, env);
             
             if (evalRes != NULL) {
                 printf("%s\n", objectInspect(evalRes));
@@ -46,6 +46,7 @@ int main() {
 
         cleanupParser(&parser);
         cleanupProgram(&program);
+        //cleanupEnvironment(&env);
     }
 
 

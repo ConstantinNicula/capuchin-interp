@@ -57,10 +57,10 @@ void cleanupObject(Object_t** obj) {
 char* objectInspect(Object_t* obj) {
     if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectInspectFn_t inspectFn = objectInsepctFns[obj->type];
-        if (!inspectFn) return NULL;
+        if (!inspectFn) return cloneString(""); 
         return inspectFn(obj);
     }
-    return NULL;
+    return cloneString(""); 
 }
 
 ObjectType_t objectGetType(Object_t* obj) {
