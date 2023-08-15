@@ -1,7 +1,9 @@
-#include "hmap.h"
-#include "utils.h"
 #include <malloc.h>
 #include <string.h>
+
+#include "hmap.h"
+#include "utils.h"
+#include "refcount.h"
 
 // Number of buckets allocated at has map creation.
 #define DEFAULT_NUM_BUCKETS 4 
@@ -17,8 +19,7 @@ static uint32_t getResizeTriggerLimit(HashMap_t* map);
 /* External API */
 
 HashMap_t* createHashMap() {
-    HashMap_t* map = (HashMap_t*)malloc(sizeof(HashMap_t));
-    if (!map) HANDLE_OOM();
+    HashMap_t* map = createRefCountPtr(sizeof(HashMap_t));
     
     *map = (HashMap_t) {
         .buckets = calloc(DEFAULT_NUM_BUCKETS, sizeof(HashMapEntry_t*)),
@@ -43,10 +44,11 @@ void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn)
 }
 
 void cleanupHashMap(HashMap_t** map) {
-    if (!(*map))
+    if (!(*map) || refCountPtrDec(*map) != 0)
         return;
     free((*map)->buckets);
-    free(*map);
+    
+    cleanupRefCountedPtr(*map);
     *map = NULL;
 }
 

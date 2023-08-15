@@ -1,8 +1,8 @@
 #include "environment.h"
+#include "refcount.h"
 
 Environment_t* createEnvironment(){
-    Environment_t* env = (Environment_t*)malloc(sizeof(Environment_t));
-    if (!env) return NULL;
+    Environment_t* env = createRefCountPtr(sizeof(Environment_t));
     *env = (Environment_t) {
         .store = createHashMap()    
     };
@@ -10,10 +10,12 @@ Environment_t* createEnvironment(){
 }
 
 void cleanupEnvironment(Environment_t**env) {
-    if (!(*env)) return;
+    if (!(*env) || refCountPtrDec(*env) != 0) return;
+    
     cleanupHashMapElements((*env)->store, (HashMapElementCleanupFn_t)cleanupObject);
     cleanupHashMap(&(*env)->store);
-    free(*env);
+    
+    cleanupRefCountedPtr(*env);
     *env = NULL;
 }
 

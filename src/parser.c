@@ -4,6 +4,7 @@
 
 #include "parser.h"
 #include "utils.h"
+#include "refcount.h"
 
 /* Operator precedence levels */
 typedef enum PrecValue{
@@ -76,9 +77,7 @@ static void parserPeekError(Parser_t* parser, TokenType_t expTokenType);
 /* Allocation & Cleanup functions */
 
 Parser_t* createParser(Lexer_t* lexer) {
-    Parser_t* parser = (Parser_t*) malloc(sizeof(Parser_t));
-    if (parser == NULL)
-        return NULL;
+    Parser_t* parser = createRefCountPtr(sizeof(Parser_t));
 
     parser->lexer = lexer;
     parser->curToken = parser->peekToken = NULL;
@@ -113,7 +112,7 @@ Parser_t* createParser(Lexer_t* lexer) {
 }
 
 void cleanupParser(Parser_t** parser) {
-    if (*parser == NULL) 
+    if (!(*parser) || refCountPtrDec(*parser) != 0) 
         return;
     cleanupLexer(&(*parser)->lexer);
     cleanupToken(&(*parser)->peekToken);
@@ -127,7 +126,7 @@ void cleanupParser(Parser_t** parser) {
     }
     cleanupVector(&(*parser)->errors);
     
-    free(*parser);
+    cleanupRefCountedPtr(*parser);
     *parser = NULL;
 }
 

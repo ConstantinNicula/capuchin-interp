@@ -2,11 +2,10 @@
 #include <string.h>
 #include "vector.h"
 #include "utils.h"
+#include "refcount.h"
 
 Vector_t* createVector(size_t elemSize) {
-    Vector_t* vec = (Vector_t*) malloc(sizeof(Vector_t));
-    if (vec == NULL) HANDLE_OOM();
-
+    Vector_t* vec = createRefCountPtr(sizeof(Vector_t));
     vec->elemSize = elemSize;
     
     vec->cap = 0u;
@@ -32,7 +31,7 @@ void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
 
 
 void cleanupVector(Vector_t** vec) {
-    if (!*vec)
+    if (!*vec || refCountPtrDec(*vec) != 0)
         return;
     
     free((*vec)->buf);
@@ -40,7 +39,7 @@ void cleanupVector(Vector_t** vec) {
     (*vec)->cap = 0u;
     (*vec)->buf = NULL;
     
-    free(*vec);
+    cleanupRefCountedPtr(*vec);
     *vec = NULL;
 }
 

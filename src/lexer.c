@@ -7,6 +7,7 @@
 
 #include "lexer.h"
 #include "token.h"
+#include "refcount.h"
 
 static void lexerReadChar(Lexer_t* lexer);
 static char lexerPeekChar(Lexer_t* lexer);
@@ -23,9 +24,7 @@ Lexer_t* createLexer(const char* input)
     if (input == NULL)
         return NULL;
 
-    Lexer_t* lexer = (Lexer_t*) malloc(sizeof(Lexer_t));
-    if (lexer == NULL)
-        return NULL;
+    Lexer_t* lexer = createRefCountPtr(sizeof(Lexer_t));
     
     lexer->input = input;
     lexer->position = 0;
@@ -38,10 +37,10 @@ Lexer_t* createLexer(const char* input)
 
 void cleanupLexer(Lexer_t** lexer)
 {
-    if (*lexer == NULL)
+    if (!(*lexer) || refCountPtrDec(*lexer) != 0)
         return;
         
-    free(*lexer);
+    cleanupRefCountedPtr(*lexer);
     *lexer = NULL;
 }
 
