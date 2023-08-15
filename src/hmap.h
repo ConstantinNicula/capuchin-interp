@@ -15,8 +15,10 @@ typedef struct HashMap {
     uint32_t itemCnt;
 } HashMap_t;
 
+typedef void (*HashMapElementCleanupFn_t) (void** elem);
 
 HashMap_t* createHashMap();
+void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn);
 void cleanupHashMap(HashMap_t** map);
 
 void hashMapInsert(HashMap_t* map, const char* key , void* value);

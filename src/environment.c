@@ -11,17 +11,20 @@ Environment_t* createEnvironment(){
 
 void cleanupEnvironment(Environment_t**env) {
     if (!(*env)) return;
+    cleanupHashMapElements((*env)->store, (HashMapElementCleanupFn_t)cleanupObject);
     cleanupHashMap(&(*env)->store);
     free(*env);
     *env = NULL;
 }
 
 Object_t* environmentGet(Environment_t* env, const char* name){
-    Object_t* obj = hashMapGet(env->store, name); 
-    return obj ? cloneObject(obj) : NULL;
+    Object_t* obj = hashMapGet(env->store, name);
+    return obj ? cloneObject(obj) : NULL; 
 }
 
 Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
-    hashMapInsert(env->store, name, obj);
+    if(!obj) return NULL;
+    hashMapInsert(env->store, name, cloneObject(obj));
     return obj;
 }
+

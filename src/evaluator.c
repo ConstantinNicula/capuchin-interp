@@ -44,6 +44,7 @@ Object_t* evalProgram(Program_t* prog, Environment_t* env) {
                 break; // nothing to do  
         }
     }
+
     return result;
 
 }
@@ -64,6 +65,7 @@ static Object_t* evalStatement(Statement_t* stmt, Environment_t* env) {
             Object_t* evalRes = evalExpression(((LetStatement_t*)stmt)->value, env);
             if (isError(evalRes)) return evalRes;
             environmentSet(env, ((LetStatement_t*)stmt)->name->value, evalRes);
+            cleanupObject(&evalRes);
             return (Object_t*)createNull();
         }
         default:

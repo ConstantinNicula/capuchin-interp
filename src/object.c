@@ -52,8 +52,7 @@ static ObjectCloneFn_t objectCloneFns[_OBJECT_TYPE_CNT] = {
 };
 
 void cleanupObject(Object_t** obj) {
-    if (!(*obj))
-        return;
+    if (!(*obj)) return;
         
     if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
         ObjectCleanupFn_t cleanupFn = objectCleanupFns[(*obj)->type];
@@ -63,7 +62,7 @@ void cleanupObject(Object_t** obj) {
 }
 
 char* objectInspect(Object_t* obj) {
-    if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectInspectFn_t inspectFn = objectInsepctFns[obj->type];
         if (!inspectFn) return cloneString(""); 
         return inspectFn(obj);
@@ -72,7 +71,7 @@ char* objectInspect(Object_t* obj) {
 }
 
 Object_t* cloneObject(Object_t* obj) {
-    if (0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectCloneFn_t cloneFn = objectCloneFns[obj->type];
         if (!cloneFn) return (Object_t*)createNull();
         return cloneFn(obj);

@@ -7,7 +7,7 @@
 #define DEFAULT_NUM_BUCKETS 4 
 
 static HashMapEntry_t* createHashMapEntry(const char* key, void* value); 
-static void cleanupHashMapEntry(HashMapEntry_t** entry); 
+static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElementCleanupFn_t clenaupFn); 
 static uint64_t computeHash(const char* key); 
 static uint32_t getBucketIndex(HashMap_t* map, const char* key); 
 static void hashMapReinsertEntry(HashMap_t* map, HashMapEntry_t* entry); 
@@ -32,18 +32,22 @@ HashMap_t* createHashMap() {
     return map;
 }
 
-void cleanupHashMap(HashMap_t** map) {
-    if (!(*map))
-        return;
+void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
+    if (!map) return;
     
-    for (uint32_t i = 0; i < (*map)->numBuckets; i++) {
-        HashMapEntry_t* ptr = (*map)->buckets[i];
+    for (uint32_t i = 0; i < map->numBuckets; i++) {
+        HashMapEntry_t* ptr = map->buckets[i];
         while (ptr) {
             HashMapEntry_t* next = ptr->next;
-            cleanupHashMapEntry(&ptr);
+            cleanupHashMapEntry(&ptr, cleanupFn);
             ptr = next;
         }
     }
+}
+
+void cleanupHashMap(HashMap_t** map) {
+    if (!(*map))
+        return;
     free((*map)->buckets);
     free(*map);
     *map = NULL;
@@ -169,11 +173,12 @@ static HashMapEntry_t* createHashMapEntry(const char* key, void* value) {
 }
 
 
-static void cleanupHashMapEntry(HashMapEntry_t** entry) {
+static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElementCleanupFn_t cleanupFn) {
     if (!(*entry))
         return;
+        
     free((*entry)->key);
-    free((*entry)->value);
+    cleanupFn(&(*entry)->value);
     
     free(*entry);
     *entry = NULL;

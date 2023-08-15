@@ -14,11 +14,10 @@ typedef enum ObjectType{
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
-
 const char* objectTypeToString(ObjectType_t type);
 
 #define OBJECT_BASE_ATTRS \
-    ObjectType_t type
+    ObjectType_t type;
 
 /************************************ 
  *     GENERIC OBJECT TYPE          *

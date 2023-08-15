@@ -213,7 +213,6 @@ void evaluatorTestLetStatements() {
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
-
     for (uint32_t i = 0; i < cnt; i++ ) {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
