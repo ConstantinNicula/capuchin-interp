@@ -9,9 +9,10 @@ typedef struct Object Object_t;
 
 typedef struct Environment {
     HashMap_t* store;
+    struct Environment* outer;
 } Environment_t;
 
-Environment_t* createEnvironment();
+Environment_t* createEnvironment(Environment_t* outer);
 Environment_t* copyEnvironment(Environment_t* env);
 void cleanupEnvironment(Environment_t**env);
 

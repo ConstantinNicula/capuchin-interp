@@ -231,13 +231,14 @@ char* errorInspect(Error_t* err) {
 /************************************ 
  *    FUNCTION OBJECT TYPE          *
  ************************************/
+
 Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env) {
     Function_t* func = createRefCountPtr(sizeof(Function_t));
     *func = (Function_t) {
         .type = OBJECT_FUNCTION,
         .parameters = copyVector(params),
         .body = copyBlockStatement(body),
-        .environment = copyEnvironment(env)
+        .environment = copyEnvironment(env), // weak copy to env
     };
 
     return func;
@@ -250,7 +251,6 @@ void cleanupFunction(Function_t** obj) {
     cleanupVector(&(*obj)->parameters, (VectorElementCleanupFn_t)cleanupExpression);
     cleanupBlockStatement(&(*obj)->body);
     cleanupEnvironment(&(*obj)->environment);
-
     cleanupRefCountedPtr(*obj);
     *obj = NULL;
 }

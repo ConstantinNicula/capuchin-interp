@@ -36,7 +36,9 @@ HashMap_t* copyHashMap(HashMap_t* map) {
 }
 
 
-static void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
+void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
+    if (!map || !cleanupFn)
+        return;
     for (uint32_t i = 0; i < map->numBuckets; i++) {
         HashMapEntry_t* ptr = map->buckets[i];
         while (ptr) {

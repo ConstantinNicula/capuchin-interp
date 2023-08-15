@@ -13,6 +13,12 @@ static Object_t* evalMinusOperatorPrefixExpression(Object_t* right);
 static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Object_t* right);
 static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* left, Integer_t* right);
 
+static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env);
+static Object_t* applyFunction(Function_t* function, Vector_t* args);
+static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args);
+static Object_t* unwrapReturnValue(Object_t* obj);
+
+
 static bool isTruthy(Object_t* obj);
 static bool isError(Object_t* obj);
 
@@ -153,8 +159,32 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
         }
 
         case EXPRESSION_FUNCTION_LITERAL: {
-            FunctionLiteral_t* flit = ((FunctionLiteral_t*)expr);
-            return (Object_t*) createFunction(flit->parameters, flit->body, env);
+            FunctionLiteral_t* funcLit = ((FunctionLiteral_t*)expr);
+            return (Object_t*) createFunction(funcLit->parameters, funcLit->body, env);
+        }
+
+        case EXPRESSION_CALL_EXPRESSION: {
+            CallExpression_t* callExpr = (CallExpression_t*) expr;
+            Object_t* function = evalExpression(callExpr->function, env);
+            if (isError(function)) { 
+                return function;
+            }
+
+            Vector_t* args = evalExpressions(callExpr->arguments, env);
+            uint32_t argsCnt = vectorGetCount(args);
+            Object_t** argsBuf = (Object_t**)vectorGetBuffer(args);
+            
+            if ( argsCnt == 1 && isError(argsBuf[0])) {
+                Error_t* err = copyError((Error_t*)argsBuf[0]);
+                cleanupObject(&function);
+                cleanupVector(&args, (VectorElementCleanupFn_t)cleanupObject);
+                return (Object_t*)err;
+            }
+
+            Object_t* ret = applyFunction((Function_t*)function, args);
+            cleanupObject(&function);
+            cleanupVector(&args, (VectorElementCleanupFn_t)cleanupObject);
+            return ret;
         }
 
         default: 
@@ -164,6 +194,63 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             return (Object_t*)createError(message);
     }
 }
+
+static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
+    Vector_t* result = createVector(sizeof(Object_t*));
+    
+    uint32_t exprCnt = vectorGetCount(exprs);
+    Expression_t** exprBuf = vectorGetBuffer(exprs);
+
+    for (int i = 0; i < exprCnt; i++) {
+        Object_t* evaluated = evalExpression(exprBuf[i], env);
+        if (isError(evaluated)){
+            cleanupVectorContents(result, (VectorElementCleanupFn_t)cleanupObject);
+            vectorAppend(result, &evaluated);
+            return result;
+        }
+
+        vectorAppend(result, &evaluated);
+    }
+
+    return result;
+}
+
+static Object_t* applyFunction(Function_t* function, Vector_t* args) {
+    if (function->type != OBJECT_FUNCTION) {
+        char* message = strFormat("not a function: %s", objectTypeToString(function->type));
+        return (Object_t*) createError(message);
+    }
+
+    Environment_t* extendedEnv = extendFunctionEnv(function, args);
+    Object_t* evaluated = evalBlockStatement(function->body, extendedEnv);
+    Object_t* ret = unwrapReturnValue(evaluated);
+
+    cleanupEnvironment(&extendedEnv);
+    cleanupObject(&evaluated);
+    return ret;
+}
+
+static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
+    Environment_t* env = createEnvironment(function->environment);
+
+    uint32_t argsCnt = vectorGetCount(args);
+    Object_t** argsBuf = vectorGetBuffer(args);
+    Identifier_t** paramBuf = functionGetParameters(function);
+
+    for (uint32_t i = 0; i < argsCnt; i++) {
+        environmentSet(env, paramBuf[i]->value, argsBuf[i]);
+    }
+
+    return env;
+}
+
+static Object_t* unwrapReturnValue(Object_t* obj) {
+    if (obj->type == OBJECT_RETURN_VALUE) {
+        return ((ReturnValue_t*) obj)->value;
+    }
+    return copyObject(obj);
+}
+
 
 
 static Object_t* evalIfExpression(IfExpression_t* expr, Environment_t* env) {

@@ -283,12 +283,47 @@ void evaluatorTestFunctionObject() {
     cleanupObject(&eval);
 }
 
+void evaluatorTestFunctionApplication() {
+    typedef struct {
+        const char* input;
+        int64_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"let identity = fn(x) { x; }; identity(5);", 5},
+        {"let identity = fn(x) { return x; }; identity(5);", 5},
+        {"let double = fn(x) { x * 2; }; double(5);", 10},
+        {"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
+        {"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+        {"fn(x) { x; }(5)", 5},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+        testIntegerObject(evalRes, tc->expected);
+        cleanupObject(&evalRes);
+    }
+}
+
+void evalatorTestClosures() {
+    const char* input = "let newAdder = fn(x) {"
+                            "fn(y) { x + y };"
+                        "};"
+                        "let addTwo = newAdder(2);"
+                        "addTwo(2);";
+
+    Object_t* evalRes = testEval(input);
+    testIntegerObject(evalRes, 4);
+    cleanupObject(&evalRes);
+}
 
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
     Program_t* program = parserParseProgram(parser);
-    Environment_t* env = createEnvironment();
+    Environment_t* env = createEnvironment(NULL);
 
     Object_t* ret = evalProgram(program, env);
     if (ret->type == OBJECT_ERROR) {
@@ -337,5 +372,7 @@ int main(void) {
     RUN_TEST(evaluatorTestErrorHandling);
     RUN_TEST(evaluatorTestLetStatements);
     RUN_TEST(evaluatorTestFunctionObject);
+    RUN_TEST(evaluatorTestFunctionApplication);
+    RUN_TEST(evalatorTestClosures);
     return UNITY_END();
 }

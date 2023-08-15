@@ -21,7 +21,10 @@ Vector_t* copyVector(Vector_t* vec) {
 
 
 
-static void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
+void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
+    if (!vec || !cleanupFn) 
+        return;
+        
     char* eptr = vec->buf;
     for (uint32_t i = 0; i < vec->cnt; i++)
     {

@@ -21,7 +21,7 @@ static void printParserErrors(const char**err, uint32_t cnt){
 
 int main() {
     char inputBuffer[256] = "";
-    Environment_t* env = createEnvironment();
+    Environment_t* env = createEnvironment(NULL);
     while (true) {
         printf("%s", PROMPT);
         gets(inputBuffer);
@@ -46,9 +46,8 @@ int main() {
 
         cleanupParser(&parser);
         cleanupProgram(&program);
-        //cleanupEnvironment(&env);
     }
-
+    cleanupEnvironment(&env);
 
     return 0;
 }

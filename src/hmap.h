@@ -19,6 +19,7 @@ typedef void (*HashMapElementCleanupFn_t) (void** elem);
 
 HashMap_t* createHashMap();
 HashMap_t* copyHashMap(HashMap_t* map);
+void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn);
 void cleanupHashMap(HashMap_t** map, HashMapElementCleanupFn_t cleanupFn);
 
 void hashMapInsert(HashMap_t* map, const char* key , void* value);
