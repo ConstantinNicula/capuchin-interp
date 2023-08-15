@@ -2,11 +2,11 @@
 #include <string.h> 
 #include "token.h"
 #include "utils.h"
+#include "refcount.h"
+
 
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len) {
-    Token_t* token = (Token_t*) malloc(sizeof(Token_t));
-    if (token == NULL)
-        return NULL;
+    Token_t* token = createRefCountPtr(sizeof(Token_t));
 
     token->type = type;    
     token->literal = cloneSubstring(literal, len); 
@@ -16,16 +16,17 @@ Token_t* createToken(TokenType_t type, const char* literal, uint16_t len) {
     return token;
 }
 
-Token_t* cloneToken(const Token_t* tok) {
-    return createToken(tok->type, tok->literal, strlen(tok->literal));
+Token_t* cloneToken(Token_t* tok) {
+    refCountPtrInc(tok);
+    return tok;
 }
 
 void cleanupToken(Token_t** token)
 {
-    if (*token == NULL)
+    if (!*token || refCountPtrDec(*token))
         return;
     free((*token)->literal);
-    free(*token);
+    cleanupRefCountedPtr(*token);
     *token = NULL;
 }
 

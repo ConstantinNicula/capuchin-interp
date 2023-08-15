@@ -18,10 +18,7 @@ static uint32_t getResizeTriggerLimit(HashMap_t* map);
 
 HashMap_t* createHashMap() {
     HashMap_t* map = (HashMap_t*)malloc(sizeof(HashMap_t));
-    if (!map){
-        perror("HMAP ERROR: Failed to allocate memory!");
-        exit(1);
-    }
+    if (!map) HANDLE_OOM();
     
     *map = (HashMap_t) {
         .buckets = calloc(DEFAULT_NUM_BUCKETS, sizeof(HashMapEntry_t*)),
@@ -33,7 +30,7 @@ HashMap_t* createHashMap() {
 }
 
 void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
-    if (!map) return;
+    if (!map || !cleanupFn) return;
     
     for (uint32_t i = 0; i < map->numBuckets; i++) {
         HashMapEntry_t* ptr = map->buckets[i];
@@ -100,10 +97,7 @@ static void hashMapResize(HashMap_t* map)  {
 
     map->numBuckets = map->numBuckets * 2;  
     map->buckets = (HashMapEntry_t**) calloc(map->numBuckets, sizeof(HashMapEntry_t*));
-    if (!map->buckets){
-        perror("HMAP ERROR: Failed to allocate memory!");
-        exit(1);
-    }
+    if (!map->buckets) HANDLE_OOM();
 
     for(uint32_t i = 0; i < prevSize; i++) {
         HashMapEntry_t* entry = prevBuckets[i];
@@ -158,10 +152,7 @@ static uint64_t computeHash(const char* key) {
 
 static HashMapEntry_t* createHashMapEntry(const char* key, void* value) {
     HashMapEntry_t* entry = (HashMapEntry_t*)malloc(sizeof(HashMapEntry_t));
-    if (!entry) {
-        perror("HMAP ERROR: Failed to allocate memory!");
-        exit(1);
-    }
+    if (!entry) HANDLE_OOM();
      
     *entry = (HashMapEntry_t) {
         .key = cloneString(key),

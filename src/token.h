@@ -52,12 +52,14 @@ typedef struct Token {
 } Token_t;
 
 
+Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
+Token_t* cloneToken(Token_t* tok);
+void cleanupToken(Token_t** token);
+
+
 TokenType_t lookupIdent(const char* ident, uint32_t len);
 const char * tokenTypeToStr(TokenType_t token);
 
-Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
-Token_t* cloneToken(const Token_t* tok);
-void cleanupToken(Token_t** token);
 
 
 

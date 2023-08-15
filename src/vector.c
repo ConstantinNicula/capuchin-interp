@@ -1,12 +1,12 @@
 #include <malloc.h>
 #include <string.h>
 #include "vector.h"
-
+#include "utils.h"
 
 Vector_t* createVector(size_t elemSize) {
     Vector_t* vec = (Vector_t*) malloc(sizeof(Vector_t));
-    if (vec == NULL)
-        return NULL;
+    if (vec == NULL) HANDLE_OOM();
+
     vec->elemSize = elemSize;
     
     vec->cap = 0u;
@@ -17,7 +17,7 @@ Vector_t* createVector(size_t elemSize) {
 
 
 void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
-    if (cleanupFn == NULL)
+    if (!vec || !cleanupFn)
         return;
 
     char* eptr = vec->buf;
@@ -32,7 +32,7 @@ void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
 
 
 void cleanupVector(Vector_t** vec) {
-    if (*vec == NULL)
+    if (!*vec)
         return;
     
     free((*vec)->buf);
@@ -51,15 +51,14 @@ void vectorAppend(Vector_t* vec, void* elem) {
             // no more space, reallocate
             vec->cap = 2u * vec->cap;
             vec->buf = (void*)realloc(vec->buf, vec->elemSize * vec->cap);
-            if (vec->buf == NULL) {
-                return; // TO DO: OOM error 
-            }
+            if (!vec->buf) HANDLE_OOM();
         }
         else 
         {
             // initial allocation
             vec->cap = 1;
             vec->buf = (void*)malloc(vec->elemSize * vec->cap);
+            if (!vec->buf) HANDLE_OOM();
         }
     }
     

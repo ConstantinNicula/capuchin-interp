@@ -11,7 +11,8 @@
         "utility": "c",
         "stdint.h": "c",
         "stdlib.h": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "refcount.h": "c"
     },
     "cmake.configureOnOpen": false
 }

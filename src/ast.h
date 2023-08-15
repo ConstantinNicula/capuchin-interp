@@ -7,6 +7,7 @@
 #include "vector.h"
 
 
+
 /************************************ 
  *     GENERIC EXPRESSION NODE      *
  ************************************/
@@ -48,7 +49,7 @@ typedef struct Identifier {
     const char* value;
 } Identifier_t;
 
-Identifier_t* createIdentifier(const Token_t* tok, const char* val);
+Identifier_t* createIdentifier(Token_t* tok, const char* val);
 void cleanupIdentifier(Identifier_t** ident);
 
 char* identifierToString(Identifier_t* ident);
@@ -64,7 +65,7 @@ typedef struct IntegerLiteral {
     int64_t value;
 }IntegerLiteral_t;
 
-IntegerLiteral_t* createIntegerLiteral(const Token_t* tok);
+IntegerLiteral_t* createIntegerLiteral(Token_t* tok);
 void cleanupIntegerLiteral(IntegerLiteral_t** il);
 
 char* integerLiteralToString(IntegerLiteral_t* il);
@@ -79,7 +80,7 @@ typedef struct BooleanLiteral {
     bool value;
 } BooleanLiteral_t;
 
-BooleanLiteral_t* createBooleanLiteral(const Token_t* tok);
+BooleanLiteral_t* createBooleanLiteral(Token_t* tok);
 void cleanupBooleanLiteral(BooleanLiteral_t** bl);
 
 char* booleanLiteralToString(BooleanLiteral_t* bl);
@@ -95,7 +96,7 @@ typedef struct PrefixExpression {
     Expression_t* right;
 } PrefixExpression_t;
 
-PrefixExpression_t* createPrefixExpresion(const Token_t* tok);
+PrefixExpression_t* createPrefixExpresion(Token_t* tok);
 void cleanupPrefixExpression(PrefixExpression_t** exp);
 
 char* prefixExpressionToString(PrefixExpression_t* exp);
@@ -112,7 +113,7 @@ typedef struct InfixExpression {
     Expression_t* right;
 } InfixExpression_t;
 
-InfixExpression_t* createInfixExpresion(const Token_t* tok);
+InfixExpression_t* createInfixExpresion(Token_t* tok);
 void cleanupInfixExpression(InfixExpression_t** exp);
 
 char* infixExpressionToString(InfixExpression_t* exp);
@@ -132,7 +133,7 @@ typedef struct IfExpression {
     BlockStatement_t* alternative;
 } IfExpression_t;
 
-IfExpression_t* createIfExpresion(const Token_t* tok);
+IfExpression_t* createIfExpresion(Token_t* tok);
 void cleanupIfExpression(IfExpression_t** exp);
 
 char* ifExpressionToString(IfExpression_t* exp);
@@ -149,7 +150,7 @@ typedef struct FunctionLiteral {
     BlockStatement_t* body;
 } FunctionLiteral_t;
 
-FunctionLiteral_t* createFunctionLiteral(const Token_t* tok);
+FunctionLiteral_t* createFunctionLiteral(Token_t* tok);
 void cleanupFunctionLiteral(FunctionLiteral_t** exp);
 
 char* functionLiteralToString(FunctionLiteral_t* exp);
@@ -216,7 +217,7 @@ typedef struct LetStatement {
     Expression_t* value; 
 } LetStatement_t;
 
-LetStatement_t* createLetStatement(const Token_t* token);
+LetStatement_t* createLetStatement(Token_t* token);
 void cleanupLetStatement(LetStatement_t** st);
 
 char* letStatementToString(LetStatement_t* st);
@@ -231,7 +232,7 @@ typedef struct ReturnStatement {
     Expression_t* returnValue;
 } ReturnStatement_t;
 
-ReturnStatement_t* createReturnStatement(const Token_t* token);
+ReturnStatement_t* createReturnStatement(Token_t* token);
 void cleanupReturnStatement(ReturnStatement_t** st);
 
 char* returnStatementToString(ReturnStatement_t* st);
@@ -246,7 +247,7 @@ typedef struct ExpressionStatement {
     Expression_t* expression;
 } ExpressionStatement_t;
 
-ExpressionStatement_t* createExpressionStatement(const Token_t* token);
+ExpressionStatement_t* createExpressionStatement(Token_t* token);
 void cleanupExpressionStatement(ExpressionStatement_t** st);
 
 char* expressionStatementToString(ExpressionStatement_t* st);
@@ -262,7 +263,7 @@ typedef struct BlockStatement {
     Vector_t* statements;
 } BlockStatement_t;
 
-BlockStatement_t* createBlockStatement(const Token_t* token);
+BlockStatement_t* createBlockStatement(Token_t* token);
 void cleanupBlockStatement(BlockStatement_t** st);
 
 char* blockStatementToString(BlockStatement_t* st);

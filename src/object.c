@@ -1,7 +1,8 @@
 #include "object.h"
+#include "utils.h"
+#include "refcount.h"
 
 #include <stdlib.h>
-#include "utils.h"
 
 
 const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
@@ -16,7 +17,6 @@ const char* objectTypeToString(ObjectType_t type) {
     if (0 <= type && type <= _OBJECT_TYPE_CNT) {
         return tokenTypeStrings[type];
     }
-    
     return "";
 }
 
@@ -25,7 +25,6 @@ const char* objectTypeToString(ObjectType_t type) {
 /************************************ 
  *     GENERIC OBJECT TYPE          *
  ************************************/
-
 
 static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
@@ -89,9 +88,7 @@ ObjectType_t objectGetType(Object_t* obj) {
  ************************************/
 
 Integer_t* createInteger(int64_t value) {
-    Integer_t* obj = malloc(sizeof(Integer_t));
-    if (obj == NULL)
-        return NULL;
+    Integer_t* obj = createRefCountPtr(sizeof(Integer_t));
     
     *obj = (Integer_t){
         .type = OBJECT_INTEGER,
@@ -102,14 +99,15 @@ Integer_t* createInteger(int64_t value) {
 }
 
 void cleanupInteger(Integer_t** obj) {
-    if (*obj == NULL)
+    if (*obj == NULL || refCountPtrDec(*obj) != 0)
         return;
-    free(*obj);
+    cleanupRefCountedPtr(*obj);
     *obj = NULL;
 }
 
 Integer_t* cloneInteger(Integer_t* obj) {
-    return createInteger(obj->value);
+    refCountPtrInc(obj);
+    return obj;
 }
 
 char* integerInspect(Integer_t* obj) {
@@ -168,9 +166,7 @@ char* nulllInspect(Null_t* obj) {
  ************************************/
 
 ReturnValue_t* createReturnValue(Object_t* value) {
-    ReturnValue_t* ret = (ReturnValue_t*) malloc(sizeof(ReturnValue_t));
-    if (!ret)
-        return NULL;
+    ReturnValue_t* ret = createRefCountPtr(sizeof(ReturnValue_t));
     *ret= (ReturnValue_t) {
         .type = OBJECT_RETURN_VALUE, 
         .value = value
@@ -180,15 +176,16 @@ ReturnValue_t* createReturnValue(Object_t* value) {
 }
 
 void cleanupReturnValue(ReturnValue_t** obj) {
-    if (!(*obj))
+    if (!(*obj) || refCountPtrDec(*obj) != 0)
         return;
     // Note: intenionally does not free inner obj. 
-    free(*obj);
+    cleanupRefCountedPtr(*obj);
     *obj = NULL;    
 }
 
 ReturnValue_t* cloneReturnValue(ReturnValue_t* obj) {
-    return createReturnValue(cloneObject(obj->value));
+    refCountPtrInc(obj);
+    return obj;
 }
 
 char* returnValueInspect(ReturnValue_t* obj) {
@@ -200,9 +197,7 @@ char* returnValueInspect(ReturnValue_t* obj) {
  ************************************/
 
 Error_t* createError(char* message) {
-    Error_t* err = (Error_t*) malloc(sizeof(Error_t));
-    if (!err) 
-        return NULL;
+    Error_t* err = createRefCountPtr(sizeof(Error_t));
 
     *err = (Error_t) {
         .type = OBJECT_ERROR,
@@ -213,14 +208,15 @@ Error_t* createError(char* message) {
 }
 
 Error_t* cloneError(Error_t* obj) {
-    return createError(cloneString(obj->message));
+    refCountPtrInc(obj);
+    return obj;
 }
 
 void cleanupError(Error_t** err) {
-    if (!(*err))
+    if (!(*err) || refCountPtrDec(*err) != 0)
         return;
     free((*err)->message);
-    free(*err);
+    cleanupRefCountedPtr(*err);
     *err = NULL;
 }
 
