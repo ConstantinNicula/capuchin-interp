@@ -151,6 +151,12 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             }
             return val;
         }
+
+        case EXPRESSION_FUNCTION_LITERAL: {
+            FunctionLiteral_t* flit = ((FunctionLiteral_t*)expr);
+            return (Object_t*) createFunction(flit->parameters, flit->body, env);
+        }
+
         default: 
             char* message = strFormat("unknown expression type: %d(%s)", 
                                     expr->type, 

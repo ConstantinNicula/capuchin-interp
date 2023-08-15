@@ -9,11 +9,15 @@ Environment_t* createEnvironment(){
     return env;
 }
 
+Environment_t* copyEnvironment(Environment_t* env) {
+    refCountPtrInc(env);
+    return env;
+}
+
 void cleanupEnvironment(Environment_t**env) {
     if (!(*env) || refCountPtrDec(*env) != 0) return;
     
-    cleanupHashMapElements((*env)->store, (HashMapElementCleanupFn_t)cleanupObject);
-    cleanupHashMap(&(*env)->store);
+    cleanupHashMap(&(*env)->store, (HashMapElementCleanupFn_t)cleanupObject);
     
     cleanupRefCountedPtr(*env);
     *env = NULL;
@@ -21,12 +25,12 @@ void cleanupEnvironment(Environment_t**env) {
 
 Object_t* environmentGet(Environment_t* env, const char* name){
     Object_t* obj = hashMapGet(env->store, name);
-    return obj ? cloneObject(obj) : NULL; 
+    return obj ? copyObject(obj) : NULL; 
 }
 
 Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
     if(!obj) return NULL;
-    hashMapInsert(env->store, name, cloneObject(obj));
+    hashMapInsert(env->store, name, copyObject(obj));
     return obj;
 }
 

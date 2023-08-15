@@ -16,8 +16,8 @@ typedef struct Vector {
 
 
 Vector_t* createVector(size_t elemSize);
-void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn);
-void cleanupVector(Vector_t** vec); 
+Vector_t* copyVector(Vector_t* vec);
+void cleanupVector(Vector_t** vec, VectorElementCleanupFn_t cleanupFn);
 
 void vectorAppend(Vector_t* vec, void* elem);
 uint32_t vectorGetCount(Vector_t* vec);

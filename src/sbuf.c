@@ -27,8 +27,12 @@ char* detachStrbuf(Strbuf_t** sbuf) {
     if (*sbuf == NULL) 
         return NULL;
 
+    // dangling refs still exist 
+    if (refCountPtrDec(*sbuf) != 0)
+        return (*sbuf)->str;
+
+    // no more refs 
     char* str = (*sbuf)->str;
-    
     (*sbuf)->len = 0u;
     cleanupRefCountedPtr(*sbuf);
     

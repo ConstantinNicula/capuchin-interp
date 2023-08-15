@@ -10,9 +10,15 @@ void tearDown(void) {
     // clean stuff up here
 }
 
+static void cleanupStr(char** str){
+    if (!(*str)) return;
+    free(*str);
+    *str = NULL;
+}
+
 void hashMapTestBasic() {
     HashMap_t* map = createHashMap();
-    cleanupHashMap(&map);    
+    cleanupHashMap(&map, (HashMapElementCleanupFn_t)cleanupStr);    
 }
 
 void hashMapTestInsert() {
@@ -30,7 +36,7 @@ void hashMapTestInsert() {
     TEST_ASSERT_EQUAL_STRING("my value 4", hashMapGet(map, "test1")); 
     TEST_ASSERT_EQUAL_STRING("my value 2", hashMapGet(map, "test2")); 
     TEST_ASSERT_EQUAL_STRING("my value 3", hashMapGet(map, "test3")); 
-    cleanupHashMap(&map);
+    cleanupHashMap(&map, (HashMapElementCleanupFn_t)cleanupStr);
 }
 
 // not needed when using generate_test_runner.rb

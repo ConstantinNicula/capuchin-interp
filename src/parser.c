@@ -111,6 +111,11 @@ Parser_t* createParser(Lexer_t* lexer) {
     return parser;
 }
 
+static void cleanupError(char** str) {
+    if(!*str) return;
+    free(*str);
+}
+
 void cleanupParser(Parser_t** parser) {
     if (!(*parser) || refCountPtrDec(*parser) != 0) 
         return;
@@ -118,17 +123,13 @@ void cleanupParser(Parser_t** parser) {
     cleanupToken(&(*parser)->peekToken);
     cleanupToken(&(*parser)->curToken);
 
-    const char** errorStr = parserGetErrors(*parser);
-    uint32_t errorCnt = parserGetErrorCount(*parser);
-
-    for (uint32_t i = 0u; i < errorCnt; i++){
-        free((void*)errorStr[i]);
-    }
-    cleanupVector(&(*parser)->errors);
+    cleanupVector(&(*parser)->errors, (VectorElementCleanupFn_t)cleanupError);
     
     cleanupRefCountedPtr(*parser);
     *parser = NULL;
 }
+
+
 
 /* Core parsing logic */
 

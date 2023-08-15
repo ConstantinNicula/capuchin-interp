@@ -30,6 +30,19 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_INVALID]=NULL
 };
 
+static ExpressionCopyFn_t expressionCopyFns[] = {
+    [EXPRESSION_IDENTIFIER]=(ExpressionCopyFn_t)copyIdentifier,
+    [EXPRESSION_INTEGER_LITERAL]=(ExpressionCopyFn_t)copyIntegerLiteral,
+    [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCopyFn_t)copyBooleanLiteral,
+    [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCopyFn_t)copyPrefixExpression,
+    [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCopyFn_t)copyInfixExpression,
+    [EXPRESSION_IF_EXPRESSION]=(ExpressionCopyFn_t)copyIfExpression,
+    [EXPRESSION_FUNCTION_LITERAL]=(ExpressionCopyFn_t)copyFunctionLiteral,
+    [EXPRESSION_CALL_EXPRESSION]=(ExpressionCopyFn_t)copyCallExpression,
+    [EXPRESSION_INVALID]=NULL
+};
+
+
 static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionToStringFn_t)identifierToString,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionToStringFn_t)integerLiteralToString,
@@ -53,8 +66,16 @@ void cleanupExpression(Expression_t** expr) {
     }
 }
 
+Expression_t* expressionCopy(Expression_t* expr) {
+    if (expr && expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
+        ExpressionCopyFn_t copyFn = expressionCopyFns[expr->type];
+        return copyFn((void*)expr);
+    }
+    return NULL;
+}
+
 char* expressionToString(Expression_t* expr) {
-    if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
+    if (expr && expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
         ExpressionToStringFn_t toStringFn = expressionToStringFns[expr->type];
         return toStringFn(expr);
     }
@@ -62,7 +83,7 @@ char* expressionToString(Expression_t* expr) {
 }
 
 const char* expressionTokenLiteral(Expression_t* expr) {
-    if (expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
+    if (expr && expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
         return expr->token->literal; 
     }
     return "";
@@ -82,6 +103,11 @@ Identifier_t* createIdentifier(Token_t* tok, const char* val) {
         .value = cloneString(val)
     };
 
+    return ident;
+}
+
+Identifier_t* copyIdentifier(Identifier_t* ident){
+    refCountPtrInc(ident);
     return ident;
 }
 
@@ -117,6 +143,11 @@ IntegerLiteral_t* createIntegerLiteral(Token_t* tok) {
     return il;
 }
 
+IntegerLiteral_t* copyIntegerLiteral(IntegerLiteral_t* il){
+    refCountPtrInc(il);
+    return il;
+}
+
 void cleanupIntegerLiteral(IntegerLiteral_t** il) {
     if (!(*il) || refCountPtrDec(*il) != 0)
         return;
@@ -145,6 +176,11 @@ BooleanLiteral_t* createBooleanLiteral(Token_t* tok) {
         .value = false
     };
 
+    return bl;
+}
+
+BooleanLiteral_t* copyBooleanLiteral(BooleanLiteral_t* bl) {
+    refCountPtrInc(bl);
     return bl;
 }
 
@@ -178,6 +214,11 @@ PrefixExpression_t* createPrefixExpresion(Token_t* tok) {
         .right = NULL
     };
 
+    return exp;
+}
+
+PrefixExpression_t* copyPrefixExpression(PrefixExpression_t* exp) {
+    refCountPtrInc(exp);
     return exp;
 }
 
@@ -224,6 +265,11 @@ InfixExpression_t* createInfixExpresion(Token_t* tok) {
     return exp;
 }
 
+InfixExpression_t* copyInfixExpression(InfixExpression_t* exp) {
+    refCountPtrInc(exp);
+    return exp;
+}
+
 void cleanupInfixExpression(InfixExpression_t** exp) {
     if (!(*exp) || refCountPtrDec(*exp) != 0)
         return;
@@ -267,6 +313,11 @@ IfExpression_t* createIfExpresion(Token_t* tok) {
         .alternative = NULL
     };
 
+    return exp;
+}
+
+IfExpression_t* copyIfExpression(IfExpression_t* exp) {
+    refCountPtrInc(exp);
     return exp;
 }
 
@@ -318,13 +369,17 @@ FunctionLiteral_t* createFunctionLiteral(Token_t* tok) {
     return exp;
 }
 
+FunctionLiteral_t* copyFunctionLiteral(FunctionLiteral_t* exp) {
+    refCountPtrInc(exp);
+    return exp;
+}
+
 void cleanupFunctionLiteral(FunctionLiteral_t** exp) {
     if (!(*exp) || refCountPtrDec(*exp) != 0)
         return;
 
     cleanupToken(&(*exp)->token);
-    cleanupVectorContents((*exp)->parameters, (VectorElementCleanupFn_t)cleanupIdentifier);
-    cleanupVector(&(*exp)->parameters);
+    cleanupVector(&(*exp)->parameters, (VectorElementCleanupFn_t)cleanupIdentifier);
     cleanupBlockStatement(&(*exp)->body);
 
     cleanupRefCountedPtr(*exp);
@@ -377,14 +432,18 @@ CallExpression_t* createCallExpression(Token_t* tok) {
     return exp;
 }
 
+CallExpression_t* copyCallExpression(CallExpression_t* exp) {
+    refCountPtrInc(exp);
+    return exp;
+}
+
 void cleanupCallExpression(CallExpression_t** exp) {
     if (!(*exp) || refCountPtrDec(*exp) != 0)
         return;
     
     cleanupToken(&(*exp)->token);
     cleanupExpression(&(*exp)->function);
-    cleanupVectorContents((*exp)->arguments, (VectorElementCleanupFn_t) cleanupExpression);
-    cleanupVector(&(*exp)->arguments);
+    cleanupVector(&(*exp)->arguments,(VectorElementCleanupFn_t) cleanupExpression);
 
     cleanupRefCountedPtr(*exp);
     *exp = NULL;
@@ -438,6 +497,15 @@ static StatementCleanupFn_t statementCleanupFns[] = {
     [STATEMENT_INVALID]=NULL
 };
 
+static StatementCopyFn_t statementCopyFns[] = {
+    [STATEMENT_LET]=(StatementCopyFn_t)copyLetStatement,
+    [STATEMENT_RETURN]=(StatementCopyFn_t)copyReturnStatement,
+    [STATEMENT_EXPRESSION]=(StatementCopyFn_t)copyExpressionStatement,
+    [STATEMENT_BLOCK]=(StatementCopyFn_t)copyBlockStatement,
+    [STATEMENT_INVALID]=NULL
+};
+
+
 static StatementToStringFn_t statementToStringFns[] = {
     [STATEMENT_LET]=(StatementToStringFn_t)letStatementToString,
     [STATEMENT_RETURN]=(StatementToStringFn_t)returnStatementToString,
@@ -445,6 +513,7 @@ static StatementToStringFn_t statementToStringFns[] = {
     [STATEMENT_BLOCK]=(StatementToStringFn_t)blockStatementToString,
     [STATEMENT_INVALID]=NULL
 };
+
 
 
 void cleanupStatement(Statement_t** st) {
@@ -457,16 +526,23 @@ void cleanupStatement(Statement_t** st) {
     }
 }
 
+Statement_t* copyStatement(Statement_t* st) {
+    if (st && (st->type >= 0) && (st->type <= STATEMENT_INVALID) ) {
+        StatementCopyFn_t copyFn = statementCopyFns[st->type];
+        return copyFn(st);
+    }
+    return NULL;
+}
 
 const char* statementTokenLiteral(Statement_t* st) {
-    if (st->type >= 0 && st->type <STATEMENT_INVALID ) {
+    if (st && st->type >= 0 && st->type <STATEMENT_INVALID ) {
         return st->token->literal;
     }
     return "";
 }
 
 char* statementToString(Statement_t* st) {
-    if ( (st->type >= 0) && (st->type <=STATEMENT_INVALID) ) {
+    if (st && (st->type >= 0) && (st->type <=STATEMENT_INVALID) ) {
         StatementToStringFn_t toStringFn = statementToStringFns[st->type];
         return toStringFn(st);
     }
@@ -492,6 +568,10 @@ LetStatement_t* createLetStatement(Token_t* token) {
     return st;
 }
 
+LetStatement_t* copyLetStatement(LetStatement_t* st) {
+    refCountPtrInc(st);
+    return st;
+}
 
 void cleanupLetStatement(LetStatement_t** st) {
     if (!(*st) || refCountPtrDec(*st) != 0)
@@ -537,6 +617,11 @@ ReturnStatement_t* createReturnStatement(Token_t* token) {
     return st;
 }
 
+ReturnStatement_t* copyReturnStatement(ReturnStatement_t* st) {
+    refCountPtrInc(st);
+    return st;
+}
+
 void cleanupReturnStatement(ReturnStatement_t** st) {
     if (!(*st) || refCountPtrDec(*st) != 0)
         return;
@@ -578,6 +663,11 @@ ExpressionStatement_t* createExpressionStatement(Token_t* token) {
     return st;
 }
 
+ExpressionStatement_t* copyExpressionStatement(ExpressionStatement_t* st) {
+    refCountPtrInc(st);
+    return st;
+}
+
 void cleanupExpressionStatement(ExpressionStatement_t** st) {
     if (!(*st) || refCountPtrDec(*st) != 0)
         return;
@@ -611,6 +701,11 @@ BlockStatement_t* createBlockStatement(Token_t* token) {
         .statements = createVector(sizeof(Statement_t*))
     };
 
+    return st;
+}
+
+BlockStatement_t* copyBlockStatement(BlockStatement_t* st) {
+    refCountPtrInc(st);
     return st;
 }
 
@@ -662,6 +757,11 @@ uint32_t programGetStatementCount(Program_t* prog) {
     return vectorGetCount(prog->statements);
 }
 
+Program_t* copyProgram(Program_t* prog) {
+    refCountPtrInc(prog);
+    return prog;
+}
+
 void cleanupProgram(Program_t** prog) {
     if (*prog == NULL) 
         return;
@@ -697,8 +797,7 @@ char* programToString(Program_t* prog) {
  ************************************/
 
 static void cleanupStatementVec(Vector_t** statements) {
-    cleanupVectorContents(*statements, (VectorElementCleanupFn_t)cleanupStatement);
-    cleanupVector(statements);
+    cleanupVector(statements, (VectorElementCleanupFn_t)cleanupStatement);
     *statements = NULL;
 }
 

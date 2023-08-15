@@ -1,9 +1,9 @@
+#include <stdlib.h>
+
 #include "object.h"
 #include "utils.h"
 #include "refcount.h"
-
-#include <stdlib.h>
-
+#include "sbuf.h"
 
 const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]="INTEGER",
@@ -31,7 +31,8 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
     [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
     [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue,
-    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError
+    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError,
+    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)cleanupFunction
 };
 
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
@@ -39,15 +40,17 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_BOOLEAN]=(ObjectInspectFn_t)booleanInspect,
     [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect,
     [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect,
-    [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect
+    [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect,
+    [OBJECT_FUNCTION]=(ObjectInspectFn_t)functionInspect
 };
 
-static ObjectCloneFn_t objectCloneFns[_OBJECT_TYPE_CNT] = {
-    [OBJECT_INTEGER]=(ObjectCloneFn_t)cloneInteger,
-    [OBJECT_BOOLEAN]=(ObjectCloneFn_t)cloneBoolean,
-    [OBJECT_NULL]=(ObjectCloneFn_t)cloneNull,
-    [OBJECT_RETURN_VALUE]=(ObjectCloneFn_t)cloneReturnValue,
-    [OBJECT_ERROR]=(ObjectCloneFn_t)cloneError
+static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
+    [OBJECT_INTEGER]=(ObjectCopyFn_t)copyInteger,
+    [OBJECT_BOOLEAN]=(ObjectCopyFn_t)copyBoolean,
+    [OBJECT_NULL]=(ObjectCopyFn_t)copyNull,
+    [OBJECT_RETURN_VALUE]=(ObjectCopyFn_t)copyReturnValue,
+    [OBJECT_ERROR]=(ObjectCopyFn_t)copyError,
+    [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction
 };
 
 void cleanupObject(Object_t** obj) {
@@ -69,11 +72,11 @@ char* objectInspect(Object_t* obj) {
     return cloneString(""); 
 }
 
-Object_t* cloneObject(Object_t* obj) {
+Object_t* copyObject(Object_t* obj) {
     if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
-        ObjectCloneFn_t cloneFn = objectCloneFns[obj->type];
-        if (!cloneFn) return (Object_t*)createNull();
-        return cloneFn(obj);
+        ObjectCopyFn_t copyFn = objectCopyFns[obj->type];
+        if (!copyFn) return (Object_t*)createNull();
+        return copyFn(obj);
     }
     return (Object_t*)createNull();
 }
@@ -105,7 +108,7 @@ void cleanupInteger(Integer_t** obj) {
     *obj = NULL;
 }
 
-Integer_t* cloneInteger(Integer_t* obj) {
+Integer_t* copyInteger(Integer_t* obj) {
     refCountPtrInc(obj);
     return obj;
 }
@@ -131,7 +134,7 @@ void cleanupBoolean(Boolean_t** obj) {
     *obj = NULL;
 }
 
-Boolean_t* cloneBoolean(Boolean_t* obj) {
+Boolean_t* copyBoolean(Boolean_t* obj) {
     return createBoolean(obj->value);
 }
 
@@ -153,7 +156,7 @@ void cleanupNull(Null_t** obj) {
     *obj = NULL;
 }
 
-Null_t* cloneNull(Null_t* obj) {
+Null_t* copyNull(Null_t* obj) {
     return createNull();
 }
 
@@ -183,7 +186,7 @@ void cleanupReturnValue(ReturnValue_t** obj) {
     *obj = NULL;    
 }
 
-ReturnValue_t* cloneReturnValue(ReturnValue_t* obj) {
+ReturnValue_t* copyReturnValue(ReturnValue_t* obj) {
     refCountPtrInc(obj);
     return obj;
 }
@@ -207,7 +210,7 @@ Error_t* createError(char* message) {
     return err;
 }
 
-Error_t* cloneError(Error_t* obj) {
+Error_t* copyError(Error_t* obj) {
     refCountPtrInc(obj);
     return obj;
 }
@@ -224,3 +227,62 @@ char* errorInspect(Error_t* err) {
     return strFormat("ERROR: %s", err->message);
 }
 
+
+/************************************ 
+ *    FUNCTION OBJECT TYPE          *
+ ************************************/
+Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env) {
+    Function_t* func = createRefCountPtr(sizeof(Function_t));
+    *func = (Function_t) {
+        .type = OBJECT_FUNCTION,
+        .parameters = copyVector(params),
+        .body = copyBlockStatement(body),
+        .environment = copyEnvironment(env)
+    };
+
+    return func;
+}
+
+void cleanupFunction(Function_t** obj) {
+    if(!(*obj) || refCountPtrDec(*obj) != 0) 
+        return;
+
+    cleanupVector(&(*obj)->parameters, (VectorElementCleanupFn_t)cleanupExpression);
+    cleanupBlockStatement(&(*obj)->body);
+    cleanupEnvironment(&(*obj)->environment);
+
+    cleanupRefCountedPtr(*obj);
+    *obj = NULL;
+}
+
+Function_t* copyFunction(Function_t* obj) {
+    refCountPtrInc(obj);
+    return obj;
+}
+
+char* functionInspect(Function_t* obj) {
+    Strbuf_t* sbuf = createStrbuf();
+    strbufWrite(sbuf, "fn(");
+    
+    uint32_t cnt = vectorGetCount(obj->parameters);
+    Identifier_t** params = vectorGetBuffer(obj->parameters);
+    for (uint32_t i = 0; i < cnt - 1; i++) {
+        strbufConsume(sbuf, identifierToString(params[i]));
+        if (i !=  (cnt - 1))
+            strbufWrite(sbuf, ",");
+    }
+    
+    strbufWrite(sbuf, ") {\n");
+    strbufConsume(sbuf, blockStatementToString(obj->body));
+    strbufWrite(sbuf, "\n}");
+
+    return detachStrbuf(&sbuf);
+}
+
+uint32_t functionGetParameterCount(Function_t* obj) {
+    return vectorGetCount(obj->parameters);
+}
+
+Identifier_t** functionGetParameters(Function_t* obj) {
+    return (Identifier_t**)vectorGetBuffer(obj->parameters);
+}

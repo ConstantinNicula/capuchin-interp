@@ -18,8 +18,8 @@ typedef struct HashMap {
 typedef void (*HashMapElementCleanupFn_t) (void** elem);
 
 HashMap_t* createHashMap();
-void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn);
-void cleanupHashMap(HashMap_t** map);
+HashMap_t* copyHashMap(HashMap_t* map);
+void cleanupHashMap(HashMap_t** map, HashMapElementCleanupFn_t cleanupFn);
 
 void hashMapInsert(HashMap_t* map, const char* key , void* value);
 void* hashMapGet(HashMap_t* map, const char* key);

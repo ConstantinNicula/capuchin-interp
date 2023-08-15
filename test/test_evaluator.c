@@ -262,6 +262,28 @@ void evaluatorTestErrorHandling() {
     }
 }
 
+void evaluatorTestFunctionObject() {
+    const char* input = "fn(x) { x + 2; };";
+    Object_t* eval = testEval(input);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_FUNCTION, eval->type, "Object in not FUNCTION");
+    Function_t* func = (Function_t*) eval;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, functionGetParameterCount(func), "Wrong number of parameters");
+    Identifier_t* param = functionGetParameters(func)[0];
+    
+    char* identStr = identifierToString(param);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("x", identStr, "Wrong parameter name");
+    free(identStr);
+
+    char* bodyStr = blockStatementToString(func->body);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("(x + 2)", bodyStr, "Wrong function body");
+    free(bodyStr);
+
+    cleanupObject(&eval);
+}
+
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -307,7 +329,6 @@ void testErrorObject(Object_t* obj, const char* expected) {
 // not needed when using generate_test_runner.rb
 int main(void) {
     UNITY_BEGIN();
-    
     RUN_TEST(evaluatorTestEvalIntegerExpression);
     RUN_TEST(evaluatorTestEvalBooleanExpression);
     RUN_TEST(evaluatorTestBangOperator);
@@ -315,5 +336,6 @@ int main(void) {
     RUN_TEST(evaluatorTestReturnStatements);
     RUN_TEST(evaluatorTestErrorHandling);
     RUN_TEST(evaluatorTestLetStatements);
+    RUN_TEST(evaluatorTestFunctionObject);
     return UNITY_END();
 }

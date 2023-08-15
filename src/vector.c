@@ -14,11 +14,14 @@ Vector_t* createVector(size_t elemSize) {
     return vec;
 }
 
+Vector_t* copyVector(Vector_t* vec) {
+    refCountPtrInc(vec);
+    return vec;
+}
 
-void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
-    if (!vec || !cleanupFn)
-        return;
 
+
+static void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
     char* eptr = vec->buf;
     for (uint32_t i = 0; i < vec->cnt; i++)
     {
@@ -29,19 +32,18 @@ void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
     vec->cnt = 0;
 }
 
-
-void cleanupVector(Vector_t** vec) {
-    if (!*vec || refCountPtrDec(*vec) != 0)
+void cleanupVector(Vector_t** vec, VectorElementCleanupFn_t cleanupFn) {
+    if (!*vec || !cleanupFn || refCountPtrDec(*vec) != 0)
         return;
     
+    cleanupVectorContents(*vec, cleanupFn);
     free((*vec)->buf);
-    (*vec)->cnt = 0u;
-    (*vec)->cap = 0u;
     (*vec)->buf = NULL;
     
     cleanupRefCountedPtr(*vec);
     *vec = NULL;
 }
+
 
 void vectorAppend(Vector_t* vec, void* elem) {
     if (vec->cnt >= vec->cap)

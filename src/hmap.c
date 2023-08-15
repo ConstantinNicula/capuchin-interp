@@ -30,9 +30,13 @@ HashMap_t* createHashMap() {
     return map;
 }
 
-void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
-    if (!map || !cleanupFn) return;
-    
+HashMap_t* copyHashMap(HashMap_t* map) {
+    refCountPtrInc(map);
+    return map;
+}
+
+
+static void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
     for (uint32_t i = 0; i < map->numBuckets; i++) {
         HashMapEntry_t* ptr = map->buckets[i];
         while (ptr) {
@@ -43,14 +47,19 @@ void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn)
     }
 }
 
-void cleanupHashMap(HashMap_t** map) {
-    if (!(*map) || refCountPtrDec(*map) != 0)
+
+void cleanupHashMap(HashMap_t** map, HashMapElementCleanupFn_t cleanupFn) {
+    if (!(*map) || !cleanupFn || refCountPtrDec(*map) != 0)
         return;
+
+    cleanupHashMapElements(*map, cleanupFn);
     free((*map)->buckets);
     
     cleanupRefCountedPtr(*map);
     *map = NULL;
 }
+
+
 
 void hashMapInsert(HashMap_t* map, const char* key, void* value) {  
     uint32_t index = getBucketIndex(map, key);

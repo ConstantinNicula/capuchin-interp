@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "ast.h"
+#include "environment.h"
 
 typedef enum ObjectType{
     OBJECT_INTEGER,
@@ -11,6 +13,7 @@ typedef enum ObjectType{
     OBJECT_NULL,
     OBJECT_RETURN_VALUE,
     OBJECT_ERROR,
+    OBJECT_FUNCTION,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -29,10 +32,10 @@ typedef struct Object {
 
 typedef char* (*ObjectInspectFn_t) (void*);
 typedef void (*ObjectCleanupFn_t) (void**);
-typedef void* (*ObjectCloneFn_t) (void*);
+typedef void* (*ObjectCopyFn_t) (void*);
 
 void cleanupObject(Object_t** obj);
-Object_t* cloneObject(Object_t* obj);
+Object_t* copyObject(Object_t* obj);
 
 char* objectInspect(Object_t* obj);
 ObjectType_t objectGetType(Object_t* obj);
@@ -48,7 +51,7 @@ typedef struct Integer {
 
 Integer_t* createInteger(int64_t value);
 void cleanupInteger(Integer_t** obj);
-Integer_t* cloneInteger(Integer_t* obj);
+Integer_t* copyInteger(Integer_t* obj);
 
 char* integerInspect(Integer_t* obj);
 
@@ -64,7 +67,7 @@ typedef struct Boolean {
 
 Boolean_t* createBoolean(bool value);
 void cleanupBoolean(Boolean_t** obj);
-Boolean_t* cloneBoolean(Boolean_t* obj);
+Boolean_t* copyBoolean(Boolean_t* obj);
 
 char* booleanInspect(Boolean_t* obj);
 
@@ -79,7 +82,7 @@ typedef struct Null {
 
 Null_t* createNull();
 void cleanupNull(Null_t** obj);
-Null_t* cloneNull(Null_t* obj);
+Null_t* copyNull(Null_t* obj);
 
 char* nulllInspect(Null_t* obj);
 
@@ -95,7 +98,7 @@ typedef struct ReturnValue {
 
 ReturnValue_t* createReturnValue(Object_t*);
 void cleanupReturnValue(ReturnValue_t** obj);
-ReturnValue_t* cloneReturnValue(ReturnValue_t* obj);
+ReturnValue_t* copyReturnValue(ReturnValue_t* obj);
 
 char* returnValueInspect(ReturnValue_t* obj);
 
@@ -111,10 +114,28 @@ typedef struct Error {
 
 Error_t* createError(char* message);
 void cleanupError(Error_t** obj);
-Error_t* cloneError(Error_t* obj);
+Error_t* copyError(Error_t* obj);
 
 char* errorInspect(Error_t* obj);
 
+/************************************ 
+ *    FUNCTION OBJECT TYPE          *
+ ************************************/
+typedef struct Environment Environment_t;
 
+typedef struct Function {
+    OBJECT_BASE_ATTRS;
+    Vector_t* parameters;
+    BlockStatement_t* body;
+    Environment_t* environment;
+} Function_t;
+
+Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env);
+void cleanupFunction(Function_t** obj);
+Function_t* copyFunction(Function_t* obj);
+
+char* functionInspect(Function_t* obj);
+uint32_t functionGetParameterCount(Function_t* obj);
+Identifier_t** functionGetParameters(Function_t* obj);
 
 #endif 
