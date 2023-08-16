@@ -4,6 +4,8 @@
 #include "object.h"
 #include "utils.h"
 #include "sbuf.h"
+#include "gc.h"
+
 
 const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]="INTEGER",
@@ -20,18 +22,10 @@ const char* objectTypeToString(ObjectType_t type) {
     return "";
 }
 
+
 /************************************ 
  *     GENERIC OBJECT TYPE          *
  ************************************/
-
-static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
-    [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
-    [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
-    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
-    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue,
-    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError,
-    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)cleanupFunction
-};
 
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect,
@@ -51,28 +45,6 @@ static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction
 };
 
-static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
-    /*
-    [OBJECT_INTEGER]=(ObjectMarkFn_t)markInteger,
-    [OBJECT_BOOLEAN]=(ObjectMarkFn_t)markBoolean,
-    [OBJECT_NULL]=(ObjectMarkFn_t)markNull,
-    [OBJECT_RETURN_VALUE]=(ObjectMarkFn_t)markReturnValue,
-    [OBJECT_ERROR]=(ObjectMarkFn_t)markError,
-    [OBJECT_FUNCTION]=(ObjectMarkFn_t)markFunction
-    */
-};
-
-
-
-void cleanupObject(Object_t** obj) {
-    if (!(*obj)) return;
-        
-    if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
-        ObjectCleanupFn_t cleanupFn = objectCleanupFns[(*obj)->type];
-        if (!cleanupFn) return;
-        cleanupFn((void**)obj);
-    }
-}
 
 Object_t* copyObject(Object_t* obj) {
     if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
@@ -81,13 +53,6 @@ Object_t* copyObject(Object_t* obj) {
         return copyFn(obj);
     }
     return (Object_t*)createNull();
-}
-
-void gcMarkObject(Object_t* obj) {
-    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
-        ObjectGcMarkFn_t markFn = objectMarkFns[obj->type];
-        if (markFn) markFn(obj);
-    }   
 }
 
 
@@ -101,10 +66,12 @@ char* objectInspect(Object_t* obj) {
 }
 
 
-
 ObjectType_t objectGetType(Object_t* obj) {
     return obj->type;
 }
+
+void gcCleanupObject(Object_t** obj);
+void gcMarkObject(Object_t* obj);
 
 
 /************************************ 
@@ -112,7 +79,7 @@ ObjectType_t objectGetType(Object_t* obj) {
  ************************************/
 
 Integer_t* createInteger(int64_t value) {
-    Integer_t* obj = mallocChk(sizeof(Integer_t));
+    Integer_t* obj = gcMalloc(sizeof(Integer_t), GC_DATA_OBJECT);
     
     *obj = (Integer_t){
         .type = OBJECT_INTEGER,
@@ -123,10 +90,13 @@ Integer_t* createInteger(int64_t value) {
 }
 
 void cleanupInteger(Integer_t** obj) {
-    if (*obj == NULL)
-        return;
-    free(*obj);
-    *obj = NULL;
+    if (!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL; 
+}
+
+void gcMarkInteger(Integer_t* obj) {
+    // no objects owned by gc
 }
 
 Integer_t* copyInteger(Integer_t* obj) {
@@ -143,16 +113,25 @@ char* integerInspect(Integer_t* obj) {
  *     BOOLEAN OBJECT TYPE          *
  ************************************/
 
-static Boolean_t TRUE_OBJ =  {.type = OBJECT_BOOLEAN, .value = true};
-static Boolean_t FALSE_OBJ =  {.type = OBJECT_BOOLEAN, .value = false};
-
 Boolean_t* createBoolean(bool value) {
-    return value ? &TRUE_OBJ : &FALSE_OBJ;
+    Boolean_t* ret = gcMalloc(sizeof(Boolean_t), GC_DATA_OBJECT);
+    *ret = (Boolean_t) {
+        .type = OBJECT_BOOLEAN,
+        .value = value
+    };
+    return ret;
 }
 
 void cleanupBoolean(Boolean_t** obj) {
-    *obj = NULL;
+    if (!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL; 
 }
+
+void gcMarkBoolean(Boolean_t* obj) {
+    // no objects owned by gc
+}
+
 
 Boolean_t* copyBoolean(Boolean_t* obj) {
     return createBoolean(obj->value);
@@ -169,11 +148,19 @@ char* booleanInspect(Boolean_t* obj) {
 static Null_t NULL_OBJ = {.type = OBJECT_NULL};
 
 Null_t* createNull() {
-    return &NULL_OBJ;
+    Null_t* ret = gcMalloc(sizeof(Null_t), GC_DATA_OBJECT);
+    *ret = (Null_t) {.type = OBJECT_NULL};
+    return ret;
 }
 
 void cleanupNull(Null_t** obj) {
-    *obj = NULL;
+    if (!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL;    
+}
+
+void gcMarkNull(Null_t* obj) {
+    // no objects owned by gc
 }
 
 Null_t* copyNull(Null_t* obj) {
@@ -189,7 +176,7 @@ char* nulllInspect(Null_t* obj) {
  ************************************/
 
 ReturnValue_t* createReturnValue(Object_t* value) {
-    ReturnValue_t* ret = mallocChk(sizeof(ReturnValue_t));
+    ReturnValue_t* ret = gcMalloc(sizeof(ReturnValue_t), GC_DATA_OBJECT);
     *ret= (ReturnValue_t) {
         .type = OBJECT_RETURN_VALUE, 
         .value = value
@@ -199,11 +186,17 @@ ReturnValue_t* createReturnValue(Object_t* value) {
 }
 
 void cleanupReturnValue(ReturnValue_t** obj) {
-    if (!(*obj))
-        return;
+    if (!(*obj)) return;
     // Note: intenionally does not free inner obj. 
-    free(*obj);
+    gcFree(*obj);
     *obj = NULL;    
+}
+
+void gcMarkReturnValue(ReturnValue_t* obj) {
+    if (!gcMarkedAsUsed(obj->value)) {
+        gcMarkUsed(obj->value);
+        gcMarkObject(obj->value);
+    }
 }
 
 ReturnValue_t* copyReturnValue(ReturnValue_t* obj) {
@@ -219,7 +212,7 @@ char* returnValueInspect(ReturnValue_t* obj) {
  ************************************/
 
 Error_t* createError(char* message) {
-    Error_t* err = mallocChk(sizeof(Error_t));
+    Error_t* err = gcMalloc(sizeof(Error_t), GC_DATA_OBJECT);
 
     *err = (Error_t) {
         .type = OBJECT_ERROR,
@@ -237,8 +230,12 @@ void cleanupError(Error_t** err) {
     if (!(*err))
         return;
     free((*err)->message);
-    free(*err);
+    gcFree(*err);
     *err = NULL;
+}
+
+void gcMarkError(Error_t* err) {
+    // no objects owned by gc
 }
 
 char* errorInspect(Error_t* err) {
@@ -251,7 +248,7 @@ char* errorInspect(Error_t* err) {
  ************************************/
 
 Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env) {
-    Function_t* func = mallocChk(sizeof(Function_t));
+    Function_t* func = gcMalloc(sizeof(Function_t), GC_DATA_OBJECT);
     *func = (Function_t) {
         .type = OBJECT_FUNCTION,
         .parameters = copyVector(params, (VectorElemCopyFn_t) copyExpression),
@@ -266,16 +263,25 @@ void cleanupFunction(Function_t** obj) {
     if(!(*obj)) 
         return;
 
+    // full clean because these are owned by object & not by GC 
     cleanupVector(&(*obj)->parameters, (VectorElemCleanupFn_t)cleanupExpression);
     cleanupBlockStatement(&(*obj)->body);
     
-    free(*obj);
+    gcFree(*obj);
     *obj = NULL;
 }
 
+extern void gcMarkEnvironment(Environment_t*env);
+
+void gcMarkFunction(Function_t* obj) { 
+    if (!gcMarkedAsUsed(obj->environment)) {
+        gcMarkUsed(obj->environment);
+        gcMarkEnvironment(obj->environment);
+    }
+}
+
 Function_t* copyFunction(Function_t* obj) {
-    assert(0 && "TO DO: not yet implemented");
-    return obj;
+    return createFunction(obj->parameters, obj->body, obj->environment);
 }
 
 char* functionInspect(Function_t* obj) {
@@ -303,4 +309,48 @@ uint32_t functionGetParameterCount(Function_t* obj) {
 
 Identifier_t** functionGetParameters(Function_t* obj) {
     return (Identifier_t**)vectorGetBuffer(obj->parameters);
+}
+
+/************************************ 
+ *      GARBAGE COLLECTION          *
+ ************************************/
+
+typedef void (*ObjectCleanupFn_t) (void**);
+typedef void (*ObjectGcMarkFn_t) (void*);
+
+static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
+    [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
+    [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
+    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
+    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue,
+    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError,
+    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)cleanupFunction
+};
+
+static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
+    [OBJECT_INTEGER]=(ObjectGcMarkFn_t)gcMarkInteger,
+    [OBJECT_BOOLEAN]=(ObjectGcMarkFn_t)gcMarkBoolean,
+    [OBJECT_NULL]=(ObjectGcMarkFn_t)gcMarkNull,
+    [OBJECT_RETURN_VALUE]=(ObjectGcMarkFn_t)gcMarkReturnValue,
+    [OBJECT_ERROR]=(ObjectGcMarkFn_t)gcMarkError,
+    [OBJECT_FUNCTION]=(ObjectGcMarkFn_t)gcMarkFunction
+};
+
+
+void gcCleanupObject(Object_t** obj) {
+    if (!(*obj)) return;
+    printf("gcCleanupObject@0x%X\n",*obj);
+    if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
+        ObjectCleanupFn_t cleanupFn = objectCleanupFns[(*obj)->type];
+        if (!cleanupFn) return;
+        cleanupFn((void**)obj);
+    }
+}
+
+void gcMarkObject(Object_t* obj) {
+    printf("gcMarkObject@0x%X\n",obj);
+    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+        ObjectGcMarkFn_t markFn = objectMarkFns[obj->type];
+        if (markFn) markFn(obj);
+    }   
 }

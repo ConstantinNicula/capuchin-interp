@@ -372,9 +372,14 @@ FunctionLiteral_t* createFunctionLiteral(const Token_t* tok) {
 }
 
 FunctionLiteral_t* copyFunctionLiteral(const FunctionLiteral_t* exp) {
-    FunctionLiteral_t* newExp = createFunctionLiteral(exp->token);
-    newExp->parameters = copyVector(newExp->parameters, (VectorElemCopyFn_t)copyExpression);
-    newExp->body = copyBlockStatement(exp->body);
+    FunctionLiteral_t* newExp = mallocChk(sizeof(FunctionLiteral_t));
+    *newExp = (FunctionLiteral_t) {
+        .type = EXPRESSION_FUNCTION_LITERAL, 
+        .token = copyToken(exp->token),
+        .parameters = copyVector(exp->parameters, (VectorElemCopyFn_t)copyExpression),
+        .body = copyBlockStatement(exp->body)
+    };
+
     return newExp;
 }
 
@@ -706,8 +711,13 @@ BlockStatement_t* createBlockStatement(const Token_t* token) {
 }
 
 BlockStatement_t* copyBlockStatement(const BlockStatement_t* st) {
-    BlockStatement_t* newSt = createBlockStatement(st->token);
-    newSt->statements = copyVector(st->statements, (VectorElemCopyFn_t)copyStatement);
+    BlockStatement_t* newSt =  mallocChk(sizeof(BlockStatement_t));
+    *newSt = (BlockStatement_t) {
+        .type = STATEMENT_BLOCK, 
+        .token = copyToken(st->token),
+        .statements = copyVector(st->statements, (VectorElemCopyFn_t)copyStatement)
+    };
+
     return newSt;
 }
 

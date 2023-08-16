@@ -31,13 +31,8 @@ typedef struct Object {
 } Object_t;
 
 typedef char* (*ObjectInspectFn_t) (void*);
-typedef void (*ObjectCleanupFn_t) (void**);
 typedef void* (*ObjectCopyFn_t) (void*);
-typedef void (*ObjectGcMarkFn_t) (void*);
 
-
-void cleanupObject(Object_t** obj);
-void gcMarkObject(Object_t* obj);
 Object_t* copyObject(Object_t* obj);
 
 char* objectInspect(Object_t* obj);
@@ -53,7 +48,6 @@ typedef struct Integer {
 }Integer_t;
 
 Integer_t* createInteger(int64_t value);
-void cleanupInteger(Integer_t** obj);
 Integer_t* copyInteger(Integer_t* obj);
 
 char* integerInspect(Integer_t* obj);
@@ -69,7 +63,6 @@ typedef struct Boolean {
 }Boolean_t;
 
 Boolean_t* createBoolean(bool value);
-void cleanupBoolean(Boolean_t** obj);
 Boolean_t* copyBoolean(Boolean_t* obj);
 
 char* booleanInspect(Boolean_t* obj);
@@ -84,7 +77,6 @@ typedef struct Null {
 }Null_t;
 
 Null_t* createNull();
-void cleanupNull(Null_t** obj);
 Null_t* copyNull(Null_t* obj);
 
 char* nulllInspect(Null_t* obj);
@@ -100,7 +92,6 @@ typedef struct ReturnValue {
 }ReturnValue_t;
 
 ReturnValue_t* createReturnValue(Object_t*);
-void cleanupReturnValue(ReturnValue_t** obj);
 ReturnValue_t* copyReturnValue(ReturnValue_t* obj);
 
 char* returnValueInspect(ReturnValue_t* obj);
@@ -116,7 +107,6 @@ typedef struct Error {
 }Error_t;
 
 Error_t* createError(char* message);
-void cleanupError(Error_t** obj);
 Error_t* copyError(Error_t* obj);
 
 char* errorInspect(Error_t* obj);
@@ -134,7 +124,6 @@ typedef struct Function {
 } Function_t;
 
 Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env);
-void cleanupFunction(Function_t** obj);
 Function_t* copyFunction(Function_t* obj);
 
 char* functionInspect(Function_t* obj);

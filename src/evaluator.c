@@ -1,5 +1,6 @@
 #include "evaluator.h"
 #include "utils.h"
+#include "gc.h"
 
 static Object_t* evalStatement(Statement_t* stmt, Environment_t* env);
 static Object_t* evalBlockStatement(BlockStatement_t* stmt, Environment_t* env);
@@ -29,29 +30,27 @@ Object_t* evalProgram(Program_t* prog, Environment_t* env) {
     Object_t* result = NULL;
 
     for (uint32_t i = 0; i < count; i++) {
-        if (result != NULL)
-            cleanupObject(&result);
-
         result = evalStatement(stmts[i], env);
         
-        if (!result)
-            return (Object_t*) createError(cloneString("evalStatement return NULL ptr"));
+        if (!result) {
+            Error_t* err = createError(cloneString("evalStatement return NULL ptr"));
+            return  gcGetExtRef(err);
+        }
 
         switch(result->type) {
             case OBJECT_RETURN_VALUE: { 
                 Object_t* value = ((ReturnValue_t*)result)->value;
-                cleanupObject(&result);
-                return value;
+                return gcGetExtRef(value);
             }   
             case OBJECT_ERROR: {
-                return result;
+                return gcGetExtRef(result);
             }
             default:
                 break; // nothing to do  
         }
     }
 
-    return result;
+    return gcGetExtRef(result);
 
 }
 
@@ -71,7 +70,6 @@ static Object_t* evalStatement(Statement_t* stmt, Environment_t* env) {
             Object_t* evalRes = evalExpression(((LetStatement_t*)stmt)->value, env);
             if (isError(evalRes)) return evalRes;
             environmentSet(env, ((LetStatement_t*)stmt)->name->value, evalRes);
-            cleanupObject(&evalRes);
             return (Object_t*)createNull();
         }
         default:
@@ -89,10 +87,6 @@ static Object_t* evalBlockStatement(BlockStatement_t* stmt, Environment_t* env) 
         
         if (result->type == OBJECT_RETURN_VALUE || result->type == OBJECT_ERROR) {
             return result;
-        }
-        
-        if (i < count-1 ){
-            cleanupObject(&result);
         }
     }
     return result;
@@ -121,11 +115,7 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             if (isError(evalRight)) {
                 return evalRight;
             }
-            
-            Object_t* evalRes = evalPrefixExpression(op, evalRight);
-            
-            cleanupObject(&evalRight);
-            return evalRes;
+            return evalPrefixExpression(op, evalRight);;
         }
 
         case EXPRESSION_INFIX_EXPRESSION: {
@@ -138,15 +128,10 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
 
             Object_t* evalRight = evalExpression(((InfixExpression_t*) expr)->right, env);
             if (isError(evalRight)) {
-                cleanupObject(&evalLeft);
                 return evalRight;
             }
 
-            Object_t* evalRes = evalInfixExpression(op, evalLeft, evalRight);
-
-            cleanupObject(&evalLeft);
-            cleanupObject(&evalRight);
-            return evalRes;
+            return evalInfixExpression(op, evalLeft, evalRight);;
         }
 
         case EXPRESSION_IDENTIFIER: {
@@ -175,16 +160,13 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             Object_t** argsBuf = (Object_t**)vectorGetBuffer(args);
             
             if ( argsCnt == 1 && isError(argsBuf[0])) {
-                Error_t* err = copyError((Error_t*)argsBuf[0]);
-                cleanupObject(&function);
-                cleanupVector(&args, (VectorElemCleanupFn_t)cleanupObject);
+                Error_t* err = (Error_t*)argsBuf[0];
+                cleanupVector(&args, NULL);
                 return (Object_t*)err;
             }
-
-            Object_t* ret = applyFunction((Function_t*)function, args);
-            cleanupObject(&function);
-            cleanupVector(&args, (VectorElemCleanupFn_t)cleanupObject);
-            return ret;
+            Object_t* result = applyFunction((Function_t*)function, args);
+            cleanupVector(&args, NULL);
+            return result;
         }
 
         default: 
@@ -204,7 +186,7 @@ static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
     for (int i = 0; i < exprCnt; i++) {
         Object_t* evaluated = evalExpression(exprBuf[i], env);
         if (isError(evaluated)){
-            cleanupVectorContents(result, (VectorElemCleanupFn_t)cleanupObject);
+            cleanupVectorContents(result, NULL);
             vectorAppend(result, evaluated);
             return result;
         }
@@ -223,11 +205,7 @@ static Object_t* applyFunction(Function_t* function, Vector_t* args) {
 
     Environment_t* extendedEnv = extendFunctionEnv(function, args);
     Object_t* evaluated = evalBlockStatement(function->body, extendedEnv);
-    Object_t* ret = unwrapReturnValue(evaluated);
-
-    cleanupEnvironment(&extendedEnv);
-    cleanupObject(&evaluated);
-    return ret;
+    return unwrapReturnValue(evaluated);
 }
 
 static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
@@ -248,7 +226,7 @@ static Object_t* unwrapReturnValue(Object_t* obj) {
     if (obj->type == OBJECT_RETURN_VALUE) {
         return ((ReturnValue_t*) obj)->value;
     }
-    return copyObject(obj);
+    return obj;
 }
 
 
@@ -267,8 +245,7 @@ static Object_t* evalIfExpression(IfExpression_t* expr, Environment_t* env) {
     } else {
         evalRes = (Object_t*)createNull();
     }
-    
-    cleanupObject(&condition);
+
     return evalRes; 
 }
 

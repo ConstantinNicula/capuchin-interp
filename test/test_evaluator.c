@@ -5,7 +5,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "utils.h"
-
+#include "gc.h"
 
 void setUp(void) {
     // set stuff up here
@@ -73,7 +73,7 @@ void evaluatorTestEvalIntegerExpression() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testIntegerObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -111,7 +111,7 @@ void evaluatorTestEvalBooleanExpression() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testBooleanObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -137,7 +137,7 @@ void evaluatorTestBangOperator() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testBooleanObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -171,7 +171,7 @@ void evaluatorTestIfElseExpression() {
                 testNullObject(evalRes);
         }
 
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     } 
 }
 
@@ -195,7 +195,7 @@ void evaluatorTestReturnStatements() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testIntegerObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -217,7 +217,7 @@ void evaluatorTestLetStatements() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testIntegerObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -258,7 +258,7 @@ void evaluatorTestErrorHandling() {
         Object_t* evalRes = testEval(tc->input);
 
         testErrorObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -280,7 +280,7 @@ void evaluatorTestFunctionObject() {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("(x + 2)", bodyStr, "Wrong function body");
     free(bodyStr);
 
-    cleanupObject(&eval);
+    gcFreeExtRef(eval);
 }
 
 void evaluatorTestFunctionApplication() {
@@ -303,7 +303,7 @@ void evaluatorTestFunctionApplication() {
         TestCase_t *tc = &tests[i];
         Object_t* evalRes = testEval(tc->input);
         testIntegerObject(evalRes, tc->expected);
-        cleanupObject(&evalRes);
+        gcFreeExtRef(evalRes);
     }
 }
 
@@ -316,7 +316,7 @@ void evalatorTestClosures() {
 
     Object_t* evalRes = testEval(input);
     testIntegerObject(evalRes, 4);
-    cleanupObject(&evalRes);
+    gcFreeExtRef(evalRes);
 }
 
 Object_t* testEval(const char* input) {
@@ -331,7 +331,7 @@ Object_t* testEval(const char* input) {
     }
     cleanupProgram(&program);
     cleanupParser(&parser);
-    cleanupEnvironment(&env);
+    gcFreeExtRef(env);
 
     return ret; 
 }

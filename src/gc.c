@@ -36,13 +36,21 @@ typedef struct GCDataHeader {
 #define INTERNAL_REF_BIT 0x01 
 #define EXTERNAL_REF_BIT 0x02
 
+/* External definitions */
+extern void gcCleanupObject(Object_t** obj);
+extern void gcCleanupEnvironment(Environment_t**env);
+
+extern void gcMarkObject(Object_t* obj);
+extern void gcMarkEnvironment(Environment_t*env);
+
+
 /* Create global table of destructors */
 typedef void (*GCCleanupFn_t) (void**);
 typedef void (*GCMarkFn_t) (void*);
 
 static GCCleanupFn_t gcCleanupFns[_GC_DATA_TYPE_CNT] = {
-    [GC_DATA_OBJECT]=(GCCleanupFn_t)cleanupObject,
-    [GC_DATA_ENVIRONENT]=(GCCleanupFn_t)cleanupEnvironment
+    [GC_DATA_OBJECT]=(GCCleanupFn_t)gcCleanupObject,
+    [GC_DATA_ENVIRONENT]=(GCCleanupFn_t)gcCleanupEnvironment
 };
 
 static GCMarkFn_t gcMarkFns[_GC_DATA_TYPE_CNT] = {
@@ -57,7 +65,11 @@ static inline void setBit(GCDataHeader_t* header, uint8_t bitmask);
 static inline void clearBit(GCDataHeader_t* header, uint8_t bitmask);
 static inline bool isBitSet(GCDataHeader_t* header, uint8_t bitmask);
 
-
+static void gcMark();
+static void gcSweep();
+static void gcRecurseMark(void* ptr);
+static void gcFreeElem(void* ptr);
+static void gcDebugPrintChain(void* ptr) ;
 
 void* gcMalloc(size_t size, GCDataType_t type) {
     void* ptr = createFatPtr(size, type, gcHandle.first);
@@ -67,7 +79,12 @@ void* gcMalloc(size_t size, GCDataType_t type) {
 
     gcHandle.first = ptr;
     gcHandle.objCount++;
+
     return ptr;
+}
+
+void gcFree(void* ptr) {
+    free(getHeader(ptr));
 }
 
 void gcMarkUsed(void* ptr) {
@@ -76,6 +93,9 @@ void gcMarkUsed(void* ptr) {
     setBit(header, INTERNAL_REF_BIT);
 }
 
+bool gcMarkedAsUsed(void* ptr) {
+    return isBitSet(getHeader(ptr), INTERNAL_REF_BIT);
+}
 
 void* gcGetExtRef(void* ptr) {
     if (!ptr) return NULL;
@@ -92,6 +112,17 @@ void gcFreeExtRef(void* ptr) {
         exit(1);
     }
     clearBit(header, EXTERNAL_REF_BIT);
+
+    // perform mark & sweep round
+    printf("+++++++++START++++++++\n");
+    gcDebugPrintChain(gcHandle.first);
+    gcMark();
+    printf("+++++++++MARK+++++++++\n");
+    gcDebugPrintChain(gcHandle.first);
+    gcSweep();
+    printf("+++++++++SWEEP++++++++\n");
+    gcDebugPrintChain(gcHandle.first);
+    printf("+++++++++END+++++++++\n");
 }
 
 static void* createFatPtr(size_t size, GCDataType_t type, void* next) {
@@ -104,33 +135,15 @@ static void* createFatPtr(size_t size, GCDataType_t type, void* next) {
 }
 
 static GCDataHeader_t* getHeader(void *ptr) {
+    if(!ptr) return NULL;
     return (GCDataHeader_t*)((char*)ptr - sizeof(GCDataHeader_t));
 }
 
 static void *getPtr(GCDataHeader_t* header) {
+    if (!header) return NULL;
     return (void*)((char*)header + sizeof(GCDataHeader_t));
 }
 
-
-static void gcFreeElem(void* ptr) {
-    if (!ptr) return;
-    GCDataHeader_t* header = getHeader(ptr);
-    if ( header->type >= 0 && header->type < _GC_DATA_TYPE_CNT ){
-        GCCleanupFn_t cleanupFunc = gcCleanupFns[header->type];
-        if (cleanupFunc) 
-            cleanupFunc(ptr);
-    }
-}
-
-static void gcRecurseMark(void* ptr) {
-    if (!ptr) return;
-    GCDataHeader_t* header = getHeader(ptr);
-    if ( header->type >= 0 && header->type < _GC_DATA_TYPE_CNT ){
-        GCMarkFn_t markFunc = gcMarkFns[header->type];
-        if (markFunc) 
-            markFunc(ptr);
-    }
-}
 
 static void gcMark() {
     void* ptr = gcHandle.first;
@@ -144,6 +157,16 @@ static void gcMark() {
     }
 }
 
+static void gcRecurseMark(void* ptr) {
+    if (!ptr) return;
+    GCDataHeader_t* header = getHeader(ptr);
+    if ( header->type >= 0 && header->type < _GC_DATA_TYPE_CNT ){
+        GCMarkFn_t markFunc = gcMarkFns[header->type];
+        if (markFunc) 
+            markFunc(ptr);
+    }
+}
+
 static void gcSweep() {
     if (!gcHandle.first) return;
 
@@ -151,13 +174,55 @@ static void gcSweep() {
     GCDataHeader_t* prev = &sentinel;
     GCDataHeader_t* curr = getHeader(gcHandle.first);
     
-    while (!isBitSet(curr, INTERNAL_REF_BIT)) {
-        prev->next = curr->next;
-        gcFreeElem(getPtr(curr));
-        curr = getHeader(prev->next);
+    while (curr) {
+        if (!isBitSet(curr, INTERNAL_REF_BIT)) {
+            printf("deleting@0x%X\n",getPtr(curr));
+            // remove element 
+            prev->next = curr->next;
+            void* cptr = getPtr(curr);
+            gcFreeElem(cptr);
+            curr = getHeader(prev->next);
+        } else  {
+            printf("skipping@0x%X\n",getPtr(curr));
+            clearBit(curr, INTERNAL_REF_BIT);
+            prev = curr; 
+            curr = getHeader(curr->next);
+        }
     }
 
     gcHandle.first = sentinel.next;
+}
+
+static void gcFreeElem(void* ptr) {
+    if (!ptr) return;
+    GCDataHeader_t* header = getHeader(ptr);
+    if ( header->type >= 0 && header->type < _GC_DATA_TYPE_CNT ){
+        GCCleanupFn_t cleanupFunc = gcCleanupFns[header->type];
+        if (cleanupFunc) { 
+            void **cptr = &ptr;
+            printf("gcFreeElem@0x%X\n",ptr);
+            cleanupFunc(cptr);
+        }
+    }
+    
+}
+
+static char* gcTypeAsStr(void* ptr){
+    GCDataHeader_t* header = getHeader(ptr);
+    return (header->type == GC_DATA_ENVIRONENT)? "ENV" : "OBJ";
+}
+
+static void gcDebugPrintChain(void* ptr) {
+    //printf("-----START-----\n");
+    while (ptr) {
+        printf("ptr(%s|%d|%d)@0x%X\n",
+            gcTypeAsStr(ptr),
+            isBitSet(getHeader(ptr), EXTERNAL_REF_BIT),
+            isBitSet(getHeader(ptr), INTERNAL_REF_BIT),
+            ptr);
+        ptr = getHeader(ptr)->next;
+    }
+    //printf("-----END-----\n");
 }
 
 
