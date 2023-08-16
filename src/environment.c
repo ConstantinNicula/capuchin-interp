@@ -30,7 +30,6 @@ Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
 
 void gcCleanupEnvironment(Environment_t**env) {
     if (!(*env)) return;
-    printf("gcCleanupEnvironment@0x%X\n", *env);
     // clean only scaffold, objects are owned by GC
     cleanupHashMap(&(*env)->store, NULL); 
     // outer is not ownded by us, don't clean GC will handle it.
@@ -42,8 +41,6 @@ void gcCleanupEnvironment(Environment_t**env) {
 extern void gcMarkObject(Object_t* obj);
 
 void gcMarkEnvironment(Environment_t*env) {
-    printf("gcMarkEnvironment@0x%X\n", env);
-
     // iterate through hashmap and flag objects 
     HashMapIter_t iter = createHashMapIter(env->store);
     HashMapEntry_t* entry = hashMapIterGetNext(env->store, &iter);

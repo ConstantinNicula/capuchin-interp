@@ -114,15 +114,8 @@ void gcFreeExtRef(void* ptr) {
     clearBit(header, EXTERNAL_REF_BIT);
 
     // perform mark & sweep round
-    printf("+++++++++START++++++++\n");
-    gcDebugPrintChain(gcHandle.first);
     gcMark();
-    printf("+++++++++MARK+++++++++\n");
-    gcDebugPrintChain(gcHandle.first);
     gcSweep();
-    printf("+++++++++SWEEP++++++++\n");
-    gcDebugPrintChain(gcHandle.first);
-    printf("+++++++++END+++++++++\n");
 }
 
 static void* createFatPtr(size_t size, GCDataType_t type, void* next) {
@@ -176,14 +169,12 @@ static void gcSweep() {
     
     while (curr) {
         if (!isBitSet(curr, INTERNAL_REF_BIT)) {
-            printf("deleting@0x%X\n",getPtr(curr));
             // remove element 
             prev->next = curr->next;
             void* cptr = getPtr(curr);
             gcFreeElem(cptr);
             curr = getHeader(prev->next);
         } else  {
-            printf("skipping@0x%X\n",getPtr(curr));
             clearBit(curr, INTERNAL_REF_BIT);
             prev = curr; 
             curr = getHeader(curr->next);
@@ -200,7 +191,6 @@ static void gcFreeElem(void* ptr) {
         GCCleanupFn_t cleanupFunc = gcCleanupFns[header->type];
         if (cleanupFunc) { 
             void **cptr = &ptr;
-            printf("gcFreeElem@0x%X\n",ptr);
             cleanupFunc(cptr);
         }
     }
@@ -215,7 +205,7 @@ static char* gcTypeAsStr(void* ptr){
 static void gcDebugPrintChain(void* ptr) {
     //printf("-----START-----\n");
     while (ptr) {
-        printf("ptr(%s|%d|%d)@0x%X\n",
+        printf("ptr(%s|%d|%d)@0x%p\n",
             gcTypeAsStr(ptr),
             isBitSet(getHeader(ptr), EXTERNAL_REF_BIT),
             isBitSet(getHeader(ptr), INTERNAL_REF_BIT),

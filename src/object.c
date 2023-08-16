@@ -144,9 +144,6 @@ char* booleanInspect(Boolean_t* obj) {
 /************************************ 
  *        NULL OBJECT TYPE          *
  ************************************/
-
-static Null_t NULL_OBJ = {.type = OBJECT_NULL};
-
 Null_t* createNull() {
     Null_t* ret = gcMalloc(sizeof(Null_t), GC_DATA_OBJECT);
     *ret = (Null_t) {.type = OBJECT_NULL};
@@ -339,7 +336,6 @@ static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
 
 void gcCleanupObject(Object_t** obj) {
     if (!(*obj)) return;
-    printf("gcCleanupObject@0x%X\n",*obj);
     if (0 <= (*obj)->type && (*obj)->type < _OBJECT_TYPE_CNT) {
         ObjectCleanupFn_t cleanupFn = objectCleanupFns[(*obj)->type];
         if (!cleanupFn) return;
@@ -348,7 +344,6 @@ void gcCleanupObject(Object_t** obj) {
 }
 
 void gcMarkObject(Object_t* obj) {
-    printf("gcMarkObject@0x%X\n",obj);
     if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectGcMarkFn_t markFn = objectMarkFns[obj->type];
         if (markFn) markFn(obj);
