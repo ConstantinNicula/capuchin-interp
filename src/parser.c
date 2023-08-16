@@ -123,7 +123,7 @@ void cleanupParser(Parser_t** parser) {
     cleanupToken(&(*parser)->peekToken);
     cleanupToken(&(*parser)->curToken);
 
-    cleanupVector(&(*parser)->errors, (VectorElementCleanupFn_t)cleanupError);
+    cleanupVector(&(*parser)->errors, (VectorElemCleanupFn_t)cleanupError);
     
     cleanupRefCountedPtr(*parser);
     *parser = NULL;

@@ -19,9 +19,7 @@ Vector_t* copyVector(Vector_t* vec) {
     return vec;
 }
 
-
-
-void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
+void cleanupVectorContents(Vector_t*vec, VectorElemCleanupFn_t cleanupFn) {
     if (!vec || !cleanupFn) 
         return;
         
@@ -35,7 +33,7 @@ void cleanupVectorContents(Vector_t*vec, VectorElementCleanupFn_t cleanupFn) {
     vec->cnt = 0;
 }
 
-void cleanupVector(Vector_t** vec, VectorElementCleanupFn_t cleanupFn) {
+void cleanupVector(Vector_t** vec, VectorElemCleanupFn_t cleanupFn) {
     if (!*vec || !cleanupFn || refCountPtrDec(*vec) != 0)
         return;
     

@@ -1,9 +1,9 @@
 #include <assert.h>
 #include "environment.h"
-#include "refcount.h"
+#include "utils.h"
 
 Environment_t* createEnvironment(Environment_t* outer){
-    Environment_t* env = createRefCountPtr(sizeof(Environment_t));
+    Environment_t* env = mallocChk(sizeof(Environment_t));
     *env = (Environment_t) {
         .store = createHashMap(),
         .outer = outer ? copyEnvironment(outer) : NULL    
@@ -12,33 +12,31 @@ Environment_t* createEnvironment(Environment_t* outer){
 }
 
 Environment_t* copyEnvironment(Environment_t* env) {
-    refCountPtrInc(env);
+    assert(0 &&  "TO DO: not yet implemented");
     return env;
 }
 
 void cleanupEnvironment(Environment_t**env) {
-    if (!(*env) || refCountPtrDec(*env) != 0) return;
+    if (!(*env)) return;
     
-    cleanupHashMap(&(*env)->store, (HashMapElementCleanupFn_t)cleanupObject);
-    if ((*env)->outer)
-        cleanupEnvironment(&(*env)->outer);
+    cleanupHashMap(&(*env)->store, (HashMapElemCleanupFn_t)cleanupObject);
+    cleanupEnvironment(&(*env)->outer);
 
-    cleanupRefCountedPtr(*env);
+    free(*env);
     *env = NULL;
 }
 
 Object_t* environmentGet(Environment_t* env, const char* name){
     Object_t* obj = hashMapGet(env->store, name);
-    if ( !obj  && env->outer != NULL)
-    {
+    if ( !obj  && env->outer != NULL) {
         obj = environmentGet(env->outer, name);
     }
-    return obj ? copyObject(obj) : NULL; 
+    return obj; 
 }
 
 Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
     if(!obj) return NULL;
-    hashMapInsert(env->store, name, copyObject(obj));
+    hashMapInsert(env->store, name, obj);
     return obj;
 }
 

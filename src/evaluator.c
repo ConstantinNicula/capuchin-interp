@@ -177,13 +177,13 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             if ( argsCnt == 1 && isError(argsBuf[0])) {
                 Error_t* err = copyError((Error_t*)argsBuf[0]);
                 cleanupObject(&function);
-                cleanupVector(&args, (VectorElementCleanupFn_t)cleanupObject);
+                cleanupVector(&args, (VectorElemCleanupFn_t)cleanupObject);
                 return (Object_t*)err;
             }
 
             Object_t* ret = applyFunction((Function_t*)function, args);
             cleanupObject(&function);
-            cleanupVector(&args, (VectorElementCleanupFn_t)cleanupObject);
+            cleanupVector(&args, (VectorElemCleanupFn_t)cleanupObject);
             return ret;
         }
 
@@ -204,7 +204,7 @@ static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
     for (int i = 0; i < exprCnt; i++) {
         Object_t* evaluated = evalExpression(exprBuf[i], env);
         if (isError(evaluated)){
-            cleanupVectorContents(result, (VectorElementCleanupFn_t)cleanupObject);
+            cleanupVectorContents(result, (VectorElemCleanupFn_t)cleanupObject);
             vectorAppend(result, &evaluated);
             return result;
         }

@@ -45,3 +45,10 @@ char* strFormat(const char* fmt, ...) {
 
     return str;
 }
+
+
+void* mallocChk(size_t size) {
+    void* ptr = malloc(size);
+    if (!ptr) HANDLE_OOM();
+    return ptr;
+}

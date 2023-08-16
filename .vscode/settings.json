@@ -12,7 +12,8 @@
         "stdint.h": "c",
         "stdlib.h": "c",
         "system_error": "c",
-        "refcount.h": "c"
+        "refcount.h": "c",
+        "sbuf.h": "c"
     },
     "cmake.configureOnOpen": false
 }

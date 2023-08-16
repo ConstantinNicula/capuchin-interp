@@ -1,8 +1,8 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include "object.h"
 #include "utils.h"
-#include "refcount.h"
 #include "sbuf.h"
 
 const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
@@ -19,7 +19,6 @@ const char* objectTypeToString(ObjectType_t type) {
     }
     return "";
 }
-
 
 /************************************ 
  *     GENERIC OBJECT TYPE          *
@@ -113,7 +112,7 @@ ObjectType_t objectGetType(Object_t* obj) {
  ************************************/
 
 Integer_t* createInteger(int64_t value) {
-    Integer_t* obj = createRefCountPtr(sizeof(Integer_t));
+    Integer_t* obj = mallocChk(sizeof(Integer_t));
     
     *obj = (Integer_t){
         .type = OBJECT_INTEGER,
@@ -124,17 +123,14 @@ Integer_t* createInteger(int64_t value) {
 }
 
 void cleanupInteger(Integer_t** obj) {
-    if (*obj == NULL || refCountPtrDec(*obj) != 0)
+    if (*obj == NULL)
         return;
-    cleanupRefCountedPtr(*obj);
+    free(*obj);
     *obj = NULL;
 }
 
-
-
 Integer_t* copyInteger(Integer_t* obj) {
-    refCountPtrInc(obj);
-    return obj;
+    return createInteger(obj->value);
 }
 
 char* integerInspect(Integer_t* obj) {
@@ -193,7 +189,7 @@ char* nulllInspect(Null_t* obj) {
  ************************************/
 
 ReturnValue_t* createReturnValue(Object_t* value) {
-    ReturnValue_t* ret = createRefCountPtr(sizeof(ReturnValue_t));
+    ReturnValue_t* ret = mallocChk(sizeof(ReturnValue_t));
     *ret= (ReturnValue_t) {
         .type = OBJECT_RETURN_VALUE, 
         .value = value
@@ -203,16 +199,15 @@ ReturnValue_t* createReturnValue(Object_t* value) {
 }
 
 void cleanupReturnValue(ReturnValue_t** obj) {
-    if (!(*obj) || refCountPtrDec(*obj) != 0)
+    if (!(*obj))
         return;
     // Note: intenionally does not free inner obj. 
-    cleanupRefCountedPtr(*obj);
+    free(*obj);
     *obj = NULL;    
 }
 
 ReturnValue_t* copyReturnValue(ReturnValue_t* obj) {
-    refCountPtrInc(obj);
-    return obj;
+    return createReturnValue(obj->value);
 }
 
 char* returnValueInspect(ReturnValue_t* obj) {
@@ -224,7 +219,7 @@ char* returnValueInspect(ReturnValue_t* obj) {
  ************************************/
 
 Error_t* createError(char* message) {
-    Error_t* err = createRefCountPtr(sizeof(Error_t));
+    Error_t* err = mallocChk(sizeof(Error_t));
 
     *err = (Error_t) {
         .type = OBJECT_ERROR,
@@ -235,15 +230,14 @@ Error_t* createError(char* message) {
 }
 
 Error_t* copyError(Error_t* obj) {
-    refCountPtrInc(obj);
-    return obj;
+    return createError(cloneString(obj->message));
 }
 
 void cleanupError(Error_t** err) {
-    if (!(*err) || refCountPtrDec(*err) != 0)
+    if (!(*err))
         return;
     free((*err)->message);
-    cleanupRefCountedPtr(*err);
+    free(*err);
     *err = NULL;
 }
 
@@ -257,7 +251,7 @@ char* errorInspect(Error_t* err) {
  ************************************/
 
 Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment_t* env) {
-    Function_t* func = createRefCountPtr(sizeof(Function_t));
+    Function_t* func = mallocChk(sizeof(Function_t));
     *func = (Function_t) {
         .type = OBJECT_FUNCTION,
         .parameters = copyVector(params),
@@ -269,18 +263,19 @@ Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment
 }
 
 void cleanupFunction(Function_t** obj) {
-    if(!(*obj) || refCountPtrDec(*obj) != 0) 
+    if(!(*obj)) 
         return;
 
-    cleanupVector(&(*obj)->parameters, (VectorElementCleanupFn_t)cleanupExpression);
+    cleanupVector(&(*obj)->parameters, (VectorElemCleanupFn_t)cleanupExpression);
     cleanupBlockStatement(&(*obj)->body);
     cleanupEnvironment(&(*obj)->environment);
-    cleanupRefCountedPtr(*obj);
+    
+    free(*obj);
     *obj = NULL;
 }
 
 Function_t* copyFunction(Function_t* obj) {
-    refCountPtrInc(obj);
+    assert(0 && "TO DO: not yet implemented");
     return obj;
 }
 

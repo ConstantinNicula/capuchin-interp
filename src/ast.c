@@ -379,7 +379,7 @@ void cleanupFunctionLiteral(FunctionLiteral_t** exp) {
         return;
 
     cleanupToken(&(*exp)->token);
-    cleanupVector(&(*exp)->parameters, (VectorElementCleanupFn_t)cleanupIdentifier);
+    cleanupVector(&(*exp)->parameters, (VectorElemCleanupFn_t)cleanupIdentifier);
     cleanupBlockStatement(&(*exp)->body);
 
     cleanupRefCountedPtr(*exp);
@@ -443,7 +443,7 @@ void cleanupCallExpression(CallExpression_t** exp) {
     
     cleanupToken(&(*exp)->token);
     cleanupExpression(&(*exp)->function);
-    cleanupVector(&(*exp)->arguments,(VectorElementCleanupFn_t) cleanupExpression);
+    cleanupVector(&(*exp)->arguments,(VectorElemCleanupFn_t) cleanupExpression);
 
     cleanupRefCountedPtr(*exp);
     *exp = NULL;
@@ -797,7 +797,7 @@ char* programToString(Program_t* prog) {
  ************************************/
 
 static void cleanupStatementVec(Vector_t** statements) {
-    cleanupVector(statements, (VectorElementCleanupFn_t)cleanupStatement);
+    cleanupVector(statements, (VectorElemCleanupFn_t)cleanupStatement);
     *statements = NULL;
 }
 

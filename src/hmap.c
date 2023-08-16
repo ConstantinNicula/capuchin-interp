@@ -9,7 +9,7 @@
 #define DEFAULT_NUM_BUCKETS 4 
 
 static HashMapEntry_t* createHashMapEntry(const char* key, void* value); 
-static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElementCleanupFn_t clenaupFn); 
+static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElemCleanupFn_t clenaupFn); 
 static uint64_t computeHash(const char* key); 
 static uint32_t getBucketIndex(HashMap_t* map, const char* key); 
 static void hashMapReinsertEntry(HashMap_t* map, HashMapEntry_t* entry); 
@@ -30,13 +30,13 @@ HashMap_t* createHashMap() {
     return map;
 }
 
-HashMap_t* copyHashMap(HashMap_t* map) {
+HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn){
     refCountPtrInc(map);
     return map;
 }
 
 
-void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn) {
+void cleanupHashMapElements(HashMap_t* map, HashMapElemCleanupFn_t cleanupFn) {
     if (!map || !cleanupFn)
         return;
     for (uint32_t i = 0; i < map->numBuckets; i++) {
@@ -50,7 +50,7 @@ void cleanupHashMapElements(HashMap_t* map, HashMapElementCleanupFn_t cleanupFn)
 }
 
 
-void cleanupHashMap(HashMap_t** map, HashMapElementCleanupFn_t cleanupFn) {
+void cleanupHashMap(HashMap_t** map, HashMapElemCleanupFn_t cleanupFn) {
     if (!(*map) || !cleanupFn || refCountPtrDec(*map) != 0)
         return;
 
@@ -59,6 +59,41 @@ void cleanupHashMap(HashMap_t** map, HashMapElementCleanupFn_t cleanupFn) {
     
     cleanupRefCountedPtr(*map);
     *map = NULL;
+}
+
+HashMapIter_t createHashMapIter(HashMap_t* map)  {
+    for (int32_t i = 0; i < map->numBuckets; i++) {
+        if (map->buckets[i]) {
+            return (HashMapIter_t) {
+                .curBucket = i,
+                .curElem = map->buckets[i]
+            };
+        }
+    }
+    return (HashMapIter_t) {.curElem=NULL};
+}
+
+HashMapEntry_t* hashMapIterGetNext(HashMap_t* map, HashMapIter_t* iter) {
+    if (!iter || !iter->curElem) return NULL;
+    
+    HashMapEntry_t* ret = iter->curElem;
+    if (iter->curElem->next){
+        iter->curElem = iter->curElem->next;
+        return ret; 
+    }
+        
+    // seek starting at next bucket 
+    iter->curElem = NULL;
+    iter->curBucket++; 
+    while (iter->curBucket < map->numBuckets) {
+        if (map->buckets[iter->curBucket]) {
+            iter->curElem = map->buckets[iter->curBucket];
+            return ret;
+        }
+        iter->curBucket++;
+    }
+
+    return ret;
 }
 
 
@@ -177,7 +212,7 @@ static HashMapEntry_t* createHashMapEntry(const char* key, void* value) {
 }
 
 
-static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElementCleanupFn_t cleanupFn) {
+static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElemCleanupFn_t cleanupFn) {
     if (!(*entry))
         return;
         
