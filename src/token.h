@@ -53,7 +53,7 @@ typedef struct Token {
 
 
 Token_t* createToken(TokenType_t type, const char* literal, uint16_t len);
-Token_t* cloneToken(Token_t* tok);
+Token_t* copyToken(const Token_t* tok);
 void cleanupToken(Token_t** token);
 
 

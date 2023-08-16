@@ -2,10 +2,10 @@
 #include <string.h> 
 
 #include "sbuf.h"
-#include "refcount.h"
+#include "utils.h"
 
 Strbuf_t* createStrbuf() {
-    Strbuf_t* sbuf = createRefCountPtr(sizeof(Strbuf_t));
+    Strbuf_t* sbuf = mallocChk(sizeof(Strbuf_t));
     
     sbuf->str = NULL;
     sbuf->len = 0u;
@@ -13,28 +13,24 @@ Strbuf_t* createStrbuf() {
     return sbuf;
 }
 void cleanupStrbuf(Strbuf_t** sbuf) {
-    if (!(*sbuf) || refCountPtrDec(*sbuf) != 0) 
+    if (!(*sbuf)) 
         return;
     
     if ((*sbuf)->str != NULL)
         free((*sbuf)->str);
 
     (*sbuf)->len = 0u;
-    cleanupRefCountedPtr(*sbuf);
+    free(*sbuf);
 }
 
 char* detachStrbuf(Strbuf_t** sbuf) {
     if (*sbuf == NULL) 
         return NULL;
 
-    // dangling refs still exist 
-    if (refCountPtrDec(*sbuf) != 0)
-        return (*sbuf)->str;
-
     // no more refs 
     char* str = (*sbuf)->str;
     (*sbuf)->len = 0u;
-    cleanupRefCountedPtr(*sbuf);
+    free(*sbuf);
     
     return str;
 }

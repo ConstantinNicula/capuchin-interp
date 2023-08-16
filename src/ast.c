@@ -4,7 +4,6 @@
 #include "token.h"
 #include "utils.h"
 #include "sbuf.h"
-#include "refcount.h"
 
 /************************************ 
  *       COMMON UTILS DEF           *
@@ -94,35 +93,34 @@ const char* expressionTokenLiteral(Expression_t* expr) {
  *           IDENTIFIER             *
  ************************************/
 
-Identifier_t* createIdentifier(Token_t* tok, const char* val) {
-    Identifier_t* ident = createRefCountPtr(sizeof(Identifier_t));
+Identifier_t* createIdentifier(const Token_t* tok, const char* val) {
+    Identifier_t* ident = mallocChk(sizeof(Identifier_t));
 
     *ident =  (Identifier_t) {
         .type = EXPRESSION_IDENTIFIER,
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .value = cloneString(val)
     };
 
     return ident;
 }
 
-Identifier_t* copyIdentifier(Identifier_t* ident){
-    refCountPtrInc(ident);
-    return ident;
+Identifier_t* copyIdentifier(const Identifier_t* ident){
+    return createIdentifier(ident->token, ident->value);
 }
 
 void cleanupIdentifier(Identifier_t** ident) {
-    if (!(*ident) || refCountPtrDec(*ident) != 0)
+    if (!(*ident))
         return;
 
     cleanupToken(&(*ident)->token);
     free((void*)(*ident)->value);
     
-    cleanupRefCountedPtr(*ident);
+    free(*ident);
     *ident = NULL;
 }
 
-char* identifierToString(Identifier_t* ident) {
+char* identifierToString(const Identifier_t* ident) {
     // Return a copy to avoid free errors
     return cloneString(ident->value);
 }
@@ -132,33 +130,32 @@ char* identifierToString(Identifier_t* ident) {
  *      INTEGER LITERAL             *
  ************************************/
 
-IntegerLiteral_t* createIntegerLiteral(Token_t* tok) {
-    IntegerLiteral_t* il = createRefCountPtr(sizeof(IntegerLiteral_t));
+IntegerLiteral_t* createIntegerLiteral(const Token_t* tok) {
+    IntegerLiteral_t* il = mallocChk(sizeof(IntegerLiteral_t));
 
     *il = (IntegerLiteral_t) {
         .type = EXPRESSION_INTEGER_LITERAL,
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .value = 0
     };
     return il;
 }
 
-IntegerLiteral_t* copyIntegerLiteral(IntegerLiteral_t* il){
-    refCountPtrInc(il);
-    return il;
+IntegerLiteral_t* copyIntegerLiteral(const IntegerLiteral_t* il){
+    IntegerLiteral_t* newIl = createIntegerLiteral(il->token);
+    newIl->value = il->value;
+    return newIl;
 }
 
 void cleanupIntegerLiteral(IntegerLiteral_t** il) {
-    if (!(*il) || refCountPtrDec(*il) != 0)
-        return;
+    if (!(*il)) return;
     
     cleanupToken(&(*il)->token);
-    
-    cleanupRefCountedPtr(*il);
+    free(*il);
     *il = NULL;
 }
 
-char* integerLiteralToString(IntegerLiteral_t* il) {
+char* integerLiteralToString(const IntegerLiteral_t* il) {
     return cloneString(il->token->literal);
 }
 
@@ -167,34 +164,34 @@ char* integerLiteralToString(IntegerLiteral_t* il) {
  *          BOOLEAN                 *
  ************************************/
 
-BooleanLiteral_t* createBooleanLiteral(Token_t* tok) {
-    BooleanLiteral_t* bl = createRefCountPtr(sizeof(BooleanLiteral_t));
+BooleanLiteral_t* createBooleanLiteral(const Token_t* tok) {
+    BooleanLiteral_t* bl = mallocChk(sizeof(BooleanLiteral_t));
 
     *bl = (BooleanLiteral_t) {
         .type = EXPRESSION_BOOLEAN_LITERAL,
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .value = false
     };
 
     return bl;
 }
 
-BooleanLiteral_t* copyBooleanLiteral(BooleanLiteral_t* bl) {
-    refCountPtrInc(bl);
-    return bl;
+BooleanLiteral_t* copyBooleanLiteral(const BooleanLiteral_t* bl) {
+    BooleanLiteral_t* newBl = createBooleanLiteral(bl->token);
+    newBl->value = bl->value;
+    return newBl;
 }
 
 void cleanupBooleanLiteral(BooleanLiteral_t** bl) {
-    if (!(*bl) || refCountPtrDec(*bl) != 0)
-        return;
+    if (!(*bl)) return;
     
     cleanupToken(&(*bl)->token);
 
-    cleanupRefCountedPtr(*bl);
+    free(*bl);
     *bl = NULL;
 }
 
-char* booleanLiteralToString(BooleanLiteral_t* bl) {
+char* booleanLiteralToString(const BooleanLiteral_t* bl) {
     return bl->value ? cloneString("true") : cloneString("false");
 }
 
@@ -204,12 +201,12 @@ char* booleanLiteralToString(BooleanLiteral_t* bl) {
  *      PREFIX EXPRESSION           *
  ************************************/
 
-PrefixExpression_t* createPrefixExpresion(Token_t* tok) {
-    PrefixExpression_t* exp = createRefCountPtr(sizeof(PrefixExpression_t));
+PrefixExpression_t* createPrefixExpresion(const Token_t* tok) {
+    PrefixExpression_t* exp = mallocChk(sizeof(PrefixExpression_t));
 
     *exp = (PrefixExpression_t) {
         .type = EXPRESSION_PREFIX_EXPRESSION,
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .operator = NULL,
         .right = NULL
     };
@@ -217,24 +214,25 @@ PrefixExpression_t* createPrefixExpresion(Token_t* tok) {
     return exp;
 }
 
-PrefixExpression_t* copyPrefixExpression(PrefixExpression_t* exp) {
-    refCountPtrInc(exp);
-    return exp;
+PrefixExpression_t* copyPrefixExpression(const PrefixExpression_t* exp) {
+    PrefixExpression_t* newExp = createPrefixExpresion(exp->token);
+    newExp->operator = cloneString(exp->operator);
+    newExp->right = copyExpression(exp->right);
+    return newExp;
 }
 
 void cleanupPrefixExpression(PrefixExpression_t** exp) {
-    if (!(*exp) || refCountPtrDec(*exp) != 0)
-        return;
+    if (!(*exp)) return;
 
     cleanupToken(&(*exp)->token);
     free((*exp)->operator);
     cleanupExpression(&(*exp)->right);
     
-    cleanupRefCountedPtr(*exp);
+    free(*exp);
     *exp = NULL;
 }
 
-char* prefixExpressionToString(PrefixExpression_t* exp) {
+char* prefixExpressionToString(const PrefixExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufWrite(sbuf, "(");
@@ -251,12 +249,12 @@ char* prefixExpressionToString(PrefixExpression_t* exp) {
  *      INFIX EXPRESSION           *
  ************************************/
 
-InfixExpression_t* createInfixExpresion(Token_t* tok) {
-    InfixExpression_t* exp = createRefCountPtr(sizeof(InfixExpression_t));
+InfixExpression_t* createInfixExpresion(const Token_t* tok) {
+    InfixExpression_t* exp = mallocChk(sizeof(InfixExpression_t));
 
     *exp = (InfixExpression_t) {
         .type = EXPRESSION_INFIX_EXPRESSION,
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .left = NULL, 
         .operator = NULL, 
         .right = NULL
@@ -265,25 +263,27 @@ InfixExpression_t* createInfixExpresion(Token_t* tok) {
     return exp;
 }
 
-InfixExpression_t* copyInfixExpression(InfixExpression_t* exp) {
-    refCountPtrInc(exp);
-    return exp;
+InfixExpression_t* copyInfixExpression(const InfixExpression_t* exp) {
+    InfixExpression_t* newExp = createInfixExpresion(exp->token);
+    newExp->left = copyExpression(exp->left);
+    newExp->operator = cloneString(exp->operator);
+    newExp->right = copyExpression(exp->right);
+    return newExp;
 }
 
 void cleanupInfixExpression(InfixExpression_t** exp) {
-    if (!(*exp) || refCountPtrDec(*exp) != 0)
-        return;
+    if (!(*exp))return;
     
     cleanupToken(&(*exp)->token);
     cleanupExpression(&(*exp)->left);
     free((*exp)->operator);
     cleanupExpression(&(*exp)->right);
 
-    cleanupRefCountedPtr(*exp);
+    free(*exp);
     *exp = NULL;
 }
 
-char* infixExpressionToString(InfixExpression_t* exp) {
+char* infixExpressionToString(const InfixExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufWrite(sbuf, "(");
@@ -302,12 +302,12 @@ char* infixExpressionToString(InfixExpression_t* exp) {
  *          IF EXPRESSION           *
  ************************************/
 
-IfExpression_t* createIfExpresion(Token_t* tok) {
-    IfExpression_t* exp = createRefCountPtr(sizeof(IfExpression_t));
+IfExpression_t* createIfExpresion(const Token_t* tok) {
+    IfExpression_t* exp = mallocChk(sizeof(IfExpression_t));
 
     *exp = (IfExpression_t) {
         .type = EXPRESSION_IF_EXPRESSION, 
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .condition = NULL, 
         .consequence = NULL, 
         .alternative = NULL
@@ -316,25 +316,27 @@ IfExpression_t* createIfExpresion(Token_t* tok) {
     return exp;
 }
 
-IfExpression_t* copyIfExpression(IfExpression_t* exp) {
-    refCountPtrInc(exp);
-    return exp;
+IfExpression_t* copyIfExpression(const IfExpression_t* exp) {
+    IfExpression_t* newExp = createIfExpresion(exp->token);
+    newExp->condition = copyExpression(exp->condition);
+    newExp->consequence = copyBlockStatement(exp->consequence);
+    newExp->alternative = copyBlockStatement(exp->alternative);
+    return newExp;
 }
 
 void cleanupIfExpression(IfExpression_t** exp) {
-    if (!(*exp) || refCountPtrDec(*exp) != 0)
-        return;
+    if (!(*exp)) return;
 
     cleanupToken(&(*exp)->token);
     cleanupExpression(&(*exp)->condition);
     cleanupBlockStatement(&(*exp)->consequence);
     cleanupBlockStatement(&(*exp)->alternative);
 
-    cleanupRefCountedPtr(*exp);
+    free(*exp);
     *exp = NULL;
 }
 
-char* ifExpressionToString(IfExpression_t* exp) {
+char* ifExpressionToString(const IfExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufWrite(sbuf, "if");
@@ -356,12 +358,12 @@ char* ifExpressionToString(IfExpression_t* exp) {
  *    FUNCTION EXPRESSION           *
  ************************************/
 
-FunctionLiteral_t* createFunctionLiteral(Token_t* tok) {
-    FunctionLiteral_t *exp = createRefCountPtr(sizeof(FunctionLiteral_t));
+FunctionLiteral_t* createFunctionLiteral(const Token_t* tok) {
+    FunctionLiteral_t *exp = mallocChk(sizeof(FunctionLiteral_t));
 
     *exp = (FunctionLiteral_t) {
         .type = EXPRESSION_FUNCTION_LITERAL, 
-        .token = cloneToken(tok),
+        .token = copyToken(tok),
         .parameters = createVector(),
         .body = NULL
     };
@@ -369,24 +371,25 @@ FunctionLiteral_t* createFunctionLiteral(Token_t* tok) {
     return exp;
 }
 
-FunctionLiteral_t* copyFunctionLiteral(FunctionLiteral_t* exp) {
-    refCountPtrInc(exp);
-    return exp;
+FunctionLiteral_t* copyFunctionLiteral(const FunctionLiteral_t* exp) {
+    FunctionLiteral_t* newExp = createFunctionLiteral(exp->token);
+    newExp->parameters = copyVector(newExp->parameters, (VectorElemCopyFn_t)copyExpression);
+    newExp->body = copyBlockStatement(exp->body);
+    return newExp;
 }
 
 void cleanupFunctionLiteral(FunctionLiteral_t** exp) {
-    if (!(*exp) || refCountPtrDec(*exp) != 0)
-        return;
+    if (!(*exp)) return;
 
     cleanupToken(&(*exp)->token);
     cleanupVector(&(*exp)->parameters, (VectorElemCleanupFn_t)cleanupIdentifier);
     cleanupBlockStatement(&(*exp)->body);
 
-    cleanupRefCountedPtr(*exp);
+    free(*exp);
     *exp = NULL;
 }
 
-char* functionLiteralToString(FunctionLiteral_t* exp) {
+char* functionLiteralToString(const FunctionLiteral_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufWrite(sbuf, exp->token->literal);
@@ -402,15 +405,15 @@ char* functionLiteralToString(FunctionLiteral_t* exp) {
     return detachStrbuf(&sbuf);
 }
 
-void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param) {
+void functionLiteralAppendParameter(FunctionLiteral_t* exp, const Identifier_t* param) {
     vectorAppend(exp->parameters, (void*)param);
 }
 
-uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp) {
+uint32_t functionLiteralGetParameterCount(const FunctionLiteral_t* exp) {
     return vectorGetCount(exp->parameters);
 }
 
-Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp) {
+Identifier_t** functionLiteralGetParameters(const FunctionLiteral_t* exp) {
     return (Identifier_t**) vectorGetBuffer(exp->parameters);
 }
 
@@ -419,12 +422,12 @@ Identifier_t** functionLiteralGetParameters(FunctionLiteral_t* exp) {
  *        CALL EXPRESSION           *
  ************************************/
 
-CallExpression_t* createCallExpression(Token_t* tok) {
-    CallExpression_t* exp = createRefCountPtr(sizeof(CallExpression_t));
+CallExpression_t* createCallExpression(const Token_t* tok) {
+    CallExpression_t* exp = mallocChk(sizeof(CallExpression_t));
 
     *exp = (CallExpression_t) {
         .type = EXPRESSION_CALL_EXPRESSION, 
-        .token =  cloneToken(tok),
+        .token =  copyToken(tok),
         .function = NULL, 
         .arguments = createVector()
     };
@@ -432,24 +435,25 @@ CallExpression_t* createCallExpression(Token_t* tok) {
     return exp;
 }
 
-CallExpression_t* copyCallExpression(CallExpression_t* exp) {
-    refCountPtrInc(exp);
-    return exp;
+CallExpression_t* copyCallExpression(const CallExpression_t* exp) {
+    CallExpression_t* newExp = createCallExpression(exp->token);
+    newExp->function = copyExpression(exp->function);
+    newExp->arguments = copyVector(exp->arguments, (VectorElemCopyFn_t)copyExpression);
+    return newExp;
 }
 
 void cleanupCallExpression(CallExpression_t** exp) {
-    if (!(*exp) || refCountPtrDec(*exp) != 0)
-        return;
+    if (!(*exp)) return;
     
     cleanupToken(&(*exp)->token);
     cleanupExpression(&(*exp)->function);
     cleanupVector(&(*exp)->arguments,(VectorElemCleanupFn_t) cleanupExpression);
 
-    cleanupRefCountedPtr(*exp);
+    free(*exp);
     *exp = NULL;
 }
 
-char* callExpressionToString(CallExpression_t* exp) {
+char* callExpressionToString(const CallExpression_t* exp) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufConsume(sbuf, expressionToString(exp->function));
@@ -470,14 +474,14 @@ char* callExpressionToString(CallExpression_t* exp) {
 }
 
 
-void callExpressionAppendArgument(CallExpression_t* exp, Expression_t* arg) {
+void callExpressionAppendArgument(CallExpression_t* exp, const Expression_t* arg) {
     vectorAppend(exp->arguments, (void*) arg);
 }
-uint32_t callExpresionGetArgumentCount(CallExpression_t* exp) {
+uint32_t callExpresionGetArgumentCount(const CallExpression_t* exp) {
     return vectorGetCount(exp->arguments);
 }
 
-Expression_t** callExpressionGetArguments(CallExpression_t* exp) {
+Expression_t** callExpressionGetArguments(const CallExpression_t* exp) {
     return (Expression_t**) vectorGetBuffer(exp->arguments);
 }
 
@@ -517,16 +521,13 @@ static StatementToStringFn_t statementToStringFns[] = {
 
 
 void cleanupStatement(Statement_t** st) {
-    if (*st == NULL)
-        return;
-
-    if ((*st)->type >= 0 &&  (*st)->type < STATEMENT_INVALID) {
+    if (st && (*st)->type >= 0 && (*st)->type < STATEMENT_INVALID) {
         StatementCleanupFn_t cleanupFn = statementCleanupFns[(*st)->type];
         cleanupFn((void**) st);
     }
 }
 
-Statement_t* copyStatement(Statement_t* st) {
+Statement_t* copyStatement(const Statement_t* st) {
     if (st && (st->type >= 0) && (st->type <= STATEMENT_INVALID) ) {
         StatementCopyFn_t copyFn = statementCopyFns[st->type];
         return copyFn(st);
@@ -534,19 +535,18 @@ Statement_t* copyStatement(Statement_t* st) {
     return NULL;
 }
 
-const char* statementTokenLiteral(Statement_t* st) {
+const char* statementTokenLiteral(const Statement_t* st) {
     if (st && st->type >= 0 && st->type <STATEMENT_INVALID ) {
         return st->token->literal;
     }
     return "";
 }
 
-char* statementToString(Statement_t* st) {
+char* statementToString(const Statement_t* st) {
     if (st && (st->type >= 0) && (st->type <=STATEMENT_INVALID) ) {
         StatementToStringFn_t toStringFn = statementToStringFns[st->type];
         return toStringFn(st);
     }
-
     return cloneString("");
 }
 
@@ -555,12 +555,12 @@ char* statementToString(Statement_t* st) {
  *         LET STATEMENT            *
  ************************************/
 
-LetStatement_t* createLetStatement(Token_t* token) {
-    LetStatement_t* st = createRefCountPtr(sizeof(LetStatement_t));
+LetStatement_t* createLetStatement(const Token_t* token) {
+    LetStatement_t* st = mallocChk(sizeof(LetStatement_t));
 
     *st = (LetStatement_t) {
         .type = STATEMENT_LET, 
-        .token = cloneToken(token),
+        .token = copyToken(token),
         .name = NULL,
         .value = NULL
     };
@@ -568,24 +568,25 @@ LetStatement_t* createLetStatement(Token_t* token) {
     return st;
 }
 
-LetStatement_t* copyLetStatement(LetStatement_t* st) {
-    refCountPtrInc(st);
-    return st;
+LetStatement_t* copyLetStatement(const LetStatement_t* st) {
+    LetStatement_t* newSt = createLetStatement(st->token);
+    newSt->name = copyIdentifier(st->name);
+    newSt->value = copyExpression(st->value);
+    return newSt;
 }
 
 void cleanupLetStatement(LetStatement_t** st) {
-    if (!(*st) || refCountPtrDec(*st) != 0)
-        return;
+    if (!(*st)) return;
 
     cleanupToken(&(*st)->token);
     cleanupIdentifier(&(*st)->name);
     cleanupExpression(&(*st)->value);
     
-    cleanupRefCountedPtr(*st);
+    free(*st);
     *st = NULL;
 }
 
-char* letStatementToString(LetStatement_t* st) {
+char* letStatementToString(const LetStatement_t* st) {
     Strbuf_t* sbuf = createStrbuf();
     
     strbufWrite(sbuf, st->token->literal);
@@ -605,35 +606,35 @@ char* letStatementToString(LetStatement_t* st) {
  *      RETURN STATEMENT            *
  ************************************/
 
-ReturnStatement_t* createReturnStatement(Token_t* token) {
-    ReturnStatement_t* st = createRefCountPtr(sizeof(ReturnStatement_t));
+ReturnStatement_t* createReturnStatement(const Token_t* token) {
+    ReturnStatement_t* st = mallocChk(sizeof(ReturnStatement_t));
     
     *st = (ReturnStatement_t) {
         .type = STATEMENT_RETURN,
-        .token = cloneToken(token),
+        .token = copyToken(token),
         .returnValue = NULL 
     };
 
     return st;
 }
 
-ReturnStatement_t* copyReturnStatement(ReturnStatement_t* st) {
-    refCountPtrInc(st);
-    return st;
+ReturnStatement_t* copyReturnStatement(const ReturnStatement_t* st) {
+    ReturnStatement_t* newSt = createReturnStatement(st->token);
+    newSt->returnValue = copyExpression(st->returnValue);
+    return newSt;
 }
 
 void cleanupReturnStatement(ReturnStatement_t** st) {
-    if (!(*st) || refCountPtrDec(*st) != 0)
-        return;
+    if (!(*st)) return;
     
     cleanupToken(&(*st)->token);
     cleanupExpression(&(*st)->returnValue);
     
-    cleanupRefCountedPtr(*st);
+    free(*st);
     *st = NULL;
 }
 
-char* returnStatementToString(ReturnStatement_t* st) {
+char* returnStatementToString(const ReturnStatement_t* st) {
     Strbuf_t* sbuf = createStrbuf();
 
     strbufWrite(sbuf, st->token->literal);
@@ -651,35 +652,35 @@ char* returnStatementToString(ReturnStatement_t* st) {
  *      EXPRESSION STATEMENT        *
  ************************************/
 
-ExpressionStatement_t* createExpressionStatement(Token_t* token) {
-    ExpressionStatement_t* st = createRefCountPtr(sizeof(ExpressionStatement_t));
+ExpressionStatement_t* createExpressionStatement(const Token_t* token) {
+    ExpressionStatement_t* st = mallocChk(sizeof(ExpressionStatement_t));
 
     *st = (ExpressionStatement_t) {
         .type = STATEMENT_EXPRESSION, 
-        .token = cloneToken(token),
+        .token = copyToken(token),
         .expression = NULL
     };
 
     return st;
 }
 
-ExpressionStatement_t* copyExpressionStatement(ExpressionStatement_t* st) {
-    refCountPtrInc(st);
-    return st;
+ExpressionStatement_t* copyExpressionStatement(const ExpressionStatement_t* st) {
+    ExpressionStatement_t* newSt = createExpressionStatement(st->token);
+    newSt->expression = copyExpression(st->expression);
+    return newSt;
 }
 
 void cleanupExpressionStatement(ExpressionStatement_t** st) {
-    if (!(*st) || refCountPtrDec(*st) != 0)
-        return;
+    if (!(*st))return;
 
     cleanupToken(&(*st)->token);
     cleanupExpression(&(*st)->expression);
 
-    cleanupRefCountedPtr(*st);
+    free(*st);
     *st = NULL;
 }
 
-char* expressionStatementToString(ExpressionStatement_t* st) {
+char* expressionStatementToString(const ExpressionStatement_t* st) {
     if (st->expression != NULL) {
         return expressionToString(st->expression);
     }
@@ -692,47 +693,47 @@ char* expressionStatementToString(ExpressionStatement_t* st) {
  *         BLOCK STATEMENT          *
  ************************************/
 
-BlockStatement_t* createBlockStatement(Token_t* token) {
-    BlockStatement_t* st = createRefCountPtr(sizeof(BlockStatement_t));
+BlockStatement_t* createBlockStatement(const Token_t* token) {
+    BlockStatement_t* st = mallocChk(sizeof(BlockStatement_t));
 
     *st = (BlockStatement_t) {
         .type = STATEMENT_BLOCK, 
-        .token = cloneToken(token),
+        .token = copyToken(token),
         .statements = createVector()
     };
 
     return st;
 }
 
-BlockStatement_t* copyBlockStatement(BlockStatement_t* st) {
-    refCountPtrInc(st);
-    return st;
+BlockStatement_t* copyBlockStatement(const BlockStatement_t* st) {
+    BlockStatement_t* newSt = createBlockStatement(st->token);
+    newSt->statements = copyVector(st->statements, (VectorElemCopyFn_t)copyStatement);
+    return newSt;
 }
 
 void cleanupBlockStatement(BlockStatement_t** st) {
-    if (!(*st) || refCountPtrDec(*st) != 0)
-        return;
+    if (!(*st)) return;
     
     cleanupToken(&(*st)->token);
     cleanupStatementVec(&(*st)->statements);
     
-    cleanupRefCountedPtr(*st);
+    free(*st);
     *st = NULL;
 }
 
-char* blockStatementToString(BlockStatement_t* st) {
+char* blockStatementToString(const BlockStatement_t* st) {
     return statementVecToString(st->statements);
 }
 
-uint32_t blockStatementGetStatementCount(BlockStatement_t* st) {
+uint32_t blockStatementGetStatementCount(const BlockStatement_t* st) {
     return vectorGetCount(st->statements);
 }
 
-Statement_t** blockStatementGetStatements(BlockStatement_t* st) {
+Statement_t** blockStatementGetStatements(const BlockStatement_t* st) {
     return (Statement_t**) vectorGetBuffer(st->statements);
 }
 
-void blockStatementAppendStatement(BlockStatement_t* block, Statement_t* st) {
+void blockStatementAppendStatement(BlockStatement_t* block, const Statement_t* st) {
     vectorAppend(block->statements, (void*) st);
 }
 
@@ -749,17 +750,18 @@ Program_t* createProgram() {
     return prog;
 }
 
-Statement_t** programGetStatements(Program_t* prog) {
+Statement_t** programGetStatements(const Program_t* prog) {
     return (Statement_t**)vectorGetBuffer(prog->statements);
 }
 
-uint32_t programGetStatementCount(Program_t* prog) {
+uint32_t programGetStatementCount(const Program_t* prog) {
     return vectorGetCount(prog->statements);
 }
 
-Program_t* copyProgram(Program_t* prog) {
-    refCountPtrInc(prog);
-    return prog;
+Program_t* copyProgram(const Program_t* prog) {
+    Program_t* newProg = createProgram();
+    newProg->statements = copyVector(prog->statements, (VectorElemCopyFn_t)copyStatement);
+    return newProg;
 }
 
 void cleanupProgram(Program_t** prog) {
@@ -772,11 +774,11 @@ void cleanupProgram(Program_t** prog) {
     *prog = NULL;
 }
 
-void programAppendStatement(Program_t* prog, Statement_t* st) {
+void programAppendStatement(Program_t* prog, const Statement_t* st) {
     vectorAppend(prog->statements, (void*) st);
 }
 
-const char* programTokenLiteral(Program_t* prog) {
+const char* programTokenLiteral(const Program_t* prog) {
     if (programGetStatementCount(prog) > 0u) 
     {   
         Statement_t** stmts = programGetStatements(prog);
@@ -786,8 +788,7 @@ const char* programTokenLiteral(Program_t* prog) {
     }
 }
 
-
-char* programToString(Program_t* prog) {
+char* programToString(const Program_t* prog) {
     return statementVecToString(prog->statements);
 }
 
