@@ -15,7 +15,7 @@ typedef struct Environment {
 Environment_t* createEnvironment(Environment_t* outer);
 Environment_t* copyEnvironment(Environment_t* env);
 void cleanupEnvironment(Environment_t**env);
-void gcMarkEnvironment(Environment_t**env);
+void gcMarkEnvironment(Environment_t*env);
 
 
 Object_t* environmentGet(Environment_t* env, const char* name);

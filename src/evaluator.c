@@ -196,7 +196,7 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
 }
 
 static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
-    Vector_t* result = createVector(sizeof(Object_t*));
+    Vector_t* result = createVector();
     
     uint32_t exprCnt = vectorGetCount(exprs);
     Expression_t** exprBuf = vectorGetBuffer(exprs);
@@ -205,11 +205,11 @@ static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
         Object_t* evaluated = evalExpression(exprBuf[i], env);
         if (isError(evaluated)){
             cleanupVectorContents(result, (VectorElemCleanupFn_t)cleanupObject);
-            vectorAppend(result, &evaluated);
+            vectorAppend(result, evaluated);
             return result;
         }
 
-        vectorAppend(result, &evaluated);
+        vectorAppend(result, evaluated);
     }
 
     return result;

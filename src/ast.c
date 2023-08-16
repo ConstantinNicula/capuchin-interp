@@ -66,7 +66,7 @@ void cleanupExpression(Expression_t** expr) {
     }
 }
 
-Expression_t* expressionCopy(Expression_t* expr) {
+Expression_t* copyExpression(Expression_t* expr) {
     if (expr && expr->type  >= 0 && expr->type < EXPRESSION_INVALID) {
         ExpressionCopyFn_t copyFn = expressionCopyFns[expr->type];
         return copyFn((void*)expr);
@@ -362,7 +362,7 @@ FunctionLiteral_t* createFunctionLiteral(Token_t* tok) {
     *exp = (FunctionLiteral_t) {
         .type = EXPRESSION_FUNCTION_LITERAL, 
         .token = cloneToken(tok),
-        .parameters = createVector(sizeof(Identifier_t*)),
+        .parameters = createVector(),
         .body = NULL
     };
 
@@ -403,7 +403,7 @@ char* functionLiteralToString(FunctionLiteral_t* exp) {
 }
 
 void functionLiteralAppendParameter(FunctionLiteral_t* exp, Identifier_t* param) {
-    vectorAppend(exp->parameters, (void*) &param);
+    vectorAppend(exp->parameters, (void*)param);
 }
 
 uint32_t functionLiteralGetParameterCount(FunctionLiteral_t* exp) {
@@ -426,7 +426,7 @@ CallExpression_t* createCallExpression(Token_t* tok) {
         .type = EXPRESSION_CALL_EXPRESSION, 
         .token =  cloneToken(tok),
         .function = NULL, 
-        .arguments = createVector(sizeof(Expression_t*))
+        .arguments = createVector()
     };
  
     return exp;
@@ -471,7 +471,7 @@ char* callExpressionToString(CallExpression_t* exp) {
 
 
 void callExpressionAppendArgument(CallExpression_t* exp, Expression_t* arg) {
-    vectorAppend(exp->arguments, (void*) &arg);
+    vectorAppend(exp->arguments, (void*) arg);
 }
 uint32_t callExpresionGetArgumentCount(CallExpression_t* exp) {
     return vectorGetCount(exp->arguments);
@@ -698,7 +698,7 @@ BlockStatement_t* createBlockStatement(Token_t* token) {
     *st = (BlockStatement_t) {
         .type = STATEMENT_BLOCK, 
         .token = cloneToken(token),
-        .statements = createVector(sizeof(Statement_t*))
+        .statements = createVector()
     };
 
     return st;
@@ -733,7 +733,7 @@ Statement_t** blockStatementGetStatements(BlockStatement_t* st) {
 }
 
 void blockStatementAppendStatement(BlockStatement_t* block, Statement_t* st) {
-    vectorAppend(block->statements, (void*)&st);
+    vectorAppend(block->statements, (void*) st);
 }
 
 
@@ -745,7 +745,7 @@ Program_t* createProgram() {
     Program_t* prog = (Program_t*) malloc(sizeof(Program_t));
     if (prog == NULL)
         return NULL;
-    prog->statements = createVector(sizeof(Statement_t*));
+    prog->statements = createVector();
     return prog;
 }
 
@@ -773,7 +773,7 @@ void cleanupProgram(Program_t** prog) {
 }
 
 void programAppendStatement(Program_t* prog, Statement_t* st) {
-    vectorAppend(prog->statements, (void*)&st);
+    vectorAppend(prog->statements, (void*) st);
 }
 
 const char* programTokenLiteral(Program_t* prog) {

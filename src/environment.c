@@ -6,13 +6,8 @@ Environment_t* createEnvironment(Environment_t* outer){
     Environment_t* env = mallocChk(sizeof(Environment_t));
     *env = (Environment_t) {
         .store = createHashMap(),
-        .outer = outer ? copyEnvironment(outer) : NULL    
+        .outer = outer
     };
-    return env;
-}
-
-Environment_t* copyEnvironment(Environment_t* env) {
-    assert(0 &&  "TO DO: not yet implemented");
     return env;
 }
 
@@ -40,6 +35,6 @@ Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
     return obj;
 }
 
-void gcMarkEnvironment(Environment_t**env) {
+void gcMarkEnvironment(Environment_t*env) {
     assert(0 && "TO DO: not yet implemented!");
 }

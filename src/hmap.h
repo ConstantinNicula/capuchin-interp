@@ -22,7 +22,7 @@ typedef struct HashMapIter {
 } HashMapIter_t;
 
 typedef void (*HashMapElemCleanupFn_t) (void** elem);
-typedef void (*HashMapElemCopyFn_t) (void** elem);
+typedef void* (*HashMapElemCopyFn_t) (void* elem);
 
 HashMap_t* createHashMap();
 HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn);

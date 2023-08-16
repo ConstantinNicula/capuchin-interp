@@ -254,9 +254,9 @@ Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment
     Function_t* func = mallocChk(sizeof(Function_t));
     *func = (Function_t) {
         .type = OBJECT_FUNCTION,
-        .parameters = copyVector(params),
+        .parameters = copyVector(params, (VectorElemCopyFn_t) copyExpression),
         .body = copyBlockStatement(body),
-        .environment = copyEnvironment(env), // weak copy to env
+        .environment = env, // weak copy to env
     };
 
     return func;
@@ -268,7 +268,6 @@ void cleanupFunction(Function_t** obj) {
 
     cleanupVector(&(*obj)->parameters, (VectorElemCleanupFn_t)cleanupExpression);
     cleanupBlockStatement(&(*obj)->body);
-    cleanupEnvironment(&(*obj)->environment);
     
     free(*obj);
     *obj = NULL;

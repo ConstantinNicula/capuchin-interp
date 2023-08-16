@@ -3,7 +3,6 @@
 
 #include "hmap.h"
 #include "utils.h"
-#include "refcount.h"
 
 // Number of buckets allocated at has map creation.
 #define DEFAULT_NUM_BUCKETS 4 
@@ -19,7 +18,7 @@ static uint32_t getResizeTriggerLimit(HashMap_t* map);
 /* External API */
 
 HashMap_t* createHashMap() {
-    HashMap_t* map = createRefCountPtr(sizeof(HashMap_t));
+    HashMap_t* map = mallocChk(sizeof(HashMap_t));
     
     *map = (HashMap_t) {
         .buckets = calloc(DEFAULT_NUM_BUCKETS, sizeof(HashMapEntry_t*)),
@@ -30,34 +29,40 @@ HashMap_t* createHashMap() {
     return map;
 }
 
-HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn){
-    refCountPtrInc(map);
-    return map;
+HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn) {
+    if (!map || !copyFn)
+        return NULL;
+    HashMap_t* newMap = createHashMap();
+
+    HashMapIter_t iter = createHashMapIter(map);
+    HashMapEntry_t* entry = hashMapIterGetNext(map, &iter);
+    while (entry)  {
+        hashMapInsert(newMap, entry->key, copyFn(entry->value));
+        entry = hashMapIterGetNext(map, &iter);
+    }
+    return newMap;
 }
 
 
 void cleanupHashMapElements(HashMap_t* map, HashMapElemCleanupFn_t cleanupFn) {
-    if (!map || !cleanupFn)
-        return;
-    for (uint32_t i = 0; i < map->numBuckets; i++) {
-        HashMapEntry_t* ptr = map->buckets[i];
-        while (ptr) {
-            HashMapEntry_t* next = ptr->next;
-            cleanupHashMapEntry(&ptr, cleanupFn);
-            ptr = next;
-        }
+    if (!map) return;
+    HashMapIter_t iter = createHashMapIter(map);
+    HashMapEntry_t* entry = hashMapIterGetNext(map, &iter);
+    while (entry)  {
+        HashMapEntry_t* next = hashMapIterGetNext(map, &iter);
+        cleanupHashMapEntry(&entry, cleanupFn);
+        entry = next;
     }
 }
 
 
 void cleanupHashMap(HashMap_t** map, HashMapElemCleanupFn_t cleanupFn) {
-    if (!(*map) || !cleanupFn || refCountPtrDec(*map) != 0)
-        return;
+    if (!(*map)) return;
 
     cleanupHashMapElements(*map, cleanupFn);
     free((*map)->buckets);
     
-    cleanupRefCountedPtr(*map);
+    free(*map);
     *map = NULL;
 }
 
@@ -217,7 +222,8 @@ static void cleanupHashMapEntry(HashMapEntry_t** entry, HashMapElemCleanupFn_t c
         return;
         
     free((*entry)->key);
-    cleanupFn(&(*entry)->value);
+    if (cleanupFn)
+        cleanupFn(&(*entry)->value);
     
     free(*entry);
     *entry = NULL;

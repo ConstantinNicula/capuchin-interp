@@ -104,7 +104,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterInfix(parser, TOKEN_GT, parserParseInfixExpression);
     parserRegisterInfix(parser, TOKEN_LPAREN, parserParseCallExpression);
 
-    parser->errors = createVector(sizeof(char*));
+    parser->errors = createVector();
 
     parserNextToken(parser);
     parserNextToken(parser);
@@ -499,7 +499,7 @@ static void parserNoPrefixParseFnError(Parser_t* parser, TokenType_t tokType) {
 }
 
 static void parserAppendError(Parser_t* parser, const char* err) {
-    vectorAppend(parser->errors, (void*)&err);
+    vectorAppend(parser->errors, (void*) err);
 }
 
 static void parserPeekError(Parser_t* parser, TokenType_t expTokenType) {
