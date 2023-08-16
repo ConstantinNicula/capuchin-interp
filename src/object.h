@@ -33,8 +33,11 @@ typedef struct Object {
 typedef char* (*ObjectInspectFn_t) (void*);
 typedef void (*ObjectCleanupFn_t) (void**);
 typedef void* (*ObjectCopyFn_t) (void*);
+typedef void (*ObjectGcMarkFn_t) (void*);
+
 
 void cleanupObject(Object_t** obj);
+void gcMarkObject(Object_t* obj);
 Object_t* copyObject(Object_t* obj);
 
 char* objectInspect(Object_t* obj);

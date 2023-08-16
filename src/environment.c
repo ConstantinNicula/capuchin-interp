@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "environment.h"
 #include "refcount.h"
 
@@ -41,3 +42,6 @@ Object_t* environmentSet(Environment_t* env, const char* name, Object_t* obj){
     return obj;
 }
 
+void gcMarkEnvironment(Environment_t**env) {
+    assert(0 && "TO DO: not yet implemented!");
+}

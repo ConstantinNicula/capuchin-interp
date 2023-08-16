@@ -21,7 +21,6 @@ const char* objectTypeToString(ObjectType_t type) {
 }
 
 
-
 /************************************ 
  *     GENERIC OBJECT TYPE          *
  ************************************/
@@ -53,6 +52,19 @@ static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction
 };
 
+static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
+    /*
+    [OBJECT_INTEGER]=(ObjectMarkFn_t)markInteger,
+    [OBJECT_BOOLEAN]=(ObjectMarkFn_t)markBoolean,
+    [OBJECT_NULL]=(ObjectMarkFn_t)markNull,
+    [OBJECT_RETURN_VALUE]=(ObjectMarkFn_t)markReturnValue,
+    [OBJECT_ERROR]=(ObjectMarkFn_t)markError,
+    [OBJECT_FUNCTION]=(ObjectMarkFn_t)markFunction
+    */
+};
+
+
+
 void cleanupObject(Object_t** obj) {
     if (!(*obj)) return;
         
@@ -63,6 +75,23 @@ void cleanupObject(Object_t** obj) {
     }
 }
 
+Object_t* copyObject(Object_t* obj) {
+    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+        ObjectCopyFn_t copyFn = objectCopyFns[obj->type];
+        if (!copyFn) return (Object_t*)createNull();
+        return copyFn(obj);
+    }
+    return (Object_t*)createNull();
+}
+
+void gcMarkObject(Object_t* obj) {
+    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
+        ObjectGcMarkFn_t markFn = objectMarkFns[obj->type];
+        if (markFn) markFn(obj);
+    }   
+}
+
+
 char* objectInspect(Object_t* obj) {
     if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
         ObjectInspectFn_t inspectFn = objectInsepctFns[obj->type];
@@ -72,14 +101,7 @@ char* objectInspect(Object_t* obj) {
     return cloneString(""); 
 }
 
-Object_t* copyObject(Object_t* obj) {
-    if (obj && 0 <= obj->type && obj->type < _OBJECT_TYPE_CNT) {
-        ObjectCopyFn_t copyFn = objectCopyFns[obj->type];
-        if (!copyFn) return (Object_t*)createNull();
-        return copyFn(obj);
-    }
-    return (Object_t*)createNull();
-}
+
 
 ObjectType_t objectGetType(Object_t* obj) {
     return obj->type;
@@ -107,6 +129,8 @@ void cleanupInteger(Integer_t** obj) {
     cleanupRefCountedPtr(*obj);
     *obj = NULL;
 }
+
+
 
 Integer_t* copyInteger(Integer_t* obj) {
     refCountPtrInc(obj);
