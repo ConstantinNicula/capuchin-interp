@@ -13,7 +13,7 @@ typedef struct Environment {
 } Environment_t;
 
 Environment_t* createEnvironment(Environment_t* outer);
-Environment_t* copyEnvironment(Environment_t* env);
+Environment_t* copyEnvironment(const Environment_t* env);
 void cleanupEnvironment(Environment_t**env);
 void gcMarkEnvironment(Environment_t*env);
 

@@ -199,7 +199,7 @@ static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
     Vector_t* result = createVector();
     
     uint32_t exprCnt = vectorGetCount(exprs);
-    Expression_t** exprBuf = vectorGetBuffer(exprs);
+    Expression_t** exprBuf = (Expression_t**)vectorGetBuffer(exprs);
 
     for (int i = 0; i < exprCnt; i++) {
         Object_t* evaluated = evalExpression(exprBuf[i], env);
@@ -234,7 +234,7 @@ static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
     Environment_t* env = createEnvironment(function->environment);
 
     uint32_t argsCnt = vectorGetCount(args);
-    Object_t** argsBuf = vectorGetBuffer(args);
+    Object_t** argsBuf = (Object_t**)vectorGetBuffer(args);
     Identifier_t** paramBuf = functionGetParameters(function);
 
     for (uint32_t i = 0; i < argsCnt; i++) {

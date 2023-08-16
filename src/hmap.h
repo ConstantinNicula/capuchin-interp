@@ -22,15 +22,15 @@ typedef struct HashMapIter {
 } HashMapIter_t;
 
 typedef void (*HashMapElemCleanupFn_t) (void** elem);
-typedef void* (*HashMapElemCopyFn_t) (void* elem);
+typedef void* (*HashMapElemCopyFn_t) (const void* elem);
 
 HashMap_t* createHashMap();
-HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn);
+HashMap_t* copyHashMap(const HashMap_t* map, HashMapElemCopyFn_t copyFn);
 void cleanupHashMapElements(HashMap_t* map, HashMapElemCleanupFn_t cleanupFn);
 void cleanupHashMap(HashMap_t** map, HashMapElemCleanupFn_t cleanupFn);
 
-HashMapIter_t createHashMapIter(HashMap_t* map);
-HashMapEntry_t* hashMapIterGetNext(HashMap_t* map, HashMapIter_t* iter);
+HashMapIter_t createHashMapIter(const HashMap_t* map);
+HashMapEntry_t* hashMapIterGetNext(const HashMap_t* map, HashMapIter_t* iter);
 
 void hashMapInsert(HashMap_t* map, const char* key , void* value);
 void* hashMapGet(HashMap_t* map, const char* key);

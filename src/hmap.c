@@ -29,7 +29,7 @@ HashMap_t* createHashMap() {
     return map;
 }
 
-HashMap_t* copyHashMap(HashMap_t* map, HashMapElemCopyFn_t copyFn) {
+HashMap_t* copyHashMap(const HashMap_t* map, HashMapElemCopyFn_t copyFn) {
     if (!map || !copyFn)
         return NULL;
     HashMap_t* newMap = createHashMap();
@@ -66,7 +66,7 @@ void cleanupHashMap(HashMap_t** map, HashMapElemCleanupFn_t cleanupFn) {
     *map = NULL;
 }
 
-HashMapIter_t createHashMapIter(HashMap_t* map)  {
+HashMapIter_t createHashMapIter(const HashMap_t* map)  {
     for (int32_t i = 0; i < map->numBuckets; i++) {
         if (map->buckets[i]) {
             return (HashMapIter_t) {
@@ -78,7 +78,7 @@ HashMapIter_t createHashMapIter(HashMap_t* map)  {
     return (HashMapIter_t) {.curElem=NULL};
 }
 
-HashMapEntry_t* hashMapIterGetNext(HashMap_t* map, HashMapIter_t* iter) {
+HashMapEntry_t* hashMapIterGetNext(const HashMap_t* map, HashMapIter_t* iter) {
     if (!iter || !iter->curElem) return NULL;
     
     HashMapEntry_t* ret = iter->curElem;
