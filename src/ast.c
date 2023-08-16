@@ -441,9 +441,14 @@ CallExpression_t* createCallExpression(const Token_t* tok) {
 }
 
 CallExpression_t* copyCallExpression(const CallExpression_t* exp) {
-    CallExpression_t* newExp = createCallExpression(exp->token);
-    newExp->function = copyExpression(exp->function);
-    newExp->arguments = copyVector(exp->arguments, (VectorElemCopyFn_t)copyExpression);
+    CallExpression_t* newExp = mallocChk(sizeof(CallExpression_t));
+    *newExp = (CallExpression_t) {
+        .type = EXPRESSION_CALL_EXPRESSION, 
+        .token =  copyToken(exp->token),
+        .function = copyExpression(exp->function),
+        .arguments = copyVector(exp->arguments, (VectorElemCopyFn_t)copyExpression)
+    };
+
     return newExp;
 }
 
