@@ -32,7 +32,7 @@ void cleanupHashMap(HashMap_t** map, HashMapElemCleanupFn_t cleanupFn);
 HashMapIter_t createHashMapIter(const HashMap_t* map);
 HashMapEntry_t* hashMapIterGetNext(const HashMap_t* map, HashMapIter_t* iter);
 
-void hashMapInsert(HashMap_t* map, const char* key , void* value);
+void* hashMapInsert(HashMap_t* map, const char* key , void* value);
 void* hashMapGet(HashMap_t* map, const char* key);
 
 #endif 

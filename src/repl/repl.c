@@ -26,9 +26,9 @@ int main() {
     Environment_t* env = createEnvironment(NULL);
     while (true) {
         printf("%s", PROMPT);
-        gets(inputBuffer);
+        fgets(inputBuffer, sizeof(inputBuffer), stdin);
 
-        if (strcmp(inputBuffer, "quit") == 0) 
+        if (strcmp(inputBuffer, "quit\n") == 0) 
             break;
     
         Lexer_t* lexer = createLexer(inputBuffer);

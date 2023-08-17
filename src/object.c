@@ -287,7 +287,7 @@ char* functionInspect(Function_t* obj) {
     
     uint32_t cnt = vectorGetCount(obj->parameters);
     Identifier_t** params = (Identifier_t**)vectorGetBuffer(obj->parameters);
-    for (uint32_t i = 0; i < cnt - 1; i++) {
+    for (uint32_t i = 0; i < cnt; i++) {
         strbufConsume(sbuf, identifierToString(params[i]));
         if (i !=  (cnt - 1))
             strbufWrite(sbuf, ",");

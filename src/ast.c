@@ -10,7 +10,7 @@
  ************************************/
 
 static void cleanupStatementVec(Vector_t** statements);
-static char* statementVecToString(Vector_t* statements);
+static char* statementVecToString(Vector_t* statements, bool indent);
 
 
 /************************************ 
@@ -737,7 +737,7 @@ void cleanupBlockStatement(BlockStatement_t** st) {
 }
 
 char* blockStatementToString(const BlockStatement_t* st) {
-    return statementVecToString(st->statements);
+    return statementVecToString(st->statements, true);
 }
 
 uint32_t blockStatementGetStatementCount(const BlockStatement_t* st) {
@@ -804,7 +804,7 @@ const char* programTokenLiteral(const Program_t* prog) {
 }
 
 char* programToString(const Program_t* prog) {
-    return statementVecToString(prog->statements);
+    return statementVecToString(prog->statements, false);
 }
 
 
@@ -818,14 +818,18 @@ static void cleanupStatementVec(Vector_t** statements) {
 }
 
 
-static char* statementVecToString(Vector_t* statements) {
+static char* statementVecToString(Vector_t* statements, bool indent) {
     Strbuf_t* sbuf = createStrbuf();
     
     int32_t cnt = vectorGetCount(statements);
     Statement_t** stmts = (Statement_t**) vectorGetBuffer(statements);
 
     for (uint32_t i = 0; i < cnt; i++) {
+        if (indent)
+            strbufWrite(sbuf, "\t");
         strbufConsume(sbuf, statementToString(stmts[i]));
+        if(i != (cnt-1))
+            strbufWrite(sbuf, "\n");
     }
 
     return detachStrbuf(&sbuf);

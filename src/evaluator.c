@@ -70,7 +70,7 @@ static Object_t* evalStatement(Statement_t* stmt, Environment_t* env) {
             Object_t* evalRes = evalExpression(((LetStatement_t*)stmt)->value, env);
             if (isError(evalRes)) return evalRes;
             environmentSet(env, ((LetStatement_t*)stmt)->name->value, evalRes);
-            return (Object_t*)createNull();
+            return evalRes;
         }
         default:
             return NULL;
@@ -203,7 +203,12 @@ static Object_t* applyFunction(Function_t* function, Vector_t* args) {
         return (Object_t*) createError(message);
     }
 
-    Environment_t* extendedEnv = extendFunctionEnv(function, args);
+    Environment_t* extendedEnv = extendFunctionEnv(function, args); 
+    if (!extendedEnv) {
+        char* message = strFormat("Invalid parameter count: expected(%d) received (%d)", 
+                                    functionGetParameterCount(function), vectorGetCount(args));
+        return (Object_t*) createError(message);
+    }
     Object_t* evaluated = evalBlockStatement(function->body, extendedEnv);
     return unwrapReturnValue(evaluated);
 }
@@ -212,9 +217,14 @@ static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
     Environment_t* env = createEnvironment(function->environment);
 
     uint32_t argsCnt = vectorGetCount(args);
+    uint32_t paramsCnt = functionGetParameterCount(function);
+
+    if (argsCnt != paramsCnt) {
+        return NULL;
+    }
+
     Object_t** argsBuf = (Object_t**)vectorGetBuffer(args);
     Identifier_t** paramBuf = functionGetParameters(function);
-
     for (uint32_t i = 0; i < argsCnt; i++) {
         environmentSet(env, paramBuf[i]->value, argsBuf[i]);
     }

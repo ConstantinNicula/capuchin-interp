@@ -36,23 +36,22 @@ RESULTS = $(patsubst $(PATHT)test_%.c, $(PATHR)test_%.txt, $(SRCT))
 
 ### RULES ### 
 PASSED = `grep -s PASS $(PATHR)*.txt`
-FAIL = `grep -s FAIL $(PATHR)*.txt`
+FAIL = `grep -s "FAIL\|Abort\|Assertion\|Segmentation" $(PATHR)*.txt`
 IGNORE = `grep -s IGNORE $(PATHR)*.txt`
 
 test: $(BUILD_PATHS) $(RESULTS)
-	@echo "-----------------------\nIGNORES:\n-----------------------"
-	@echo "$(IGNORE)"
-	@echo "-----------------------\nFAILURES:\n-----------------------"
-	@echo "$(FAIL)"
-	@echo "-----------------------\nPASSED:\n-----------------------"
-	@echo "$(PASSED)"
+	@echo "\033[0;33m-----------------------\nIGNORES:\n-----------------------"
+	@echo "$(IGNORE)\033[0m"
+	@echo "\033[0;32m-----------------------\nPASSED:\n-----------------------"
+	@echo "$(PASSED)\033[0m"
+	@echo "\033[0;31m-----------------------\nFAILURES:\n-----------------------"
+	@echo "$(FAIL)\033[0m"
 	@echo "\nDONE"
 
 
 $(PATHR)%.txt: $(PATHB)%.out
 	-./$< > $@ 2>&1
 
-#$(PATHB)test_%.out: $(PATHO)test_%.o $(PATHO)%.o $(PATHO)unity.o #$(PATHD)test_%.d
 $(PATHB)test_%.out: $(PATHO)test_%.o $(SRC_OBJ) $(PATHO)unity.o 
 	$(LINK) -o $@ $^
 

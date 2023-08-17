@@ -103,9 +103,9 @@ HashMapEntry_t* hashMapIterGetNext(const HashMap_t* map, HashMapIter_t* iter) {
 
 
 
-void hashMapInsert(HashMap_t* map, const char* key, void* value) {  
+void* hashMapInsert(HashMap_t* map, const char* key, void* value) {  
     uint32_t index = getBucketIndex(map, key);
-    
+    void* ret = NULL; // holds previous value in case of key collision.
     if (!map->buckets[index]){
         map->buckets[index] = createHashMapEntry(key, value);
         map->itemCnt++;
@@ -119,12 +119,13 @@ void hashMapInsert(HashMap_t* map, const char* key, void* value) {
             cur->next = createHashMapEntry(key, value);
             map->itemCnt++;
         } else {
-            free(cur->value);
+            ret = cur->value;
             cur->value = value;
         }
     }
 
     hashMapResize(map);
+    return ret;
 }
 
 void* hashMapGet(HashMap_t* map, const char* key) {

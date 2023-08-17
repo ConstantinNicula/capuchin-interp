@@ -277,7 +277,7 @@ void evaluatorTestFunctionObject() {
     free(identStr);
 
     char* bodyStr = blockStatementToString(func->body);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("(x + 2)", bodyStr, "Wrong function body");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("\t(x + 2)", bodyStr, "Wrong function body");
     free(bodyStr);
 
     gcFreeExtRef(eval);
@@ -332,7 +332,6 @@ Object_t* testEval(const char* input) {
     cleanupProgram(&program);
     cleanupParser(&parser);
     gcFreeExtRef(env);
-
     return ret; 
 }
 
