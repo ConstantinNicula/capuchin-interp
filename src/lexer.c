@@ -109,6 +109,12 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
         case '}':
             tok = createToken(TOKEN_RBRACE, tokStart, 1u);
             break;
+        case '[':
+            tok = createToken(TOKEN_LBRACKET, tokStart, 1u);
+            break;
+        case ']':
+            tok = createToken(TOKEN_RBRACKET, tokStart, 1u);
+            break;
         case '\0':
             tok = createToken(TOKEN_EOF, tokStart, 1u);
             break;  

@@ -50,8 +50,8 @@ static Expression_t* parserParseFunctionLiteral(Parser_t* parser);
 static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl);
 
 static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* function);
-static void parserParseCallArguments(Parser_t* parser, CallExpression_t* exp);
-
+static Expression_t* parserParseArrayLiteral(Parser_t* parser);
+static Vector_t* parserParseExpressionList(Parser_t* parser, TokenType_t end); 
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -69,7 +69,7 @@ static bool parserExpectPeek(Parser_t* parser, TokenType_t tokType);
 
 /* ERROR handling */
 
-static void parserAppendError(Parser_t* parser, const char*);
+static void parserAppendError(Parser_t* parser, char*);
 static void parserNoPrefixParseFnError(Parser_t* parser, TokenType_t tok);
 static void parserPeekError(Parser_t* parser, TokenType_t expTokenType);
 
@@ -93,6 +93,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_IF, parserParseIfExpression);
     parserRegisterPrefix(parser, TOKEN_FUNCTION, parserParseFunctionLiteral);
     parserRegisterPrefix(parser, TOKEN_STRING, parserParseStringLiteral);
+    parserRegisterPrefix(parser, TOKEN_LBRACKET, parserParseArrayLiteral);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -409,39 +410,54 @@ static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* f
 
 
 static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* function) {
-    CallExpression_t* expression = createCallExpression(parser->curToken);
-    expression->function = function;
-    parserParseCallArguments(parser, expression);
-    return (Expression_t*)expression;
+    CallExpression_t* callExpr = createCallExpression(parser->curToken);
+    callExpr->function = function;
+    callExpr->arguments = parserParseExpressionList(parser, TOKEN_RPAREN);
+    if (!callExpr->arguments) {
+        cleanupExpression((Expression_t**)&callExpr);
+        return NULL;
+    }
+    return (Expression_t*)callExpr;
 }
 
-static void parserParseCallArguments(Parser_t* parser, CallExpression_t* exp) {
-    Expression_t* arg = NULL;
-    
-    if (parserPeekTokenIs(parser, TOKEN_RPAREN)){
-        parserNextToken(parser);
-        return;
+static Expression_t* parserParseArrayLiteral(Parser_t* parser) {
+    ArrayLiteral_t* arrayExpr = createArrayLiteral(parser->curToken);
+    arrayExpr->elements = parserParseExpressionList(parser, TOKEN_RBRACKET);
+    if (!arrayExpr->elements) {
+        cleanupExpression((Expression_t**)&arrayExpr);
+        return NULL;
     }
+    return (Expression_t*)arrayExpr;
+}
 
+static Vector_t* parserParseExpressionList(Parser_t* parser, TokenType_t end) {
+    Vector_t* list = createVector();
+    if (parserPeekTokenIs(parser, end)){
+        parserNextToken(parser);
+        return list;
+    }
     parserNextToken(parser);
-    arg = parserParseExpression(parser, PREC_LOWEST);
-    callExpressionAppendArgument(exp, arg);
+  
+    Expression_t* expr = parserParseExpression(parser, PREC_LOWEST);
+    vectorAppend(list, (void*)expr);
 
     while (parserPeekTokenIs(parser, TOKEN_COMMA))
     {
         parserNextToken(parser);
         parserNextToken(parser);    
-        arg = parserParseExpression(parser, PREC_LOWEST);
-        callExpressionAppendArgument(exp, arg);
+        expr = parserParseExpression(parser, PREC_LOWEST);
+        vectorAppend(list, (void*)expr);
     }
 
-    if (!parserExpectPeek(parser, TOKEN_RPAREN)) {
-        return;
+    if (!parserExpectPeek(parser, end)) {
+        cleanupVector(&list, (VectorElemCleanupFn_t)cleanupExpression);
+        char* err = strFormat("Expression list missing terminator %s", tokenTypeToStr(end));
+        parserAppendError(parser, err);
+        return NULL;
     }
 
+    return list;
 }
-
-
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser) {
     return _precedences[parser->peekToken->type];
@@ -505,7 +521,7 @@ static void parserNoPrefixParseFnError(Parser_t* parser, TokenType_t tokType) {
     parserAppendError(parser, msg);
 }
 
-static void parserAppendError(Parser_t* parser, const char* err) {
+static void parserAppendError(Parser_t* parser, char* err) {
     vectorAppend(parser->errors, (void*) err);
 }
 

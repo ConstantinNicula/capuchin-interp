@@ -59,6 +59,7 @@ static const char* TokenTypeStrings[32] = {
     [TOKEN_COMMA]=",", [TOKEN_SEMICOLON]=";", 
     [TOKEN_LPAREN]="(", [TOKEN_RPAREN]=")", 
     [TOKEN_LBRACE]="{", [TOKEN_RBRACE]="}", 
+    [TOKEN_LBRACKET]="[", [TOKEN_RBRACKET]="]", 
     [TOKEN_FUNCTION]="TOKEN_FUNCTION", [TOKEN_LET]="TOKEN_LET",
     [TOKEN_TRUE]="TOKEN_TRUE", [TOKEN_FALSE]="TOKEN_FALSE",
     [TOKEN_IF]="TOKEN_IF",  [TOKEN_ELSE]="TOKEN_ELSE",

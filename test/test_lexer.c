@@ -134,7 +134,8 @@ void lexer_test_monkey2(void) {
                     10 == 10;\
                     10 != 9;\
                     \"foobar\"\
-                    \"foo bar\"";
+                    \"foo bar\"\
+                    [1, 2];";
 
     Lexer_t* lexer = createLexer(input);
 
@@ -214,7 +215,13 @@ void lexer_test_monkey2(void) {
 		{TOKEN_SEMICOLON, ";"},
         {TOKEN_STRING, "foobar"},
         {TOKEN_STRING, "foo bar"},
-		{TOKEN_EOF, ""}
+        {TOKEN_LBRACKET, "["},
+        {TOKEN_INT, "1"},
+        {TOKEN_COMMA, ","},
+        {TOKEN_INT, "2"},
+        {TOKEN_RBRACKET, "]"},
+        {TOKEN_SEMICOLON, ";"},
+        {TOKEN_EOF, ""},
     };
 
     int32_t numTests = sizeof(expToken) / sizeof(Token_t);

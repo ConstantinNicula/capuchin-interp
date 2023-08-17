@@ -526,6 +526,36 @@ void parserTestCallExpressionParsing() {
     cleanupProgram(&prog);
 }
 
+void parserTestParsingArrayLiterals() {
+    const char* input = "[1, 2 * 3, 4 + 5]";
+    
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in program");
+    Statement_t* stmt = programGetStatements(prog)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_ARRAY_LITERAL, exprStmt->expression->type, "Expression type not EXPRESSION_ARRAY_LITERAL");
+    ArrayLiteral_t* array = (ArrayLiteral_t*)exprStmt->expression;
+
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, arrayLiteralGetElementCount(array), "Wrong number of elements");
+    Expression_t** args = arrayLiteralGetElements(array);
+
+    testLiteralExpression(args[0], _INT(1));
+    testInifxExpression(args[1], _INT(2), "*", _INT(3));
+    testInifxExpression(args[2], _INT(4), "+", _INT(5));
+
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
+
+}
+
 
 void testLetStatement(Statement_t* s, const char* name) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("let", statementTokenLiteral(s), "Check statement literal!");
@@ -622,5 +652,6 @@ int main(void) {
     RUN_TEST(parserTestFunctionParameterParsing);
     RUN_TEST(parserTestCallExpressionParsing);
     RUN_TEST(parserTestStringLiteralExpression);
+    RUN_TEST(parserTestParsingArrayLiterals);
     return UNITY_END();
 }

@@ -16,7 +16,7 @@ Object_t* lenBuiltin(Vector_t* args) {
         return (Object_t*)createError(err); 
     }
     
-    Object_t** argBuf = vectorGetBuffer(args);
+    Object_t** argBuf = (Object_t**)vectorGetBuffer(args);
     switch(argBuf[0]->type) {
         case OBJECT_STRING:
             return (Object_t*)createInteger(strlen(((String_t*)argBuf[0])->value));

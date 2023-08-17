@@ -21,6 +21,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCleanupFn_t)cleanupIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCleanupFn_t)cleanupIntegerLiteral,
     [EXPRESSION_STRING_LITERAL]=(ExpressionCleanupFn_t)cleanupStringLiteral,
+    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCleanupFn_t)cleanupArrayLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCleanupFn_t)cleanupBooleanLiteral,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
@@ -34,6 +35,7 @@ static ExpressionCopyFn_t expressionCopyFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCopyFn_t)copyIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCopyFn_t)copyIntegerLiteral,
     [EXPRESSION_STRING_LITERAL]=(ExpressionCopyFn_t)copyStringLiteral,
+    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCopyFn_t)copyArrayLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCopyFn_t)copyBooleanLiteral,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCopyFn_t)copyPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCopyFn_t)copyInfixExpression,
@@ -49,6 +51,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionToStringFn_t)integerLiteralToString,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionToStringFn_t)booleanLiteralToString,
     [EXPRESSION_STRING_LITERAL]=(ExpressionToStringFn_t)stringLiteralToString,
+    [EXPRESSION_ARRAY_LITERAL]=(ExpressionToStringFn_t)arrayLiteralToString,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
@@ -234,7 +237,56 @@ char* stringLiteralToString(const StringLiteral_t* sl) {
 }
 
 
+/************************************ 
+ *        ARRAY LITERAL             *
+ ************************************/
 
+ArrayLiteral_t* createArrayLiteral(const Token_t* tok) {
+    ArrayLiteral_t* al = mallocChk(sizeof(ArrayLiteral_t));
+    *al = (ArrayLiteral_t) {
+        .type = EXPRESSION_ARRAY_LITERAL,
+        .token = copyToken(tok),
+        .elements = NULL
+    };
+    return al;
+}
+
+ArrayLiteral_t* copyArrayLiteral(const ArrayLiteral_t* al) {
+    ArrayLiteral_t* newAl = createArrayLiteral(al->token);
+    newAl->elements = copyVector(al->elements, (VectorElemCopyFn_t)copyExpression);
+    return newAl;
+}
+
+void cleanupArrayLiteral(ArrayLiteral_t** al) {
+    if (!(*al)) return;
+
+    cleanupToken(&(*al)->token);
+    cleanupVector(&(*al)->elements, (VectorElemCleanupFn_t)cleanupExpression);
+    free(*al);
+    *al = NULL;
+}
+
+char* arrayLiteralToString(const ArrayLiteral_t* al) {
+    Strbuf_t* sbuf = createStrbuf();
+    strbufWrite(sbuf, "[");
+    
+    uint32_t cnt = arrayLiteralGetElementCount(al);
+    Expression_t** elems = arrayLiteralGetElements(al);
+    for (uint32_t i = 0; i < cnt; i++) {
+        strbufConsume(sbuf, expressionToString(elems[i]));
+    }
+    strbufWrite(sbuf, "]");
+    
+    return detachStrbuf(&sbuf);
+}
+
+uint32_t arrayLiteralGetElementCount(const ArrayLiteral_t* al) {
+    return vectorGetCount(al->elements);
+}
+
+Expression_t** arrayLiteralGetElements(const ArrayLiteral_t* al) {
+    return (Expression_t**) vectorGetBuffer(al->elements);
+}
 
 /************************************ 
  *      PREFIX EXPRESSION           *
@@ -473,7 +525,7 @@ CallExpression_t* createCallExpression(const Token_t* tok) {
         .type = EXPRESSION_CALL_EXPRESSION, 
         .token =  copyToken(tok),
         .function = NULL, 
-        .arguments = createVector()
+        .arguments = NULL
     };
  
     return exp;

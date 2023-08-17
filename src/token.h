@@ -34,6 +34,8 @@ typedef enum TokenType{
     TOKEN_RPAREN, 
     TOKEN_LBRACE, 
     TOKEN_RBRACE, 
+    TOKEN_LBRACKET,
+    TOKEN_RBRACKET,
 
     // Keywords, 
     TOKEN_FUNCTION, 
