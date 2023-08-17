@@ -50,6 +50,7 @@ TokenType_t lookupIdent(const char* ident, uint32_t len)
 static const char* TokenTypeStrings[32] = {
     [TOKEN_ILLEGAL]="TOKEN_ILLEGAL", [TOKEN_EOF]="TOKEN_EOF",
     [TOKEN_IDENT]="TOKEN_IDENT", [TOKEN_INT]="TOKEN_INT",
+    [TOKEN_STRING]="TOKEN_STRING",
     [TOKEN_ASSIGN]="=", [TOKEN_PLUS]="+", 
     [TOKEN_MINUS]="-", [TOKEN_BANG]="!",
     [TOKEN_ASTERISK]="*", [TOKEN_SLASH]="?",    
@@ -61,7 +62,7 @@ static const char* TokenTypeStrings[32] = {
     [TOKEN_FUNCTION]="TOKEN_FUNCTION", [TOKEN_LET]="TOKEN_LET",
     [TOKEN_TRUE]="TOKEN_TRUE", [TOKEN_FALSE]="TOKEN_FALSE",
     [TOKEN_IF]="TOKEN_IF",  [TOKEN_ELSE]="TOKEN_ELSE",
-    [TOKEN_RETURN]="TOKEN_RETURN"
+    [TOKEN_RETURN]="TOKEN_RETURN", 
 };
 
 const char * tokenTypeToStr(TokenType_t tokType)

@@ -40,6 +40,7 @@ static BlockStatement_t* parserParseBlockStatement(Parser_t* parser);
 static Expression_t* parserParseExpression(Parser_t* parser, PrecValue_t precedence);
 static Expression_t* parserParseIdentifier(Parser_t* parser);
 static Expression_t* parserParseIntegerLiteral(Parser_t* parser);
+static Expression_t* parserParseStringLiteral(Parser_t* parser);
 static Expression_t* parserParsePrefixExpression(Parser_t* parser);
 static Expression_t* parserParseInfixExpression(Parser_t* parser, Expression_t* left);
 static Expression_t* parserParseBoolean(Parser_t* parser);
@@ -91,6 +92,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_LPAREN, parserParseGroupedExpression);
     parserRegisterPrefix(parser, TOKEN_IF, parserParseIfExpression);
     parserRegisterPrefix(parser, TOKEN_FUNCTION, parserParseFunctionLiteral);
+    parserRegisterPrefix(parser, TOKEN_STRING, parserParseStringLiteral);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -272,6 +274,12 @@ static Expression_t* parserParseIntegerLiteral(Parser_t* parser) {
         return NULL;
     }
 
+    return (Expression_t*)lit;
+}
+
+static Expression_t* parserParseStringLiteral(Parser_t* parser) {
+    StringLiteral_t* lit = (StringLiteral_t*)createStringLiteral(parser->curToken);
+    lit->value = cloneString(parser->curToken->literal);
     return (Expression_t*)lit;
 }
 

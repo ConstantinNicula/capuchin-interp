@@ -11,6 +11,7 @@ typedef enum TokenType{
     // Identifieres + literals 
     TOKEN_IDENT, // add, foobar, x, y, ..
     TOKEN_INT,  // 1343456
+    TOKEN_STRING, // "hello"
 
     // Operators
     TOKEN_ASSIGN,

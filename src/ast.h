@@ -16,6 +16,7 @@ typedef enum ExpressionType {
     EXPRESSION_IDENTIFIER,
     EXPRESSION_INTEGER_LITERAL,
     EXPRESSION_BOOLEAN_LITERAL,
+    EXPRESSION_STRING_LITERAL,
     EXPRESSION_PREFIX_EXPRESSION,
     EXPRESSION_INFIX_EXPRESSION,
     EXPRESSION_IF_EXPRESSION,
@@ -89,6 +90,22 @@ BooleanLiteral_t* copyBooleanLiteral(const BooleanLiteral_t* bl);
 void cleanupBooleanLiteral(BooleanLiteral_t** bl);
 
 char* booleanLiteralToString(const BooleanLiteral_t* bl);
+
+/************************************ 
+ *        STRING LITERAL            *
+ ************************************/
+
+typedef struct StringLiteral {
+    ExpressionType_t type;
+    Token_t* token;
+    char* value;
+} StringLiteral_t;
+
+StringLiteral_t* createStringLiteral(const Token_t* tok);
+StringLiteral_t* copyStringLiteral(const StringLiteral_t* sl);
+void cleanupStringLiteral(StringLiteral_t** bl);
+
+char* stringLiteralToString(const StringLiteral_t* bl);
 
 /************************************ 
  *      PREFIX EXPRESSION           *

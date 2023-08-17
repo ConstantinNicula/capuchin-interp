@@ -20,6 +20,7 @@ static char* statementVecToString(Vector_t* statements, bool indent);
 static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCleanupFn_t)cleanupIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCleanupFn_t)cleanupIntegerLiteral,
+    [EXPRESSION_STRING_LITERAL]=(ExpressionCleanupFn_t)cleanupStringLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCleanupFn_t)cleanupBooleanLiteral,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
@@ -32,6 +33,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
 static ExpressionCopyFn_t expressionCopyFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCopyFn_t)copyIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCopyFn_t)copyIntegerLiteral,
+    [EXPRESSION_STRING_LITERAL]=(ExpressionCopyFn_t)copyStringLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCopyFn_t)copyBooleanLiteral,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCopyFn_t)copyPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCopyFn_t)copyInfixExpression,
@@ -46,6 +48,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionToStringFn_t)identifierToString,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionToStringFn_t)integerLiteralToString,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionToStringFn_t)booleanLiteralToString,
+    [EXPRESSION_STRING_LITERAL]=(ExpressionToStringFn_t)stringLiteralToString,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
@@ -194,6 +197,42 @@ void cleanupBooleanLiteral(BooleanLiteral_t** bl) {
 char* booleanLiteralToString(const BooleanLiteral_t* bl) {
     return bl->value ? cloneString("true") : cloneString("false");
 }
+
+/************************************ 
+ *        STRING LITERAL            *
+ ************************************/
+
+StringLiteral_t* createStringLiteral(const Token_t* tok) {
+    StringLiteral_t* sl = mallocChk(sizeof(StringLiteral_t));
+    *sl = (StringLiteral_t) {
+        .type = EXPRESSION_STRING_LITERAL, 
+        .token = copyToken(tok),
+        .value = NULL
+    };
+    return sl;
+}
+
+StringLiteral_t* copyStringLiteral(const StringLiteral_t* sl) {
+    StringLiteral_t* newSl = createStringLiteral(sl->token);
+    newSl->value = cloneString(sl->value);
+    return newSl;
+}
+
+void cleanupStringLiteral(StringLiteral_t** sl) {
+    if(!(*sl)) return;
+
+    cleanupToken(&(*sl)->token); 
+    if((*sl)->value) 
+        free((*sl)->value);
+    
+    free((*sl));
+    *sl = NULL;
+}
+
+char* stringLiteralToString(const StringLiteral_t* sl) {
+    return cloneString(sl->value);    
+}
+
 
 
 

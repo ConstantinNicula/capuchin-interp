@@ -132,7 +132,9 @@ void lexer_test_monkey2(void) {
                     }\
                     \
                     10 == 10;\
-                    10 != 9;";
+                    10 != 9;\
+                    \"foobar\"\
+                    \"foo bar\"";
 
     Lexer_t* lexer = createLexer(input);
 
@@ -210,6 +212,8 @@ void lexer_test_monkey2(void) {
 		{TOKEN_NOT_EQ, "!="},
 		{TOKEN_INT, "9"},
 		{TOKEN_SEMICOLON, ";"},
+        {TOKEN_STRING, "foobar"},
+        {TOKEN_STRING, "foo bar"},
 		{TOKEN_EOF, ""}
     };
 
@@ -223,7 +227,7 @@ void lexer_test_monkey2(void) {
         tok = lexerNextToken(lexer);
         TEST_ASSERT_NOT_NULL_MESSAGE(tok, msg);
 
-        TEST_ASSERT_EQUAL_INT_MESSAGE(expToken[i].type, tok->type , msg); 
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(tokenTypeToStr(expToken[i].type), tokenTypeToStr(tok->type) , msg); 
         TEST_ASSERT_EQUAL_STRING_MESSAGE(expToken[i].literal, tok->literal, msg);
     }
 }

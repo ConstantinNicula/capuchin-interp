@@ -103,6 +103,10 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
         case EXPRESSION_BOOLEAN_LITERAL: {
             return (Object_t*)createBoolean(((BooleanLiteral_t*)expr)->value);
         }
+        
+        case EXPRESSION_STRING_LITERAL: {
+            return (Object_t*)createString(((StringLiteral_t*)expr)->value);
+        }
 
         case EXPRESSION_IF_EXPRESSION: {
             return (Object_t*)evalIfExpression((IfExpression_t*)expr, env);

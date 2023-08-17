@@ -12,6 +12,7 @@
 static void lexerReadChar(Lexer_t* lexer);
 static char lexerPeekChar(Lexer_t* lexer);
 static void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len);
+static void lexerReadString(Lexer_t* lexer, uint32_t*len);
 static void lexerReadDigit(Lexer_t* lexer, uint32_t* len);
 static void lexerSkipWhiteSpace(Lexer_t* lexer);
 
@@ -111,7 +112,17 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
         case '\0':
             tok = createToken(TOKEN_EOF, tokStart, 1u);
             break;  
-
+        case '"':
+            // now sitting on '"', skip it
+            lexerReadChar(lexer);
+            tokStart++;
+            
+            lexerReadString(lexer, &tokLen);
+            if (tokLen == 0 || lexer->ch != '"')
+                tok = createToken(TOKEN_ILLEGAL, tokStart, tokLen);
+            else 
+                tok = createToken(TOKEN_STRING, tokStart, tokLen);
+            break;
         default: 
             if (isLetter(lexer->ch)) {
                 lexerReadIdentifier(lexer, &tokLen);
@@ -155,6 +166,13 @@ static void lexerReadIdentifier(Lexer_t* lexer, uint32_t* len) {
         (*len)++;
     }
 
+}
+
+static void lexerReadString(Lexer_t* lexer, uint32_t*len) {
+    while (lexer->ch != '"' && lexer->ch != '\0'){
+        lexerReadChar(lexer);
+        (*len)++;
+    }
 }
 
 static void lexerReadDigit(Lexer_t* lexer, uint32_t* len) {

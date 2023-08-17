@@ -125,6 +125,26 @@ void parserTestReturnStatements() {
     cleanupProgram(&program);
 }
 
+void parserTestStringLiteralExpression() {
+    const char* input = "\"hello world\"";
+
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+
+    Statement_t* s = programGetStatements(program)[0];
+    StringLiteral_t* literal = (StringLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_STRING_LITERAL, literal->type, "Check expression type!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("hello world", literal->value, "Check statement literal!");
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
 
 void parserTestIfStatement() {
     const char* input = "if (x < y) { x }";
@@ -601,5 +621,6 @@ int main(void) {
     RUN_TEST(parserTestFunctionLiteral);
     RUN_TEST(parserTestFunctionParameterParsing);
     RUN_TEST(parserTestCallExpressionParsing);
+    RUN_TEST(parserTestStringLiteralExpression);
     return UNITY_END();
 }

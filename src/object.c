@@ -30,6 +30,7 @@ const char* objectTypeToString(ObjectType_t type) {
 static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectInspectFn_t)integerInspect,
     [OBJECT_BOOLEAN]=(ObjectInspectFn_t)booleanInspect,
+    [OBJECT_STRING]=(ObjectInspectFn_t)stringInspect,
     [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect,
     [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect,
     [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect,
@@ -39,6 +40,7 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
 static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectCopyFn_t)copyInteger,
     [OBJECT_BOOLEAN]=(ObjectCopyFn_t)copyBoolean,
+    [OBJECT_STRING]=(ObjectCopyFn_t)copyString,
     [OBJECT_NULL]=(ObjectCopyFn_t)copyNull,
     [OBJECT_RETURN_VALUE]=(ObjectCopyFn_t)copyReturnValue,
     [OBJECT_ERROR]=(ObjectCopyFn_t)copyError,
@@ -89,16 +91,6 @@ Integer_t* createInteger(int64_t value) {
     return obj;
 }
 
-void cleanupInteger(Integer_t** obj) {
-    if (!(*obj)) return;
-    gcFree(*obj);
-    *obj = NULL; 
-}
-
-void gcMarkInteger(Integer_t* obj) {
-    // no objects owned by gc
-}
-
 Integer_t* copyInteger(Integer_t* obj) {
     return createInteger(obj->value);
 }
@@ -107,6 +99,15 @@ char* integerInspect(Integer_t* obj) {
     return strFormat("%d", obj->value);
 }
 
+void gcCleanupInteger(Integer_t** obj) {
+    if (!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL; 
+}
+
+void gcMarkInteger(Integer_t* obj) {
+    // no objects owned by gc
+}
 
 
 /************************************ 
@@ -122,7 +123,15 @@ Boolean_t* createBoolean(bool value) {
     return ret;
 }
 
-void cleanupBoolean(Boolean_t** obj) {
+Boolean_t* copyBoolean(Boolean_t* obj) {
+    return createBoolean(obj->value);
+}
+
+char* booleanInspect(Boolean_t* obj) {
+    return obj->value ? cloneString("true") : cloneString("false");
+}
+
+void gcCleanupBoolean(Boolean_t** obj) {
     if (!(*obj)) return;
     gcFree(*obj);
     *obj = NULL; 
@@ -133,14 +142,37 @@ void gcMarkBoolean(Boolean_t* obj) {
 }
 
 
-Boolean_t* copyBoolean(Boolean_t* obj) {
-    return createBoolean(obj->value);
+/************************************ 
+ *     STRING OBJECT TYPE          *
+ ************************************/
+
+String_t* createString(const char* value) {
+    String_t* ret = gcMalloc(sizeof(String_t), GC_DATA_OBJECT);
+    *ret = (String_t) {
+        .type = OBJECT_STRING,
+        .value = cloneString(value)
+    };
+    return ret;
 }
 
-char* booleanInspect(Boolean_t* obj) {
-    return obj->value ? cloneString("true") : cloneString("false");
+String_t* copyString(String_t* obj) {
+    return createString(obj->value);
 }
 
+char* stringInspect(String_t* obj) {
+    return cloneString(obj->value);
+}
+
+void gcCleanupString(String_t** obj) {
+    if (!(*obj)) return;
+    free((*obj)->value);
+    gcFree(*obj);
+    *obj = NULL; 
+}
+
+void gcMarkString(Boolean_t* obj) {
+    // no objects owned by gc
+}
 /************************************ 
  *        NULL OBJECT TYPE          *
  ************************************/
@@ -148,16 +180,6 @@ Null_t* createNull() {
     Null_t* ret = gcMalloc(sizeof(Null_t), GC_DATA_OBJECT);
     *ret = (Null_t) {.type = OBJECT_NULL};
     return ret;
-}
-
-void cleanupNull(Null_t** obj) {
-    if (!(*obj)) return;
-    gcFree(*obj);
-    *obj = NULL;    
-}
-
-void gcMarkNull(Null_t* obj) {
-    // no objects owned by gc
 }
 
 Null_t* copyNull(Null_t* obj) {
@@ -168,6 +190,16 @@ char* nulllInspect(Null_t* obj) {
     return cloneString("null");
 }
 
+
+void gcCleanupNull(Null_t** obj) {
+    if (!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL;    
+}
+
+void gcMarkNull(Null_t* obj) {
+    // no objects owned by gc
+}
 /************************************ 
  *      RETURN OBJECT TYPE          *
  ************************************/
@@ -182,7 +214,15 @@ ReturnValue_t* createReturnValue(Object_t* value) {
     return ret;
 }
 
-void cleanupReturnValue(ReturnValue_t** obj) {
+ReturnValue_t* copyReturnValue(ReturnValue_t* obj) {
+    return createReturnValue(obj->value);
+}
+
+char* returnValueInspect(ReturnValue_t* obj) {
+    return objectInspect(obj->value);
+}
+
+void gcCleanupReturnValue(ReturnValue_t** obj) {
     if (!(*obj)) return;
     // Note: intenionally does not free inner obj. 
     gcFree(*obj);
@@ -194,14 +234,6 @@ void gcMarkReturnValue(ReturnValue_t* obj) {
         gcMarkUsed(obj->value);
         gcMarkObject(obj->value);
     }
-}
-
-ReturnValue_t* copyReturnValue(ReturnValue_t* obj) {
-    return createReturnValue(obj->value);
-}
-
-char* returnValueInspect(ReturnValue_t* obj) {
-    return objectInspect(obj->value);
 }
 
 /************************************ 
@@ -223,7 +255,11 @@ Error_t* copyError(Error_t* obj) {
     return createError(cloneString(obj->message));
 }
 
-void cleanupError(Error_t** err) {
+char* errorInspect(Error_t* err) {
+    return strFormat("ERROR: %s", err->message);
+}
+
+void gcCleanupError(Error_t** err) {
     if (!(*err))
         return;
     free((*err)->message);
@@ -233,10 +269,6 @@ void cleanupError(Error_t** err) {
 
 void gcMarkError(Error_t* err) {
     // no objects owned by gc
-}
-
-char* errorInspect(Error_t* err) {
-    return strFormat("ERROR: %s", err->message);
 }
 
 
@@ -256,7 +288,7 @@ Function_t* createFunction(Vector_t* params, BlockStatement_t* body, Environment
     return func;
 }
 
-void cleanupFunction(Function_t** obj) {
+void gcCleanupFunction(Function_t** obj) {
     if(!(*obj)) 
         return;
 
@@ -316,17 +348,19 @@ typedef void (*ObjectCleanupFn_t) (void**);
 typedef void (*ObjectGcMarkFn_t) (void*);
 
 static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
-    [OBJECT_INTEGER]=(ObjectCleanupFn_t)cleanupInteger,
-    [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)cleanupBoolean,
-    [OBJECT_NULL]=(ObjectCleanupFn_t)cleanupNull,
-    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)cleanupReturnValue,
-    [OBJECT_ERROR]=(ObjectCleanupFn_t)cleanupError,
-    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)cleanupFunction
+    [OBJECT_INTEGER]=(ObjectCleanupFn_t)gcCleanupInteger,
+    [OBJECT_BOOLEAN]=(ObjectCleanupFn_t)gcCleanupBoolean,
+    [OBJECT_STRING]=(ObjectCleanupFn_t)gcCleanupString,
+    [OBJECT_NULL]=(ObjectCleanupFn_t)gcCleanupNull,
+    [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)gcCleanupReturnValue,
+    [OBJECT_ERROR]=(ObjectCleanupFn_t)gcCleanupError,
+    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)gcCleanupFunction
 };
 
 static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectGcMarkFn_t)gcMarkInteger,
     [OBJECT_BOOLEAN]=(ObjectGcMarkFn_t)gcMarkBoolean,
+    [OBJECT_STRING]=(ObjectCleanupFn_t)gcMarkString,
     [OBJECT_NULL]=(ObjectGcMarkFn_t)gcMarkNull,
     [OBJECT_RETURN_VALUE]=(ObjectGcMarkFn_t)gcMarkReturnValue,
     [OBJECT_ERROR]=(ObjectGcMarkFn_t)gcMarkError,

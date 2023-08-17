@@ -14,6 +14,7 @@ typedef enum ObjectType{
     OBJECT_RETURN_VALUE,
     OBJECT_ERROR,
     OBJECT_FUNCTION,
+    OBJECT_STRING,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -66,6 +67,20 @@ Boolean_t* createBoolean(bool value);
 Boolean_t* copyBoolean(Boolean_t* obj);
 
 char* booleanInspect(Boolean_t* obj);
+
+/************************************ 
+ *     STRING OBJECT TYPE          *
+ ************************************/
+
+typedef struct String {
+    OBJECT_BASE_ATTRS;
+    char* value;
+}String_t;
+
+String_t* createString(const char* value);
+String_t* copyString(String_t* obj);
+
+char* stringInspect(String_t* obj);
 
 
 /************************************ 
