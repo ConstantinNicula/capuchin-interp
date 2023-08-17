@@ -15,6 +15,7 @@ typedef enum ObjectType{
     OBJECT_ERROR,
     OBJECT_FUNCTION,
     OBJECT_STRING,
+    OBJECT_BUILTIN,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -144,5 +145,22 @@ Function_t* copyFunction(Function_t* obj);
 char* functionInspect(Function_t* obj);
 uint32_t functionGetParameterCount(Function_t* obj);
 Identifier_t** functionGetParameters(Function_t* obj);
+
+/************************************ 
+ *     BULITIN OBJECT TYPE          *
+ ************************************/
+
+typedef Object_t* (*BuiltinFunction_t) (Vector_t*);
+
+typedef struct Builtin {
+    OBJECT_BASE_ATTRS;
+    BuiltinFunction_t func;
+} Builtin_t;
+
+Builtin_t* createBuiltin(BuiltinFunction_t func);
+Builtin_t* copyBuiltin(Builtin_t* obj);
+
+char* builtinInspect(Builtin_t* obj);
+
 
 #endif 

@@ -345,6 +345,41 @@ void evaluatorTestStringConcatenation() {
     gcFreeExtRef(string);
 }
 
+void evaluatorTestBuiltinFunctions() {
+    typedef struct TestCase {
+        const char* input;
+        GenericExpect_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"len(\"\")", _INT(0)},
+        {"len(\"four\")", _INT(4)},
+        {"len(\"hello world\")", _INT(11)},
+        {"len(1)", _STRING("argument to `len` not supported, got INTEGER")},
+        {"len(\"one\", \"two\")", _STRING("wrong number of arguments. got=2, want=1")},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+
+        switch(tc->expected.type) {
+            case EXPECT_INTEGER:
+                testIntegerObject(evalRes, tc->expected.il);
+                break;
+            case EXPECT_STRING:
+                testErrorObject(evalRes, tc->expected.sl);
+                break;
+            default:
+                TEST_ABORT();
+        }
+
+        gcFreeExtRef(evalRes);
+    } 
+}
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -401,5 +436,6 @@ int main(void) {
     RUN_TEST(evalatorTestClosures);
     RUN_TEST(evaluatorTestStringLiteral);
     RUN_TEST(evaluatorTestStringConcatenation);
+    RUN_TEST(evaluatorTestBuiltinFunctions);
     return UNITY_END();
 }

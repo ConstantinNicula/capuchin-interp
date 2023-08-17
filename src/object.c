@@ -13,6 +13,7 @@ const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_STRING]="STRING",
     [OBJECT_NULL]="NULL",
     [OBJECT_ERROR]="ERROR",
+    [OBJECT_BUILTIN]="BUILTIN",
     [OBJECT_RETURN_VALUE]="RETURN_VALUE"
 };
 
@@ -35,7 +36,8 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]=(ObjectInspectFn_t)nulllInspect,
     [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect,
     [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect,
-    [OBJECT_FUNCTION]=(ObjectInspectFn_t)functionInspect
+    [OBJECT_FUNCTION]=(ObjectInspectFn_t)functionInspect,
+    [OBJECT_BUILTIN]=(ObjectInspectFn_t)builtinInspect
 };
 
 static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
@@ -45,7 +47,8 @@ static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]=(ObjectCopyFn_t)copyNull,
     [OBJECT_RETURN_VALUE]=(ObjectCopyFn_t)copyReturnValue,
     [OBJECT_ERROR]=(ObjectCopyFn_t)copyError,
-    [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction
+    [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction,
+    [OBJECT_BUILTIN]=(ObjectCopyFn_t)copyBuiltin
 };
 
 
@@ -341,6 +344,38 @@ Identifier_t** functionGetParameters(Function_t* obj) {
     return (Identifier_t**)vectorGetBuffer(obj->parameters);
 }
 
+
+/************************************ 
+ *     BULITIN OBJECT TYPE          *
+ ************************************/
+
+Builtin_t* createBuiltin(BuiltinFunction_t func) {
+    Builtin_t* builtin = gcMalloc(sizeof(Builtin_t), GC_DATA_OBJECT);
+    *builtin = (Builtin_t) {
+        .type = OBJECT_BUILTIN, 
+        .func = func
+    };
+    return builtin;
+}
+
+Builtin_t* copyBuiltin(Builtin_t* obj) {
+    return createBuiltin(obj->func);
+}
+
+char* builtinInspect(Builtin_t* obj) {
+    return cloneString("builtin function");
+}
+
+void gcCleanupBuiltin(Builtin_t** obj) {
+    if(!(*obj)) return;
+    gcFree(*obj);
+    *obj = NULL;
+}
+
+void gcMarkBuiltin(Builtin_t *obj) {
+    // no internal objects to mark 
+}
+
 /************************************ 
  *      GARBAGE COLLECTION          *
  ************************************/
@@ -355,7 +390,8 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]=(ObjectCleanupFn_t)gcCleanupNull,
     [OBJECT_RETURN_VALUE]=(ObjectCleanupFn_t)gcCleanupReturnValue,
     [OBJECT_ERROR]=(ObjectCleanupFn_t)gcCleanupError,
-    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)gcCleanupFunction
+    [OBJECT_FUNCTION]=(ObjectCleanupFn_t)gcCleanupFunction,
+    [OBJECT_BUILTIN]=(ObjectCleanupFn_t)gcCleanupBuiltin,
 };
 
 static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
@@ -365,7 +401,8 @@ static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]=(ObjectGcMarkFn_t)gcMarkNull,
     [OBJECT_RETURN_VALUE]=(ObjectGcMarkFn_t)gcMarkReturnValue,
     [OBJECT_ERROR]=(ObjectGcMarkFn_t)gcMarkError,
-    [OBJECT_FUNCTION]=(ObjectGcMarkFn_t)gcMarkFunction
+    [OBJECT_FUNCTION]=(ObjectGcMarkFn_t)gcMarkFunction,
+    [OBJECT_BUILTIN]=(ObjectGcMarkFn_t)gcMarkBuiltin,
 };
 
 

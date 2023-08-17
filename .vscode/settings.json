@@ -13,7 +13,8 @@
         "stdlib.h": "c",
         "system_error": "c",
         "refcount.h": "c",
-        "sbuf.h": "c"
+        "sbuf.h": "c",
+        "builtin.h": "c"
     },
     "cmake.configureOnOpen": false
 }

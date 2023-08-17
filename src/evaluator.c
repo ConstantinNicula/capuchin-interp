@@ -16,7 +16,7 @@ static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* lef
 static Object_t* evalStringInfixExpression(TokenType_t operator, String_t* left, String_t* right);
 
 static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env);
-static Object_t* applyFunction(Function_t* function, Vector_t* args);
+static Object_t* applyFunction(Object_t* function, Vector_t* args);
 static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args);
 static Object_t* unwrapReturnValue(Object_t* obj);
 
@@ -169,7 +169,7 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
                 cleanupVector(&args, NULL);
                 return (Object_t*)err;
             }
-            Object_t* result = applyFunction((Function_t*)function, args);
+            Object_t* result = applyFunction(function, args);
             cleanupVector(&args, NULL);
             return result;
         }
@@ -202,20 +202,23 @@ static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env) {
     return result;
 }
 
-static Object_t* applyFunction(Function_t* function, Vector_t* args) {
-    if (function->type != OBJECT_FUNCTION) {
-        char* message = strFormat("not a function: %s", objectTypeToString(function->type));
-        return (Object_t*) createError(message);
+static Object_t* applyFunction(Object_t* function, Vector_t* args) {
+    switch(function->type) {
+        case OBJECT_FUNCTION: 
+            Environment_t* extendedEnv = extendFunctionEnv((Function_t*)function, args); 
+            if (!extendedEnv) {
+                char* message = strFormat("Invalid parameter count: expected(%d) received (%d)", 
+                                            functionGetParameterCount((Function_t*)function), vectorGetCount(args));
+                return (Object_t*) createError(message);
+            }
+            Object_t* evaluated = evalBlockStatement(((Function_t*)function)->body, extendedEnv);
+            return unwrapReturnValue(evaluated);
+        case OBJECT_BUILTIN:
+            return ((Builtin_t*)function)->func(args);
+        default:
+            char* message = strFormat("not a function: %s", objectTypeToString(function->type));
+            return (Object_t*) createError(message);
     }
-
-    Environment_t* extendedEnv = extendFunctionEnv(function, args); 
-    if (!extendedEnv) {
-        char* message = strFormat("Invalid parameter count: expected(%d) received (%d)", 
-                                    functionGetParameterCount(function), vectorGetCount(args));
-        return (Object_t*) createError(message);
-    }
-    Object_t* evaluated = evalBlockStatement(function->body, extendedEnv);
-    return unwrapReturnValue(evaluated);
 }
 
 static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
@@ -238,6 +241,9 @@ static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args) {
 }
 
 static Object_t* unwrapReturnValue(Object_t* obj) {
+    if (!obj) 
+        return (Object_t*) createNull();
+
     if (obj->type == OBJECT_RETURN_VALUE) {
         return ((ReturnValue_t*) obj)->value;
     }

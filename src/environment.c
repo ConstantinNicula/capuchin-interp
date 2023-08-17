@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "environment.h"
+#include "builtin.h"
 #include "utils.h"
 #include "gc.h"
 
@@ -10,7 +11,11 @@ Environment_t* createEnvironment(Environment_t* outer){
         .store = createHashMap(),
         .outer = outer
     };
-    return (!outer) ? gcGetExtRef(env) : env;
+    if (!outer) {
+        registerBuiltinFunctions(env);
+        return gcGetExtRef(env);
+    }
+    return env;
 }
 
 Object_t* environmentGet(Environment_t* env, const char* name){

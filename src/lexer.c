@@ -118,7 +118,7 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
             tokStart++;
             
             lexerReadString(lexer, &tokLen);
-            if (tokLen == 0 || lexer->ch != '"')
+            if (lexer->ch != '"')
                 tok = createToken(TOKEN_ILLEGAL, tokStart, tokLen);
             else 
                 tok = createToken(TOKEN_STRING, tokStart, tokLen);
