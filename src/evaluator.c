@@ -13,6 +13,7 @@ static Object_t* evalBangOperatorPrefixExpression(Object_t* right);
 static Object_t* evalMinusOperatorPrefixExpression(Object_t* right);
 static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Object_t* right);
 static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* left, Integer_t* right);
+static Object_t* evalStringInfixExpression(TokenType_t operator, String_t* left, String_t* right);
 
 static Vector_t* evalExpressions(Vector_t* exprs, Environment_t* env);
 static Object_t* applyFunction(Function_t* function, Vector_t* args);
@@ -279,6 +280,21 @@ static Object_t* evalPrefixExpression(TokenType_t operator, Object_t* right) {
     }
 }
 
+static Object_t* evalStringInfixExpression(TokenType_t operator, String_t* left, String_t* right) {
+    if (operator != TOKEN_PLUS) {
+        char* err = strFormat("unknown operator: %s %s %s", 
+                            objectTypeToString(left->type),
+                            tokenTypeToStr(operator),
+                            objectTypeToString(right->type));
+        return (Object_t*)createError(err);
+    }
+
+    char* strConcat = strFormat("%s%s", left->value, right->value);
+    String_t* ret = createString(strConcat);
+    free(strConcat);
+    return (Object_t*)ret;
+}
+
 static Object_t* evalBangOperatorPrefixExpression(Object_t* right) {
     switch (right->type) {
         case OBJECT_BOOLEAN:
@@ -331,6 +347,11 @@ static Object_t* evalInfixExpression(TokenType_t operator, Object_t* left, Objec
                 // Do nothing (no op)
                 break;
         }
+    }
+
+    // Strings 
+    if (left->type == OBJECT_STRING && right->type == OBJECT_STRING) {
+        return evalStringInfixExpression(operator, (String_t*)left, (String_t*)right);
     }
 
     // No Op found 

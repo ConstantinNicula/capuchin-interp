@@ -248,7 +248,9 @@ void evaluatorTestErrorHandling() {
         "}",
         "unknown operator: BOOLEAN + BOOLEAN"},
         {"foobar",
-         "identifier not found: foobar"}
+         "identifier not found: foobar"},
+        {"\"Hello\" - \"World\"",
+        "unknown operator: STRING - STRING"}
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
@@ -331,6 +333,18 @@ void evaluatorTestStringLiteral() {
     gcFreeExtRef(string);
 }
 
+void evaluatorTestStringConcatenation() {
+    const char* input ="\"Hello\" + \" World!\"";
+    Object_t* evaluated = testEval(input);
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_STRING, evaluated->type, "Object is not STRING");
+
+    String_t* string = (String_t*) evaluated;
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("Hello World!", string->value, "Invalid string value");
+    
+    gcFreeExtRef(string);
+}
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -386,5 +400,6 @@ int main(void) {
     RUN_TEST(evaluatorTestFunctionApplication);
     RUN_TEST(evalatorTestClosures);
     RUN_TEST(evaluatorTestStringLiteral);
+    RUN_TEST(evaluatorTestStringConcatenation);
     return UNITY_END();
 }

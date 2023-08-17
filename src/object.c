@@ -10,6 +10,7 @@
 const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]="INTEGER",
     [OBJECT_BOOLEAN]="BOOLEAN", 
+    [OBJECT_STRING]="STRING",
     [OBJECT_NULL]="NULL",
     [OBJECT_ERROR]="ERROR",
     [OBJECT_RETURN_VALUE]="RETURN_VALUE"
@@ -360,7 +361,7 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
 static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_INTEGER]=(ObjectGcMarkFn_t)gcMarkInteger,
     [OBJECT_BOOLEAN]=(ObjectGcMarkFn_t)gcMarkBoolean,
-    [OBJECT_STRING]=(ObjectCleanupFn_t)gcMarkString,
+    [OBJECT_STRING]=(ObjectGcMarkFn_t)gcMarkString,
     [OBJECT_NULL]=(ObjectGcMarkFn_t)gcMarkNull,
     [OBJECT_RETURN_VALUE]=(ObjectGcMarkFn_t)gcMarkReturnValue,
     [OBJECT_ERROR]=(ObjectGcMarkFn_t)gcMarkError,
