@@ -15,6 +15,7 @@ const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]="ERROR",
     [OBJECT_BUILTIN]="BUILTIN",
     [OBJECT_ARRAY]="ARRAY",
+    [OBJECT_HASH]="HASH",
     [OBJECT_RETURN_VALUE]="RETURN_VALUE"
 };
 
@@ -39,7 +40,8 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect,
     [OBJECT_FUNCTION]=(ObjectInspectFn_t)functionInspect,
     [OBJECT_BUILTIN]=(ObjectInspectFn_t)builtinInspect,
-    [OBJECT_ARRAY]=(ObjectInspectFn_t)arrayInspect
+    [OBJECT_ARRAY]=(ObjectInspectFn_t)arrayInspect,
+    [OBJECT_HASH]=(ObjectInspectFn_t)hashInspect
 };
 
 static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
@@ -51,7 +53,8 @@ static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]=(ObjectCopyFn_t)copyError,
     [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction,
     [OBJECT_BUILTIN]=(ObjectCopyFn_t)copyBuiltin,
-    [OBJECT_ARRAY]=(ObjectCopyFn_t)copyArray
+    [OBJECT_ARRAY]=(ObjectCopyFn_t)copyArray,
+    [OBJECT_HASH]=(ObjectCopyFn_t)copyHash,
 };
 
 
@@ -77,6 +80,21 @@ char* objectInspect(Object_t* obj) {
 
 ObjectType_t objectGetType(Object_t* obj) {
     return obj->type;
+}
+
+bool objectIsHashable(Object_t* obj) {
+    switch(obj->type) {
+        case OBJECT_BOOLEAN:
+        case OBJECT_STRING:
+        case OBJECT_INTEGER:
+            return true;
+        default:
+            return false;
+    }
+}
+
+char* objectGetHashKey(Object_t* obj) {
+   return objectIsHashable(obj) ? objectInspect(obj) : NULL;
 }
 
 void gcCleanupObject(Object_t** obj);
@@ -413,6 +431,102 @@ void gcMarkArray(Array_t* arr) {
 }
 
 /************************************ 
+ *        HASH OBJECT TYPE          *
+ ************************************/
+
+HashPair_t* createHashPair(Object_t* key, Object_t* value) {
+    HashPair_t* pair = mallocChk(sizeof(HashPair_t));
+    *pair = (HashPair_t) {
+        .key = key,
+        .value = value
+    };
+    return pair;
+}
+
+void cleanupHashPair(HashPair_t** pair) {
+    if (!(*pair)) return;
+    free(*pair);
+    *pair = NULL;
+}
+
+Hash_t* createHash() {
+    Hash_t* hash = gcMalloc(sizeof(Hash_t), GC_DATA_OBJECT);
+    *hash = (Hash_t) {
+        .type = OBJECT_HASH,
+        .pairs = createHashMap()
+    };
+    return hash;
+}
+
+Hash_t* copyHash(Hash_t* obj) {
+    Hash_t* newHash = gcMalloc(sizeof(Hash_t), GC_DATA_OBJECT);
+    *newHash = (Hash_t) {
+        .type = OBJECT_HASH,
+        .pairs = copyHashMap(obj->pairs, (HashMapElemCopyFn_t) copyObject)
+    };
+    return newHash;
+}
+
+char* hashInspect(Hash_t* obj) {
+    Strbuf_t* sbuf = createStrbuf();
+    strbufWrite(sbuf, "{");
+    
+    HashMapIter_t iter = createHashMapIter(obj->pairs);
+    HashMapEntry_t* entry = hashMapIterGetNext(obj->pairs, &iter);
+    while(entry) {
+        HashPair_t* pair = (HashPair_t*)entry->value; 
+        strbufConsume(sbuf, objectInspect(pair->key));
+        strbufWrite(sbuf, ":");
+        strbufConsume(sbuf, objectInspect(pair->value));
+
+        entry = hashMapIterGetNext(obj->pairs, &iter);
+        if (entry)
+            strbufWrite(sbuf, ", ");
+    }
+
+    strbufWrite(sbuf, "}");
+    return detachStrbuf(&sbuf);
+}
+
+void hashInsertPair(Hash_t* obj, HashPair_t* pair) {
+    char* hashKey = objectGetHashKey(pair->key);
+    hashMapInsert(obj->pairs, hashKey, pair);
+    free(hashKey);
+}
+
+HashPair_t* hashGetPair(Hash_t* obj, Object_t* key) {
+    char* hashKey = objectGetHashKey(key); 
+    HashPair_t* ret = (HashPair_t*)hashMapGet(obj->pairs, hashKey);
+    free(hashKey);
+    return ret;
+}
+
+void gcCleanupHash(Hash_t** obj) {
+    if(!(*obj)) return;
+    cleanupHashMap(&(*obj)->pairs, (HashMapElemCleanupFn_t) cleanupHashPair);
+    gcFree(*obj);
+    *obj = NULL; 
+}
+
+void gcMarkHash(Hash_t* obj) {
+    HashMapIter_t iter = createHashMapIter(obj->pairs);
+    HashMapEntry_t* entry = hashMapIterGetNext(obj->pairs, &iter);
+    while(entry){
+        HashPair_t* pair = (HashPair_t*)entry->value; 
+        if (!gcMarkedAsUsed(pair->key)) {
+            gcMarkUsed(pair->key);
+            gcMarkObject(pair->key);
+        }
+        
+        if (!gcMarkedAsUsed(pair->value)) {
+            gcMarkUsed(pair->value);
+            gcMarkObject(pair->value);
+        }
+        entry = hashMapIterGetNext(obj->pairs, &iter);
+    }
+}
+
+/************************************ 
  *     BULITIN OBJECT TYPE          *
  ************************************/
 
@@ -460,6 +574,7 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_FUNCTION]=(ObjectCleanupFn_t)gcCleanupFunction,
     [OBJECT_BUILTIN]=(ObjectCleanupFn_t)gcCleanupBuiltin,
     [OBJECT_ARRAY]=(ObjectCleanupFn_t)gcCleanupArray,
+    [OBJECT_HASH]=(ObjectCleanupFn_t)gcCleanupHash,
 };
 
 static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
@@ -472,6 +587,7 @@ static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_FUNCTION]=(ObjectGcMarkFn_t)gcMarkFunction,
     [OBJECT_BUILTIN]=(ObjectGcMarkFn_t)gcMarkBuiltin,
     [OBJECT_ARRAY]=(ObjectGcMarkFn_t)gcMarkArray,
+    [OBJECT_HASH]=(ObjectGcMarkFn_t)gcMarkHash,
 };
 
 

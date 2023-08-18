@@ -22,6 +22,7 @@ static Object_t* unwrapReturnValue(Object_t* obj);
 
 static Object_t* evalIndexExpression(Object_t* left, Object_t* index);
 static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index);
+static Object_t* evalHashLiteral(HashLiteral_t* node, Environment_t* env);
 
 static bool isTruthy(Object_t* obj);
 static bool isError(Object_t* obj);
@@ -208,6 +209,10 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
 
             return evalIndexExpression(left, index);
         }
+
+        case EXPRESSION_HASH_LITERAL: 
+            return evalHashLiteral((HashLiteral_t*)expr, env);
+
         default: 
             char* message = strFormat("unknown expression type: %d(%s)", 
                                     expr->type, 
@@ -448,6 +453,32 @@ static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index) {
     return arrayGetElements(left)[index->value];
 }
 
+static Object_t* evalHashLiteral(HashLiteral_t* node, Environment_t* env) {
+    Hash_t* hash = createHash();
+    uint32_t pairCnt = hashLiteralGetPairsCount(node);
+    for(uint32_t i = 0; i < pairCnt; i++) {
+        Expression_t *keyNode, *valueNode;
+        hashLiteralGetPair(node, i, &keyNode, &valueNode);
+
+        Object_t* key = evalExpression(keyNode, env);
+        if (isError(key)) {
+            return key;
+        }
+
+        if (!objectIsHashable(key)) {
+            char* err = strFormat("unusable as hash key: %s", objectTypeToString(key->type));
+            return (Object_t*) createError(err);
+        }
+
+        Object_t* value = evalExpression(valueNode, env);
+        if (isError(value)) {
+            return key;
+        }
+
+        hashInsertPair(hash, createHashPair(key, value));
+    }
+    return (Object_t*) hash;
+}
 
 static bool isTruthy(Object_t* obj) {
     switch(obj->type) {

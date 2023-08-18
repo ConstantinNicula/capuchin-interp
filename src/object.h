@@ -17,6 +17,7 @@ typedef enum ObjectType{
     OBJECT_STRING,
     OBJECT_BUILTIN,
     OBJECT_ARRAY,
+    OBJECT_HASH,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -40,6 +41,8 @@ Object_t* copyObject(Object_t* obj);
 
 char* objectInspect(Object_t* obj);
 ObjectType_t objectGetType(Object_t* obj);
+char* objectGetHashKey(Object_t* obj);
+bool objectIsHashable(Object_t* obj); 
 
 /************************************ 
  *     INTEGER OBJECT TYPE          *
@@ -163,6 +166,29 @@ char* arrayInspect(Array_t* obj);
 uint32_t arrayGetElementCount(Array_t* obj);
 Object_t** arrayGetElements(Array_t* obj);
 void arrayAppend(Array_t* arr, Object_t* obj);
+
+/************************************ 
+ *        HASH OBJECT TYPE          *
+ ************************************/
+
+typedef struct HashPair {
+    Object_t* key;
+    Object_t* value;
+} HashPair_t;
+
+HashPair_t* createHashPair(Object_t* key, Object_t* value);
+
+typedef struct Hash {
+    OBJECT_BASE_ATTRS;
+    HashMap_t* pairs;
+} Hash_t;
+
+Hash_t* createHash();
+Hash_t* copyHash(Hash_t* obj);
+
+char* hashInspect(Hash_t* obj);
+void hashInsertPair(Hash_t* obj, HashPair_t* pair);
+HashPair_t* hashGetPair(Hash_t* obj, Object_t* key);
 
 
 /************************************ 

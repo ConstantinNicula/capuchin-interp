@@ -434,6 +434,45 @@ void evaluatorTestArrayliteral() {
     gcFreeExtRef(evaluated);
 }
 
+void evaluatorTestHashLiterals() {
+    const char* input ="let two = \"two\";\
+                        {\
+                        \"one\": 10 - 9,\
+                        two: 1 + 1,\
+                        \"thr\" + \"ee\": 6 / 2,\
+                        4: 4,\
+                        true: 5,\
+                        false: 6\
+                        }";
+    Object_t* evaluated = testEval(input);
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_HASH, evaluated->type, "Object is not OBJECT_HASH");
+    Hash_t* hash = (Hash_t*) evaluated;
+    
+    HashMap_t* exp = createHashMap();
+    char* hk = objectGetHashKey((Object_t*)createString("one"));
+    hashMapInsert(exp, hk, createInteger(1)); free(hk);
+    hk = objectGetHashKey((Object_t*)createString("two"));
+    hashMapInsert(exp, hk, createInteger(2)); free(hk);
+    hk = objectGetHashKey((Object_t*)createString("three"));
+    hashMapInsert(exp, hk, createInteger(3)); free(hk);
+    hk = objectGetHashKey((Object_t*)createInteger(4));
+    hashMapInsert(exp, hk, createInteger(4)); free(hk); 
+    hk = objectGetHashKey((Object_t*)createBoolean(true));
+    hashMapInsert(exp, hk, createInteger(5)); free(hk);
+    hk = objectGetHashKey((Object_t*)createBoolean(false));
+    hashMapInsert(exp, hk, createInteger(6)); free(hk);
+
+    HashMapIter_t iter = createHashMapIter(exp);
+    HashMapEntry_t* expEntry = hashMapIterGetNext(exp, &iter); 
+    while(expEntry) {
+        HashPair_t* pair = hashMapGet(hash->pairs, expEntry->key);
+        testIntegerObject(pair->value, ((Integer_t*)expEntry->value)->value); 
+        expEntry = hashMapIterGetNext(exp, &iter);
+    }
+    cleanupHashMap(&exp, NULL);
+    gcFreeExtRef(evaluated);
+}
 
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
@@ -494,5 +533,6 @@ int main(void) {
     RUN_TEST(evaluatorTestBuiltinFunctions);
     RUN_TEST(evaluatorTestArrayliteral);
     RUN_TEST(evaluatorTestArrayIndexExpressions);
+    RUN_TEST(evaluatorTestHashLiterals);
     return UNITY_END();
 }
