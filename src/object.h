@@ -16,6 +16,7 @@ typedef enum ObjectType{
     OBJECT_FUNCTION,
     OBJECT_STRING,
     OBJECT_BUILTIN,
+    OBJECT_ARRAY,
     _OBJECT_TYPE_CNT
 } ObjectType_t;
 
@@ -145,6 +146,24 @@ Function_t* copyFunction(Function_t* obj);
 char* functionInspect(Function_t* obj);
 uint32_t functionGetParameterCount(Function_t* obj);
 Identifier_t** functionGetParameters(Function_t* obj);
+
+/************************************ 
+ *       ARRAY OBJECT TYPE          *
+ ************************************/
+
+typedef struct Array {
+    OBJECT_BASE_ATTRS;
+    Vector_t* elements;
+}Array_t;
+
+Array_t* createArray();
+Array_t* copyArray(Array_t* obj);
+
+char* arrayInspect(Array_t* obj);
+uint32_t arrayGetElementCount(Array_t* obj);
+Object_t** arrayGetElements(Array_t* obj);
+void arrayAppend(Array_t* arr, Object_t* obj);
+
 
 /************************************ 
  *     BULITIN OBJECT TYPE          *

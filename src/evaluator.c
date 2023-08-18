@@ -174,6 +174,24 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             return result;
         }
 
+        case EXPRESSION_ARRAY_LITERAL: {
+            ArrayLiteral_t* arrLit = (ArrayLiteral_t*) expr;
+
+            Vector_t* elems = evalExpressions(arrLit->elements, env);
+            uint32_t elemsCnt = vectorGetCount(elems);
+            Object_t** elemsBuf = (Object_t**)vectorGetBuffer(elems);
+            
+            if ( elemsCnt == 1 && isError(elemsBuf[0])) {
+                Error_t* err = (Error_t*)elemsBuf[0];
+                cleanupVector(&elems, NULL);
+                return (Object_t*)err;
+            }
+
+            Array_t* arr = createArray();
+            arr->elements = elems;
+            return (Object_t*) arr; 
+        }
+
         default: 
             char* message = strFormat("unknown expression type: %d(%s)", 
                                     expr->type, 

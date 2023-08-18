@@ -14,6 +14,7 @@ const char* tokenTypeStrings[_OBJECT_TYPE_CNT] = {
     [OBJECT_NULL]="NULL",
     [OBJECT_ERROR]="ERROR",
     [OBJECT_BUILTIN]="BUILTIN",
+    [OBJECT_ARRAY]="ARRAY",
     [OBJECT_RETURN_VALUE]="RETURN_VALUE"
 };
 
@@ -37,7 +38,8 @@ static ObjectInspectFn_t objectInsepctFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_RETURN_VALUE]=(ObjectInspectFn_t)returnValueInspect,
     [OBJECT_ERROR]=(ObjectInspectFn_t)errorInspect,
     [OBJECT_FUNCTION]=(ObjectInspectFn_t)functionInspect,
-    [OBJECT_BUILTIN]=(ObjectInspectFn_t)builtinInspect
+    [OBJECT_BUILTIN]=(ObjectInspectFn_t)builtinInspect,
+    [OBJECT_ARRAY]=(ObjectInspectFn_t)arrayInspect
 };
 
 static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
@@ -48,7 +50,8 @@ static ObjectCopyFn_t objectCopyFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_RETURN_VALUE]=(ObjectCopyFn_t)copyReturnValue,
     [OBJECT_ERROR]=(ObjectCopyFn_t)copyError,
     [OBJECT_FUNCTION]=(ObjectCopyFn_t)copyFunction,
-    [OBJECT_BUILTIN]=(ObjectCopyFn_t)copyBuiltin
+    [OBJECT_BUILTIN]=(ObjectCopyFn_t)copyBuiltin,
+    [OBJECT_ARRAY]=(ObjectCopyFn_t)copyArray
 };
 
 
@@ -344,6 +347,70 @@ Identifier_t** functionGetParameters(Function_t* obj) {
     return (Identifier_t**)vectorGetBuffer(obj->parameters);
 }
 
+/************************************ 
+ *       ARRAY OBJECT TYPE          *
+ ************************************/
+
+Array_t* createArray() {
+    Array_t* arr = gcMalloc(sizeof(Array_t), GC_DATA_OBJECT);
+    *arr = (Array_t) {
+        .type = OBJECT_ARRAY,
+        .elements = NULL
+    };
+    return arr;
+}
+
+Array_t* copyArray(Array_t* obj) {
+    Array_t* newArr = createArray();
+    newArr->elements = copyVector(obj->elements, (VectorElemCopyFn_t)copyObject);
+    return newArr;
+}
+
+char* arrayInspect(Array_t* obj) {
+    Strbuf_t* sbuf = createStrbuf();
+    
+    strbufWrite(sbuf, "[");
+    uint32_t cnt = arrayGetElementCount(obj);
+    Object_t** elems = arrayGetElements(obj);
+    for (uint32_t i = 0; i < cnt; i++) {
+        strbufConsume(sbuf, objectInspect(elems[i]));
+        if (i != (cnt - 1)) {
+            strbufWrite(sbuf, ", ");
+        }
+    }
+    strbufWrite(sbuf, "]");
+    return detachStrbuf(&sbuf);
+}
+
+uint32_t arrayGetElementCount(Array_t* obj) {
+    return vectorGetCount(obj->elements);
+}
+
+Object_t** arrayGetElements(Array_t* obj) {
+    return (Object_t**) vectorGetBuffer(obj->elements);
+}
+
+void arrayAppend(Array_t* arr, Object_t* obj) {
+    vectorAppend(arr->elements, (void*) obj);
+}
+
+void gcCleanupArray(Array_t** arr) {
+    if (!(*arr)) return;
+    cleanupVector(&(*arr)->elements, NULL);
+    gcFree(*arr);
+    *arr = NULL;
+}
+
+void gcMarkArray(Array_t* arr) {
+    uint32_t cnt = arrayGetElementCount(arr);
+    Object_t** elems = arrayGetElements(arr);
+    for (uint32_t i = 0; i < cnt; i++) {
+        if (!gcMarkedAsUsed(elems[i])) {
+            gcMarkUsed(elems[i]);
+            gcMarkObject(elems[i]);
+        }
+    } 
+}
 
 /************************************ 
  *     BULITIN OBJECT TYPE          *
@@ -392,6 +459,7 @@ static ObjectCleanupFn_t objectCleanupFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]=(ObjectCleanupFn_t)gcCleanupError,
     [OBJECT_FUNCTION]=(ObjectCleanupFn_t)gcCleanupFunction,
     [OBJECT_BUILTIN]=(ObjectCleanupFn_t)gcCleanupBuiltin,
+    [OBJECT_ARRAY]=(ObjectCleanupFn_t)gcCleanupArray,
 };
 
 static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
@@ -403,6 +471,7 @@ static ObjectGcMarkFn_t objectMarkFns[_OBJECT_TYPE_CNT] = {
     [OBJECT_ERROR]=(ObjectGcMarkFn_t)gcMarkError,
     [OBJECT_FUNCTION]=(ObjectGcMarkFn_t)gcMarkFunction,
     [OBJECT_BUILTIN]=(ObjectGcMarkFn_t)gcMarkBuiltin,
+    [OBJECT_ARRAY]=(ObjectGcMarkFn_t)gcMarkArray,
 };
 
 

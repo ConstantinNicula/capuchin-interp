@@ -380,6 +380,23 @@ void evaluatorTestBuiltinFunctions() {
     } 
 }
 
+void evaluatorTestArrayliteral() {
+    const char* input ="[1, 2 * 2, 3 + 3]";
+    Object_t* evaluated = testEval(input);
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(OBJECT_ARRAY, evaluated->type, "Object is not OBJECT_ARRAY");
+    Array_t* array = (Array_t*) evaluated;
+    
+    TEST_ASSERT_EQUAL_INT_MESSAGE(3, arrayGetElementCount(array), "Wrong number of elements");
+
+    Object_t** elems = arrayGetElements(array);
+    testIntegerObject(elems[0], 1); 
+    testIntegerObject(elems[1], 4);
+    testIntegerObject(elems[2], 6);
+
+    gcFreeExtRef(evaluated);
+}
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -437,5 +454,6 @@ int main(void) {
     RUN_TEST(evaluatorTestStringLiteral);
     RUN_TEST(evaluatorTestStringConcatenation);
     RUN_TEST(evaluatorTestBuiltinFunctions);
+    RUN_TEST(evaluatorTestArrayliteral);
     return UNITY_END();
 }
