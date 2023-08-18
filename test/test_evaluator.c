@@ -380,6 +380,43 @@ void evaluatorTestBuiltinFunctions() {
     } 
 }
 
+void evaluatorTestArrayIndexExpressions() {
+    typedef struct TestCase {
+        const char* input;
+        GenericExpect_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        { "[1, 2, 3][0]", _INT(1), },
+        { "[1, 2, 3][1]", _INT(2), },
+        { "[1, 2, 3][2]", _INT(3), },
+        { "let i = 0; [1][i];", _INT(1), },
+        { "[1, 2, 3][1 + 1];", _INT(3), },
+        { "let myArray = [1, 2, 3]; myArray[2];", _INT(3), },
+        { "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", _INT(6), },
+        { "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", _INT(2), },
+        { "[1, 2, 3][3]", _NIL, },
+        { "[1, 2, 3][-1]", _NIL, },
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+
+        switch(tc->expected.type) {
+            case EXPECT_INTEGER:
+                testIntegerObject(evalRes, tc->expected.il);
+                break;
+            default: 
+                testNullObject(evalRes);
+        }
+
+        gcFreeExtRef(evalRes);
+    } 
+}
+
 void evaluatorTestArrayliteral() {
     const char* input ="[1, 2 * 2, 3 + 3]";
     Object_t* evaluated = testEval(input);
@@ -396,6 +433,7 @@ void evaluatorTestArrayliteral() {
 
     gcFreeExtRef(evaluated);
 }
+
 
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
@@ -455,5 +493,6 @@ int main(void) {
     RUN_TEST(evaluatorTestStringConcatenation);
     RUN_TEST(evaluatorTestBuiltinFunctions);
     RUN_TEST(evaluatorTestArrayliteral);
+    RUN_TEST(evaluatorTestArrayIndexExpressions);
     return UNITY_END();
 }

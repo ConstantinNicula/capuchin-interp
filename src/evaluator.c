@@ -20,6 +20,8 @@ static Object_t* applyFunction(Object_t* function, Vector_t* args);
 static Environment_t* extendFunctionEnv(Function_t* function, Vector_t* args);
 static Object_t* unwrapReturnValue(Object_t* obj);
 
+static Object_t* evalIndexExpression(Object_t* left, Object_t* index);
+static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index);
 
 static bool isTruthy(Object_t* obj);
 static bool isError(Object_t* obj);
@@ -192,6 +194,20 @@ static Object_t* evalExpression(Expression_t* expr, Environment_t* env) {
             return (Object_t*) arr; 
         }
 
+        case EXPRESSION_INDEX_EXPRESSION: {
+            IndexExpression_t* indexExpr = (IndexExpression_t*)expr;
+            Object_t* left = evalExpression(indexExpr->left, env);
+            if (isError(left)){
+                return left;
+            }
+
+            Object_t* index = evalExpression(indexExpr->right, env);
+            if (isError(index)){
+                return index;
+            }
+
+            return evalIndexExpression(left, index);
+        }
         default: 
             char* message = strFormat("unknown expression type: %d(%s)", 
                                     expr->type, 
@@ -414,6 +430,24 @@ static Object_t* evalIntegerInfixExpression(TokenType_t operator, Integer_t* lef
             return (Object_t*)createError(message);
     }
 }
+
+static Object_t* evalIndexExpression(Object_t* left, Object_t* index) {
+    if (left->type == OBJECT_ARRAY && index->type == OBJECT_INTEGER) {
+        return evalArrayIndexExpresssion((Array_t*)left, (Integer_t*)index);
+    }
+
+    char* message = strFormat("index operator not supported: %s", objectTypeToString(left->type));
+    return (Object_t*)createError(message);
+}
+
+static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index) {
+    uint32_t max = arrayGetElementCount(left);
+    if (index->value < 0 || index->value >= max) {
+        return (Object_t*)createNull();
+    }
+    return arrayGetElements(left)[index->value];
+}
+
 
 static bool isTruthy(Object_t* obj) {
     switch(obj->type) {
