@@ -54,7 +54,7 @@ static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* f
 static Expression_t* parserParseArrayLiteral(Parser_t* parser);
 static Vector_t* parserParseExpressionList(Parser_t* parser, TokenType_t end); 
 static Expression_t* parserParseIndexExpression(Parser_t*parser, Expression_t* left);
-
+static Expression_t* parserParseHashLiteral(Parser_t* parser);
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -97,6 +97,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterPrefix(parser, TOKEN_FUNCTION, parserParseFunctionLiteral);
     parserRegisterPrefix(parser, TOKEN_STRING, parserParseStringLiteral);
     parserRegisterPrefix(parser, TOKEN_LBRACKET, parserParseArrayLiteral);
+    parserRegisterPrefix(parser, TOKEN_LBRACE, parserParseHashLiteral);
 
     memset(parser->infixParserFns, 0, sizeof(InfixParseFn_t) * _TOKEN_TYPE_CNT);
     parserRegisterInfix(parser, TOKEN_PLUS, parserParseInfixExpression);
@@ -475,6 +476,39 @@ static Expression_t* parserParseIndexExpression(Parser_t*parser, Expression_t* l
     }
     
     return (Expression_t*)exprIndex;
+}
+
+static Expression_t* parserParseHashLiteral(Parser_t* parser) {
+    HashLiteral_t* hash = createHashLiteral(parser->curToken);
+
+    while(!parserPeekTokenIs(parser, TOKEN_RBRACE)) {
+        parserNextToken(parser);
+
+        Expression_t* key = parserParseExpression(parser, PREC_LOWEST);
+        if (!parserExpectPeek(parser, TOKEN_COLON)){
+            cleanupExpression(&key);
+            cleanupHashLiteral(&hash);
+            return NULL;
+        }
+        parserNextToken(parser);
+        Expression_t* value = parserParseExpression(parser, PREC_LOWEST);
+
+        if(!parserPeekTokenIs(parser, TOKEN_RBRACE)&& !parserExpectPeek(parser, TOKEN_COMMA)) {
+            cleanupExpression(&key);
+            cleanupExpression(&value);
+            cleanupHashLiteral(&hash);
+            return NULL;
+        }
+
+        hashLiteralSetPair(hash, key, value);
+    }
+
+    if (!parserExpectPeek(parser, TOKEN_RBRACE)) {
+        cleanupHashLiteral(&hash);
+        return NULL;
+    }
+
+    return (Expression_t*)hash;
 }
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser) {

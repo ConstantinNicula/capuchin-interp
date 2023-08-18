@@ -135,7 +135,8 @@ void lexer_test_monkey2(void) {
                     10 != 9;\
                     \"foobar\"\
                     \"foo bar\"\
-                    [1, 2];";
+                    [1, 2];\
+                    {\"foo\":\"bar\"}";
 
     Lexer_t* lexer = createLexer(input);
 
@@ -221,6 +222,11 @@ void lexer_test_monkey2(void) {
         {TOKEN_INT, "2"},
         {TOKEN_RBRACKET, "]"},
         {TOKEN_SEMICOLON, ";"},
+        {TOKEN_LBRACE, "{"},
+        {TOKEN_STRING, "foo"},
+        {TOKEN_COLON, ":"},
+        {TOKEN_STRING, "bar"},
+        {TOKEN_RBRACE, "}"},
         {TOKEN_EOF, ""},
     };
 

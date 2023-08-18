@@ -146,6 +146,182 @@ void parserTestStringLiteralExpression() {
     cleanupProgram(&program);
 }
 
+void parserTestParsingHashLiteralsStringKeys() {
+    const char* input = "{\"one\": 1, \"two\": 2, \"three\": 3}";
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+    Statement_t* s = programGetStatements(program)[0];
+
+    HashLiteral_t* hash = (HashLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_HASH_LITERAL, hash->type, "Check expression type!");
+
+    typedef struct Expect {
+        const char* key;
+        int64_t value;
+    }Expect_t;
+
+    Expect_t expects[] = {
+        {.key = "one", .value = 1},
+        {.key = "two", .value = 2},
+        {.key = "three", .value = 3}
+    };
+
+    uint32_t cnt = sizeof(expects)/sizeof(expects[0]);
+    for(uint32_t i = 0; i < cnt; i++) {
+        Expression_t *key, *value;
+        hashLiteralGetPair(hash, i, &key, &value);
+
+        TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_STRING_LITERAL, key->type, "Check key expression type!");
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(expects[i].key, ((StringLiteral_t*)key)->value, "Check key value!");
+
+        testIntegerLiteral(value, expects[i].value); 
+    } 
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
+
+void parserTestParsingHashLiteralsIntegerKeys() {
+    const char* input = "{1: 1, 2: 2, 3: 3}";
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+    Statement_t* s = programGetStatements(program)[0];
+
+    HashLiteral_t* hash = (HashLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_HASH_LITERAL, hash->type, "Check expression type!");
+
+    typedef struct Expect {
+        int64_t key;
+        int64_t value;
+    }Expect_t;
+
+    Expect_t expects[] = {
+        {.key = 1, .value = 1},
+        {.key = 2, .value = 2},
+        {.key = 3, .value = 3}
+    };
+
+    uint32_t cnt = sizeof(expects)/sizeof(expects[0]);
+    for(uint32_t i = 0; i < cnt; i++) {
+        Expression_t *key, *value;
+        hashLiteralGetPair(hash, i, &key, &value);
+
+        testIntegerLiteral(key, expects[i].key); 
+        testIntegerLiteral(value, expects[i].value); 
+    } 
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
+
+void parserTestParsingHashLiteralsBooleanKeys() {
+    const char* input = "{true: 1, false: 2}";
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+    Statement_t* s = programGetStatements(program)[0];
+
+    HashLiteral_t* hash = (HashLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_HASH_LITERAL, hash->type, "Check expression type!");
+
+    typedef struct Expect {
+        bool key;
+        int64_t value;
+    }Expect_t;
+
+    Expect_t expects[] = {
+        {.key = true, .value = 1},
+        {.key = false, .value = 2},
+    };
+
+    uint32_t cnt = sizeof(expects)/sizeof(expects[0]);
+    for(uint32_t i = 0; i < cnt; i++) {
+        Expression_t *key, *value;
+        hashLiteralGetPair(hash, i, &key, &value);
+
+        testBooleanLiteral(key, expects[i].key); 
+        testIntegerLiteral(value, expects[i].value); 
+    } 
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
+
+void parserTestParsingEmptyHashLiteral() {
+    const char* input = "{}";
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+    Statement_t* s = programGetStatements(program)[0];
+
+    HashLiteral_t* hash = (HashLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_HASH_LITERAL, hash->type, "Check expression type!");
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, hashLiteralGetPairsCount(hash), "Check number of elements");
+    
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
+
+void parserTestParsingHashLiteralsWithExpressions() {
+    const char* input = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}";
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    
+    Program_t* program = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(program, "ParserParseProgram returned NULL!");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, programGetStatementCount(program), "Program does not contain 1 statements!");
+    Statement_t* s = programGetStatements(program)[0];
+
+    HashLiteral_t* hash = (HashLiteral_t*)((ExpressionStatement_t*)s)->expression; 
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_HASH_LITERAL, hash->type, "Check expression type!");
+
+    Expression_t *key, *value;
+    hashLiteralGetPair(hash, 0, &key, &value);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_STRING_LITERAL, key->type, "Check key expression type!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("one", ((StringLiteral_t*)key)->value, "Check key value!");
+    testInifxExpression(value, _INT(0), "+", _INT(1));
+
+    hashLiteralGetPair(hash, 1, &key, &value);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_STRING_LITERAL, key->type, "Check key expression type!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("two", ((StringLiteral_t*)key)->value, "Check key value!");
+    testInifxExpression(value, _INT(10), "-", _INT(8));
+
+    hashLiteralGetPair(hash, 2, &key, &value);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_STRING_LITERAL, key->type, "Check key expression type!");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("three", ((StringLiteral_t*)key)->value, "Check key value!");
+    testInifxExpression(value, _INT(15), "/", _INT(5));
+
+    cleanupParser(&parser);
+    cleanupProgram(&program);
+}
+
+
+
 void parserTestIfStatement() {
     const char* input = "if (x < y) { x }";
 
@@ -682,5 +858,10 @@ int main(void) {
     RUN_TEST(parserTestStringLiteralExpression);
     RUN_TEST(parserTestParsingArrayLiterals);
     RUN_TEST(parserTestParsingIndexExpressions);
+    RUN_TEST(parserTestParsingHashLiteralsStringKeys);
+    RUN_TEST(parserTestParsingEmptyHashLiteral);
+    RUN_TEST(parserTestParsingHashLiteralsWithExpressions);
+    RUN_TEST(parserTestParsingHashLiteralsBooleanKeys);
+    RUN_TEST(parserTestParsingHashLiteralsIntegerKeys);
     return UNITY_END();
 }

@@ -23,6 +23,7 @@ typedef enum ExpressionType
     EXPRESSION_FUNCTION_LITERAL,
     EXPRESSION_CALL_EXPRESSION,
     EXPRESSION_INDEX_EXPRESSION,
+    EXPRESSION_HASH_LITERAL,
     EXPRESSION_INVALID
 } ExpressionType_t;
 
@@ -129,6 +130,27 @@ void cleanupArrayLiteral(ArrayLiteral_t **al);
 char *arrayLiteralToString(const ArrayLiteral_t *al);
 uint32_t arrayLiteralGetElementCount(const ArrayLiteral_t *al);
 Expression_t **arrayLiteralGetElements(const ArrayLiteral_t *al);
+
+/************************************
+ *         HASH LITERAL             *
+ ************************************/
+
+typedef struct HashLiteral
+{
+    ExpressionType_t type;
+    Token_t *token;
+    Vector_t* keys;
+    Vector_t* values;
+} HashLiteral_t;
+
+HashLiteral_t *createHashLiteral(const Token_t *tok);
+HashLiteral_t *copyHashLiteral(const HashLiteral_t *hl);
+void cleanupHashLiteral(HashLiteral_t **hl);
+
+char *hashLiteralToString(const HashLiteral_t *hl);
+uint32_t hashLiteralGetPairsCount(const HashLiteral_t *hl);
+void hashLiteralGetPair(const HashLiteral_t*hl, uint32_t idx,  Expression_t** key, Expression_t** value); 
+void hashLiteralSetPair(HashLiteral_t* hl, Expression_t* key, Expression_t* value); 
 
 /************************************
  *       INDEX EXPRESSION           *

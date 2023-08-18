@@ -29,6 +29,7 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
     [EXPRESSION_FUNCTION_LITERAL]=(ExpressionCleanupFn_t)cleanupFunctionLiteral,
     [EXPRESSION_CALL_EXPRESSION]=(ExpressionCleanupFn_t)cleanupCallExpression,
+    [EXPRESSION_HASH_LITERAL]=(ExpressionCleanupFn_t)cleanupHashLiteral,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -44,6 +45,7 @@ static ExpressionCopyFn_t expressionCopyFns[] = {
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCopyFn_t)copyIfExpression,
     [EXPRESSION_FUNCTION_LITERAL]=(ExpressionCopyFn_t)copyFunctionLiteral,
     [EXPRESSION_CALL_EXPRESSION]=(ExpressionCopyFn_t)copyCallExpression,
+    [EXPRESSION_HASH_LITERAL]=(ExpressionCopyFn_t)copyHashLiteral,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -60,6 +62,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
     [EXPRESSION_FUNCTION_LITERAL]=(ExpressionToStringFn_t)functionLiteralToString,
     [EXPRESSION_CALL_EXPRESSION]=(ExpressionToStringFn_t)callExpressionToString,
+    [EXPRESSION_HASH_LITERAL]=(ExpressionToStringFn_t)hashLiteralToString,
     [EXPRESSION_INVALID]=NULL
 };
 
@@ -293,6 +296,83 @@ uint32_t arrayLiteralGetElementCount(const ArrayLiteral_t* al) {
 Expression_t** arrayLiteralGetElements(const ArrayLiteral_t* al) {
     return (Expression_t**) vectorGetBuffer(al->elements);
 }
+
+/************************************
+ *         HASH LITERAL             *
+ ************************************/
+
+HashLiteral_t *createHashLiteral(const Token_t *tok) {
+    HashLiteral_t* hash = mallocChk(sizeof(HashLiteral_t));
+    *hash = (HashLiteral_t) {
+        .type = EXPRESSION_HASH_LITERAL,
+        .token = copyToken(tok),
+        .keys = createVector(),
+        .values = createVector()
+    };
+    return hash;
+}
+
+HashLiteral_t *copyHashLiteral(const HashLiteral_t *hl) {
+    HashLiteral_t* newHash = mallocChk(sizeof(HashLiteral_t));
+    *newHash = (HashLiteral_t) {
+        .type = EXPRESSION_HASH_LITERAL,
+        .token = copyToken(hl->token),
+        .keys = copyVector(hl->keys, (VectorElemCopyFn_t)copyExpression),
+        .values = copyVector(hl->values, (VectorElemCopyFn_t)copyExpression),
+    };
+    return newHash;
+}
+
+void cleanupHashLiteral(HashLiteral_t **hl) {
+    if(!(*hl)) return;
+    cleanupToken(&(*hl)->token);
+    cleanupVector(&(*hl)->keys, (VectorElemCleanupFn_t)cleanupExpression);
+    cleanupVector(&(*hl)->values, (VectorElemCleanupFn_t)cleanupExpression);
+    free(*hl);
+    *hl = NULL;
+}
+
+char *hashLiteralToString(const HashLiteral_t *al) {
+    Strbuf_t* sbuf = createStrbuf();
+
+    strbufWrite(sbuf, "{");
+    uint32_t cnt = hashLiteralGetPairsCount(al);
+    for (uint32_t i = 0; i < cnt; i++) {
+        Expression_t *key, *value;
+        hashLiteralGetPair(al, i, &key, &value);
+
+        strbufConsume(sbuf, expressionToString(key));
+        strbufWrite(sbuf, ":");
+        strbufConsume(sbuf, expressionToString(value));
+        
+        if (i != (cnt - 1)) {
+            strbufWrite(sbuf, ", ");
+        }
+    }
+    strbufWrite(sbuf, "}");
+    return detachStrbuf(&sbuf);
+}
+
+uint32_t hashLiteralGetPairsCount(const HashLiteral_t *hl) {
+    return vectorGetCount(hl->keys);
+}
+
+void hashLiteralGetPair(const HashLiteral_t*hl, uint32_t idx,  Expression_t** key, Expression_t** value) {
+    if (idx < 0 || idx >= hashLiteralGetPairsCount(hl)) {
+        *key = *value = NULL;
+        return;
+    }
+
+    *key = ((Expression_t**)vectorGetBuffer(hl->keys))[idx];
+    *value = ((Expression_t**)vectorGetBuffer(hl->values))[idx];
+}
+
+void hashLiteralSetPair(HashLiteral_t* hl, Expression_t* key, Expression_t* value) {
+    vectorAppend(hl->keys, key);
+    vectorAppend(hl->values, value);
+}
+
+
 
 /************************************ 
  *       INDEX EXPRESSION           *

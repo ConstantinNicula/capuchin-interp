@@ -118,6 +118,9 @@ Token_t* lexerNextToken(Lexer_t* lexer) {
         case '\0':
             tok = createToken(TOKEN_EOF, tokStart, 1u);
             break;  
+        case ':': 
+            tok = createToken(TOKEN_COLON, tokStart, 1u);
+            break;
         case '"':
             // now sitting on '"', skip it
             lexerReadChar(lexer);
