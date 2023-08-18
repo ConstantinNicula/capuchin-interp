@@ -23,6 +23,7 @@ static Object_t* unwrapReturnValue(Object_t* obj);
 static Object_t* evalIndexExpression(Object_t* left, Object_t* index);
 static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index);
 static Object_t* evalHashLiteral(HashLiteral_t* node, Environment_t* env);
+static Object_t* evalHashIndexExpression(Hash_t* hash, Object_t* key);
 
 static bool isTruthy(Object_t* obj);
 static bool isError(Object_t* obj);
@@ -441,6 +442,11 @@ static Object_t* evalIndexExpression(Object_t* left, Object_t* index) {
         return evalArrayIndexExpresssion((Array_t*)left, (Integer_t*)index);
     }
 
+    if (left->type == OBJECT_HASH) {
+        return evalHashIndexExpression((Hash_t*)left, index);
+        
+    }
+
     char* message = strFormat("index operator not supported: %s", objectTypeToString(left->type));
     return (Object_t*)createError(message);
 }
@@ -451,6 +457,20 @@ static Object_t* evalArrayIndexExpresssion(Array_t* left, Integer_t* index) {
         return (Object_t*)createNull();
     }
     return arrayGetElements(left)[index->value];
+}
+
+static Object_t* evalHashIndexExpression(Hash_t* hash, Object_t* key) {
+    if (!objectIsHashable(key)) {
+        char* message = strFormat("unusable as hash key: %s", objectTypeToString(key->type));
+        return (Object_t*)createError(message);
+    }
+
+    HashPair_t* pair = hashGetPair(hash, key);
+    if (!pair) {
+        return (Object_t*) createNull();
+    }
+
+    return pair->value;
 }
 
 static Object_t* evalHashLiteral(HashLiteral_t* node, Environment_t* env) {

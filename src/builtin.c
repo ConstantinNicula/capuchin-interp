@@ -8,6 +8,7 @@ Object_t* firstBuiltin(Vector_t* args);
 Object_t* lastBuiltin(Vector_t* args);
 Object_t* restBuiltin(Vector_t* args);
 Object_t* pushBuiltin(Vector_t* args);
+Object_t* putsBuiltin(Vector_t* args);
 
 
 void registerBuiltinFunctions(Environment_t* env) {
@@ -16,6 +17,7 @@ void registerBuiltinFunctions(Environment_t* env) {
     environmentSet(env, "last", (Object_t*)createBuiltin(lastBuiltin));    
     environmentSet(env, "rest", (Object_t*)createBuiltin(restBuiltin));    
     environmentSet(env, "push", (Object_t*)createBuiltin(pushBuiltin));    
+    environmentSet(env, "puts", (Object_t*)createBuiltin(putsBuiltin));    
 }
 
 Object_t* lenBuiltin(Vector_t* args) {
@@ -144,7 +146,15 @@ Object_t* pushBuiltin(Vector_t* args) {
     Array_t* newArr = createArray();
     newArr->elements = newElements;
     return (Object_t*)newArr;
-    
+
+}
+
+Object_t* putsBuiltin(Vector_t* args) {
+    uint32_t argCnt = vectorGetCount(args);
+    Object_t** argBuf = (Object_t**)vectorGetBuffer(args);
+    for(uint32_t i = 0; i < argCnt; i++) {
+        printf("%s\n", objectInspect(argBuf[i]));
+    }
 
     return (Object_t*) createNull();
 }

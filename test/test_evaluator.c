@@ -250,7 +250,9 @@ void evaluatorTestErrorHandling() {
         {"foobar",
          "identifier not found: foobar"},
         {"\"Hello\" - \"World\"",
-        "unknown operator: STRING - STRING"}
+        "unknown operator: STRING - STRING"},
+        {"{\"name\": \"Monkey\"}[fn(x) { x }];",
+         "unusable as hash key: FUNCTION"}
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
@@ -474,6 +476,40 @@ void evaluatorTestHashLiterals() {
     gcFreeExtRef(evaluated);
 }
 
+void TestHashIndexExpressions() {
+    typedef struct TestCase {
+        const char* input;
+        GenericExpect_t expected;
+    } TestCase_t;
+
+    TestCase_t tests[] = {
+        {"{\"foo\": 5}[\"foo\"]", _INT(5)},
+        {"{\"foo\": 5}[\"bar\"]", _NIL},
+        {"let key = \"foo\"; {\"foo\": 5}[key]", _INT(5)},
+        {"{}[\"foo\"]", _NIL},
+        {"{5: 5}[5]", _INT(5)},
+        {"{true: 5}[true]", _INT(5)},
+        {"{false: 5}[false]", _INT(5)},
+    };
+
+    uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
+
+    for (uint32_t i = 0; i < cnt; i++ ) {
+        TestCase_t *tc = &tests[i];
+        Object_t* evalRes = testEval(tc->input);
+
+        switch(tc->expected.type) {
+            case EXPECT_INTEGER:
+                testIntegerObject(evalRes, tc->expected.il);
+                break;
+            default: 
+                testNullObject(evalRes);
+        }
+
+        gcFreeExtRef(evalRes);
+    } 
+}
+
 Object_t* testEval(const char* input) {
     Lexer_t* lexer = createLexer(input);
     Parser_t* parser = createParser(lexer);
@@ -534,5 +570,6 @@ int main(void) {
     RUN_TEST(evaluatorTestArrayliteral);
     RUN_TEST(evaluatorTestArrayIndexExpressions);
     RUN_TEST(evaluatorTestHashLiterals);
+    RUN_TEST(TestHashIndexExpressions);
     return UNITY_END();
 }
