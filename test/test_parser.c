@@ -399,7 +399,11 @@ void parserTestOperatorPrecedenceParsing() {
         {"!(true == true)", "(!(true == true))"},
         {"a + add(b * c) + d","((a + add((b * c))) + d)"},
         {"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
-        {"add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"}
+        {"add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"},
+        { "a * [1, 2, 3, 4][b * c] * d",
+        "((a * ([1, 2, 3, 4][(b * c)])) * d)"},
+        { "add(a * b[2], b[1], 2 * [1, 2][1])",
+        "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"}
     };
 
     uint32_t cnt = sizeof(tests) / sizeof(TestCase_t);
@@ -556,6 +560,30 @@ void parserTestParsingArrayLiterals() {
 
 }
 
+void parserTestParsingIndexExpressions() {
+    const char* input = "myArray[1 + 1]";
+    
+    Lexer_t* lexer = createLexer(input);
+    Parser_t* parser = createParser(lexer);
+    Program_t* prog = parserParseProgram(parser);
+    checkParserErrors(parser);
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, programGetStatementCount(prog), "Not enough statements in program");
+    Statement_t* stmt = programGetStatements(prog)[0];
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(STATEMENT_EXPRESSION, stmt->type, "Statement is not Expression Statement");
+    ExpressionStatement_t* exprStmt = (ExpressionStatement_t*)stmt;
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EXPRESSION_INDEX_EXPRESSION, exprStmt->expression->type, "Expression type not EXPRESSION_INDEX_EXPRESSION");
+    IndexExpression_t* exprIndex = (IndexExpression_t*)exprStmt->expression;
+
+    testIdentifier(exprIndex->left, "myArray");
+    testInifxExpression(exprIndex->right, _INT(1), "+", _INT(1));
+    cleanupParser(&parser);
+    cleanupProgram(&prog);
+
+
+} 
 
 void testLetStatement(Statement_t* s, const char* name) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("let", statementTokenLiteral(s), "Check statement literal!");
@@ -653,5 +681,6 @@ int main(void) {
     RUN_TEST(parserTestCallExpressionParsing);
     RUN_TEST(parserTestStringLiteralExpression);
     RUN_TEST(parserTestParsingArrayLiterals);
+    RUN_TEST(parserTestParsingIndexExpressions);
     return UNITY_END();
 }

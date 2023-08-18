@@ -21,8 +21,9 @@ static ExpressionCleanupFn_t expressionCleanupFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCleanupFn_t)cleanupIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCleanupFn_t)cleanupIntegerLiteral,
     [EXPRESSION_STRING_LITERAL]=(ExpressionCleanupFn_t)cleanupStringLiteral,
-    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCleanupFn_t)cleanupArrayLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCleanupFn_t)cleanupBooleanLiteral,
+    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCleanupFn_t)cleanupArrayLiteral,
+    [EXPRESSION_INDEX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIndexExpression,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCleanupFn_t)cleanupInfixExpression,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCleanupFn_t)cleanupIfExpression,
@@ -35,8 +36,9 @@ static ExpressionCopyFn_t expressionCopyFns[] = {
     [EXPRESSION_IDENTIFIER]=(ExpressionCopyFn_t)copyIdentifier,
     [EXPRESSION_INTEGER_LITERAL]=(ExpressionCopyFn_t)copyIntegerLiteral,
     [EXPRESSION_STRING_LITERAL]=(ExpressionCopyFn_t)copyStringLiteral,
-    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCopyFn_t)copyArrayLiteral,
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionCopyFn_t)copyBooleanLiteral,
+    [EXPRESSION_ARRAY_LITERAL]=(ExpressionCopyFn_t)copyArrayLiteral,
+    [EXPRESSION_INDEX_EXPRESSION]=(ExpressionCopyFn_t)copyIndexExpression,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionCopyFn_t)copyPrefixExpression,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionCopyFn_t)copyInfixExpression,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionCopyFn_t)copyIfExpression,
@@ -52,6 +54,7 @@ static ExpressionToStringFn_t expressionToStringFns[] = {
     [EXPRESSION_BOOLEAN_LITERAL]=(ExpressionToStringFn_t)booleanLiteralToString,
     [EXPRESSION_STRING_LITERAL]=(ExpressionToStringFn_t)stringLiteralToString,
     [EXPRESSION_ARRAY_LITERAL]=(ExpressionToStringFn_t)arrayLiteralToString,
+    [EXPRESSION_INDEX_EXPRESSION]=(ExpressionToStringFn_t)indexExpressionToString,
     [EXPRESSION_PREFIX_EXPRESSION]=(ExpressionToStringFn_t)prefixExpressionToString,
     [EXPRESSION_INFIX_EXPRESSION]=(ExpressionToStringFn_t)infixExpressionToString,
     [EXPRESSION_IF_EXPRESSION]=(ExpressionToStringFn_t)ifExpressionToString,
@@ -274,6 +277,9 @@ char* arrayLiteralToString(const ArrayLiteral_t* al) {
     Expression_t** elems = arrayLiteralGetElements(al);
     for (uint32_t i = 0; i < cnt; i++) {
         strbufConsume(sbuf, expressionToString(elems[i]));
+        if (i != (cnt-1)) {
+            strbufWrite(sbuf, ", ");
+        }
     }
     strbufWrite(sbuf, "]");
     
@@ -287,6 +293,51 @@ uint32_t arrayLiteralGetElementCount(const ArrayLiteral_t* al) {
 Expression_t** arrayLiteralGetElements(const ArrayLiteral_t* al) {
     return (Expression_t**) vectorGetBuffer(al->elements);
 }
+
+/************************************ 
+ *       INDEX EXPRESSION           *
+ ************************************/
+
+IndexExpression_t* createIndexExpression(const Token_t* tok) {
+    IndexExpression_t* expr = mallocChk(sizeof(IndexExpression_t));
+    *expr = (IndexExpression_t) {
+        .type = EXPRESSION_INDEX_EXPRESSION,
+        .token = copyToken(tok),
+        .left = NULL, 
+        .right = NULL,
+    };
+    return expr; 
+}
+
+IndexExpression_t* copyIndexExpression(const IndexExpression_t* al) {
+    IndexExpression_t* newExpr = createIndexExpression(al->token);
+    newExpr->left = copyExpression(al->left);
+    newExpr->right = copyExpression(al->right);
+    return newExpr; 
+}
+
+void cleanupIndexExpression(IndexExpression_t** al) {
+    if(!(*al)) return;
+
+    cleanupToken(&(*al)->token);
+    cleanupExpression(&(*al)->left);
+    cleanupExpression(&(*al)->right);
+    free(*al);
+    *al = NULL;
+}
+
+
+char* indexExpressionToString(const IndexExpression_t* al) {
+    Strbuf_t* sbuf = createStrbuf();
+    strbufWrite(sbuf, "(");
+    strbufConsume(sbuf, expressionToString(al->left));
+    strbufWrite(sbuf, "[");
+    strbufConsume(sbuf, expressionToString(al->right));
+    strbufWrite(sbuf, "])");
+
+    return detachStrbuf(&sbuf);
+}
+
 
 /************************************ 
  *      PREFIX EXPRESSION           *

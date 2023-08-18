@@ -13,7 +13,8 @@ typedef enum PrecValue{
     PREC_SUM, 
     PREC_PRODUCT, 
     PREC_PREFIX, 
-    PREC_CALL
+    PREC_CALL,
+    PREC_INDEX
 } PrecValue_t;
 
 /* Precedences for operators, values which are not define default to 0-PREC_LOWEST*/
@@ -26,7 +27,8 @@ static PrecValue_t _precedences[_TOKEN_TYPE_CNT] = {
     [TOKEN_MINUS]=PREC_SUM,
     [TOKEN_SLASH]=PREC_PRODUCT,
     [TOKEN_ASTERISK]=PREC_PRODUCT,
-    [TOKEN_LPAREN]=PREC_CALL
+    [TOKEN_LPAREN]=PREC_CALL,
+    [TOKEN_LBRACKET]=PREC_INDEX
 };
 
 /* Parsing functions */
@@ -48,10 +50,11 @@ static Expression_t* parserParseGroupedExpression(Parser_t* parser);
 static Expression_t* parserParseIfExpression(Parser_t* parser);
 static Expression_t* parserParseFunctionLiteral(Parser_t* parser);
 static void parserParseFunctionParameters(Parser_t* parser, FunctionLiteral_t* fl);
-
 static Expression_t* parserParseCallExpression(Parser_t* parser, Expression_t* function);
 static Expression_t* parserParseArrayLiteral(Parser_t* parser);
 static Vector_t* parserParseExpressionList(Parser_t* parser, TokenType_t end); 
+static Expression_t* parserParseIndexExpression(Parser_t*parser, Expression_t* left);
+
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser);
 static PrecValue_t parserCurPrecedence(Parser_t* parser);
@@ -105,7 +108,7 @@ Parser_t* createParser(Lexer_t* lexer) {
     parserRegisterInfix(parser, TOKEN_LT, parserParseInfixExpression);
     parserRegisterInfix(parser, TOKEN_GT, parserParseInfixExpression);
     parserRegisterInfix(parser, TOKEN_LPAREN, parserParseCallExpression);
-
+    parserRegisterInfix(parser, TOKEN_LBRACKET, parserParseIndexExpression);
     parser->errors = createVector();
 
     parserNextToken(parser);
@@ -457,6 +460,21 @@ static Vector_t* parserParseExpressionList(Parser_t* parser, TokenType_t end) {
     }
 
     return list;
+}
+
+static Expression_t* parserParseIndexExpression(Parser_t*parser, Expression_t* left) {
+    IndexExpression_t* exprIndex = createIndexExpression(parser->curToken);
+    parserNextToken(parser);
+
+    exprIndex->left = left;
+    exprIndex->right = parserParseExpression(parser, PREC_LOWEST);
+
+    if (!parserExpectPeek(parser, TOKEN_RBRACKET)) {
+        cleanupIndexExpression(&exprIndex);
+        return NULL;
+    }
+    
+    return (Expression_t*)exprIndex;
 }
 
 static PrecValue_t parserPeekPrecedence(Parser_t* parser) {
