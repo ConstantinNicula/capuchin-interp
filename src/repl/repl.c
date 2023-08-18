@@ -7,7 +7,7 @@
 #include "../lexer.h"
 #include "../utils.h"
 #include "../evaluator.h"
-#include "../environment.h"
+#include "../env.h"
 #include "../gc.h"
 
 #define PROMPT ">> "
@@ -22,12 +22,13 @@ static void printParserErrors(const char**err, uint32_t cnt){
 }
 
 int main() {
-    char inputBuffer[256] = "";
+    char inputBuffer[2560] = "";
     Environment_t* env = createEnvironment(NULL);
     while (true) {
         printf("%s", PROMPT);
-        fgets(inputBuffer, sizeof(inputBuffer), stdin);
-
+        if(!fgets(inputBuffer, sizeof(inputBuffer), stdin))
+            break;
+        
         if (strcmp(inputBuffer, "quit\n") == 0) 
             break;
     

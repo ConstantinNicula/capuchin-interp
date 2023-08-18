@@ -1,6 +1,6 @@
 #include <malloc.h>
 
-#include "environment.h"
+#include "env.h"
 #include "object.h"
 #include "utils.h"
 #include "gc.h"

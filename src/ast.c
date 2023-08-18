@@ -488,7 +488,7 @@ char* ifExpressionToString(const IfExpression_t* exp) {
 
     if (exp->alternative) {
         strbufWrite(sbuf, "else ");
-        strbufConsume(sbuf, blockStatementToString(exp->consequence));
+        strbufConsume(sbuf, blockStatementToString(exp->alternative));
     }
 
     return detachStrbuf(&sbuf);
@@ -545,6 +545,9 @@ char* functionLiteralToString(const FunctionLiteral_t* exp) {
     Identifier_t** params = functionLiteralGetParameters(exp);
     for (uint32_t i = 0; i < paramCnt; i++) {
         strbufConsume(sbuf, identifierToString(params[i]));
+        if (i != (paramCnt-1)) {
+            strbufWrite(sbuf, ", ");
+        }
     }
     strbufWrite(sbuf, ")");
     strbufConsume(sbuf, blockStatementToString(exp->body));

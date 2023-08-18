@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "ast.h"
-#include "environment.h"
+#include "env.h"
 
 typedef enum ObjectType{
     OBJECT_INTEGER,

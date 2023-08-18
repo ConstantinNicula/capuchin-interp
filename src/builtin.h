@@ -2,7 +2,7 @@
 #define _BUILTIN_H_
 
 #include "object.h"
-#include "environment.h"
+#include "env.h"
 
 void registerBuiltinFunctions(Environment_t* env);
 
