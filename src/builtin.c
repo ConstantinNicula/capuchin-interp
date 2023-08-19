@@ -1,5 +1,6 @@
 #include <string.h>
 #include "builtin.h"
+#include "sbuf.h"
 #include "utils.h"
 
 
@@ -9,6 +10,7 @@ Object_t* lastBuiltin(Vector_t* args);
 Object_t* restBuiltin(Vector_t* args);
 Object_t* pushBuiltin(Vector_t* args);
 Object_t* putsBuiltin(Vector_t* args);
+Object_t* printfBuiltin(Vector_t* args);
 
 
 void registerBuiltinFunctions(Environment_t* env) {
@@ -18,6 +20,7 @@ void registerBuiltinFunctions(Environment_t* env) {
     environmentSet(env, "rest", (Object_t*)createBuiltin(restBuiltin));    
     environmentSet(env, "push", (Object_t*)createBuiltin(pushBuiltin));    
     environmentSet(env, "puts", (Object_t*)createBuiltin(putsBuiltin));    
+    environmentSet(env, "printf", (Object_t*)createBuiltin(printfBuiltin));    
 }
 
 Object_t* lenBuiltin(Vector_t* args) {
@@ -153,8 +156,89 @@ Object_t* putsBuiltin(Vector_t* args) {
     uint32_t argCnt = vectorGetCount(args);
     Object_t** argBuf = (Object_t**)vectorGetBuffer(args);
     for(uint32_t i = 0; i < argCnt; i++) {
-        printf("%s\n", objectInspect(argBuf[i]));
+        char* inspectStr = objectInspect(argBuf[i]);
+        puts(inspectStr);
+        free(inspectStr);
     }
 
     return (Object_t*) createNull();
+}
+
+
+char getEscapeChar(char c) {
+    switch(c) {
+        case 'n': 
+            return '\n';
+        case 't':
+            return '\t';
+        case 'r': 
+            return '\r';
+        default:
+            return c;
+    }
+}
+
+static char* formatPrint(const char* format, uint32_t argsCount, char**args) {
+    Strbuf_t* sbuf = createStrbuf(); 
+    uint32_t pos = 0;
+    uint32_t len = strlen(format);
+
+    while (pos < len) {
+        switch(format[pos]) {
+            case '\\': 
+                pos++;
+                strbufWriteChar(sbuf, getEscapeChar(format[pos]));
+                break;
+            case '{':
+                pos++;
+                int64_t argIdx = 0;
+                if (!strToInteger(&format[pos], &argIdx)) 
+                    goto error;
+                if (argIdx < 0 || argIdx >= argsCount)
+                    goto error; 
+
+                strbufWrite(sbuf,args[argIdx]);
+
+                while (format[pos] >= '0' && format[pos] <= '9') 
+                    pos++; 
+                break;
+            default:
+                strbufWriteChar(sbuf, format[pos]);
+        }
+        pos++;
+    }
+    return detachStrbuf(&sbuf);
+
+    error: 
+        cleanupStrbuf(&sbuf);
+        return NULL;
+}
+
+Object_t* printfBuiltin(Vector_t* args) {
+    Object_t* retValue = (Object_t*) createNull();
+    uint32_t argCnt = vectorGetCount(args);
+    Object_t** argBuf = (Object_t**)vectorGetBuffer(args);
+
+    char* format = objectInspect(argBuf[0]);
+    char** argStrBuf = malloc(sizeof(char*) * (argCnt - 1));
+    for(uint32_t i = 1; i < argCnt; i++) {
+        argStrBuf[i - 1] = objectInspect(argBuf[i]);
+    }
+
+    char* output = formatPrint(format, argCnt-1, argStrBuf);
+    if(output) {
+        puts(output);
+        free(output);
+    } else {
+        char* err = strFormat("invalid format string: %s", format);
+        retValue = (Object_t*) createError(err);
+    }
+
+    for (uint32_t i = 0 ; i < argCnt-1; i++) {
+        free(argStrBuf[i]);
+    }
+    free(argStrBuf);
+    free(format);
+
+    return retValue;
 }
