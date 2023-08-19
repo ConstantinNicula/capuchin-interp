@@ -1,3 +1,4 @@
+#include <string.h>
 #include "evaluator.h"
 #include "utils.h"
 #include "gc.h"
@@ -89,7 +90,8 @@ static Object_t* evalBlockStatement(BlockStatement_t* stmt, Environment_t* env) 
     Object_t* result = NULL;
     for (uint32_t i = 0; i < count; i++) {
         result = evalStatement(stmts[i], env);
-        
+        if (!result)
+            break; 
         if (result->type == OBJECT_RETURN_VALUE || result->type == OBJECT_ERROR) {
             return result;
         }
@@ -327,18 +329,26 @@ static Object_t* evalPrefixExpression(TokenType_t operator, Object_t* right) {
 }
 
 static Object_t* evalStringInfixExpression(TokenType_t operator, String_t* left, String_t* right) {
-    if (operator != TOKEN_PLUS) {
-        char* err = strFormat("unknown operator: %s %s %s", 
-                            objectTypeToString(left->type),
-                            tokenTypeToStr(operator),
-                            objectTypeToString(right->type));
-        return (Object_t*)createError(err);
-    }
+    switch(operator) {
+        case TOKEN_PLUS:
+            char* strConcat = strFormat("%s%s", left->value, right->value);
+            String_t* ret = createString(strConcat);
+            free(strConcat);
+            return (Object_t*) ret;
 
-    char* strConcat = strFormat("%s%s", left->value, right->value);
-    String_t* ret = createString(strConcat);
-    free(strConcat);
-    return (Object_t*)ret;
+        case TOKEN_EQ:
+            if(strcmp(left->value, right->value) == 0){
+                return (Object_t*)createBoolean(true);
+            }
+            return (Object_t*) createBoolean(false);
+
+        default: 
+            char* err = strFormat("unknown operator: %s %s %s", 
+                                        objectTypeToString(left->type),
+                                        tokenTypeToStr(operator),
+                                        objectTypeToString(right->type));
+                    return (Object_t*)createError(err);
+    }
 }
 
 static Object_t* evalBangOperatorPrefixExpression(Object_t* right) {

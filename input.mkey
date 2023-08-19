@@ -31,3 +31,15 @@ let sum = fn(arr) {
     reduce(arr, 0, fn(initial, el){initial + el}); 
 }
 sum([1, 2, 3, 4, 5]);
+
+
+let loop = fn(count, f) {
+    if (count == 0) {
+    
+    } else {
+        f();
+        loop(count-1, f);
+    }
+}
+
+loop(5, fn() {printf("hello\n")});

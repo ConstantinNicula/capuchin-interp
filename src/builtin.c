@@ -165,8 +165,20 @@ Object_t* putsBuiltin(Vector_t* args) {
 }
 
 
-char getEscapeChar(char c) {
-    switch(c) {
+bool isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
+
+bool readInteger(const char* format, uint32_t* pos, int64_t* out) {
+    if (!strToInteger(&format[*pos], out)) 
+        return false;
+    while (isDigit(format[*pos+1])) 
+        (*pos)++; 
+    return true;
+}
+
+char getEscapeChar(const char* format, uint32_t* pos) {
+    switch(format[*pos]) {
         case 'n': 
             return '\n';
         case 't':
@@ -174,7 +186,11 @@ char getEscapeChar(char c) {
         case 'r': 
             return '\r';
         default:
-            return c;
+            int64_t escChar;
+            if (readInteger(format, pos, &escChar)) {
+                return escChar;
+            }
+            return format[*pos];
     }
 }
 
@@ -187,20 +203,22 @@ static char* formatPrint(const char* format, uint32_t argsCount, char**args) {
         switch(format[pos]) {
             case '\\': 
                 pos++;
-                strbufWriteChar(sbuf, getEscapeChar(format[pos]));
+                strbufWriteChar(sbuf, getEscapeChar(format, &pos));
                 break;
             case '{':
                 pos++;
                 int64_t argIdx = 0;
-                if (!strToInteger(&format[pos], &argIdx)) 
-                    goto error;
-                if (argIdx < 0 || argIdx >= argsCount)
-                    goto error; 
-
+                if (!readInteger(format, &pos, &argIdx)) {
+                    cleanupStrbuf(&sbuf);
+                    return NULL;         
+                }
+                if (argIdx < 0 || argIdx > argsCount) {
+                    cleanupStrbuf(&sbuf);
+                    return NULL;
+                }
+                
                 strbufWrite(sbuf,args[argIdx]);
-
-                while (format[pos] >= '0' && format[pos] <= '9') 
-                    pos++; 
+                pos++; 
                 break;
             default:
                 strbufWriteChar(sbuf, format[pos]);
@@ -208,10 +226,6 @@ static char* formatPrint(const char* format, uint32_t argsCount, char**args) {
         pos++;
     }
     return detachStrbuf(&sbuf);
-
-    error: 
-        cleanupStrbuf(&sbuf);
-        return NULL;
 }
 
 Object_t* printfBuiltin(Vector_t* args) {
@@ -227,7 +241,7 @@ Object_t* printfBuiltin(Vector_t* args) {
 
     char* output = formatPrint(format, argCnt-1, argStrBuf);
     if(output) {
-        puts(output);
+        fputs(output, stdout);
         free(output);
     } else {
         char* err = strFormat("invalid format string: %s", format);
