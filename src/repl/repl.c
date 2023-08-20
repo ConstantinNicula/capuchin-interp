@@ -31,12 +31,10 @@ void evalInput(const char* input, Environment_t* env) {
     } else {
         Object_t* evalRes = evalProgram(program, env);
 
-        if (evalRes != NULL) {
+        if (evalRes != NULL && evalRes->type != OBJECT_NULL) {
             char* inspect = objectInspect(evalRes);
             printf("%s\n", inspect);
             free(inspect);
-        } else {
-            printf("Eval failed \n");
         }
 
         gcFreeExtRef(evalRes);

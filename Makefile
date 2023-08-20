@@ -80,9 +80,9 @@ $(PATHR):
 	$(MKDIR) $(PATHR)
 
 
-repl: $(PATHB)/repl.out 
+repl: capuchin 
 
-$(PATHB)/repl.out: $(PATHO)/repl.o $(SRC_OBJ)
+capuchin: $(PATHO)/repl.o $(SRC_OBJ)
 	$(LINK) -o $@ $^
 
 $(PATHO)/repl.o: $(PATHS)/repl/repl.c 

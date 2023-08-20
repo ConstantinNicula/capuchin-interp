@@ -76,7 +76,7 @@ static Object_t* evalStatement(Statement_t* stmt, Environment_t* env) {
             Object_t* evalRes = evalExpression(((LetStatement_t*)stmt)->value, env);
             if (isError(evalRes)) return evalRes;
             environmentSet(env, ((LetStatement_t*)stmt)->name->value, evalRes);
-            return evalRes;
+            return (Object_t*) createNull();
         }
         default:
             return NULL;
