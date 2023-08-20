@@ -63,6 +63,6 @@ Note: In this mode results of intermediate statements are silenced (not printed 
  
 An implementation of Conway's game of life written in Monkey programming language (see `./demos/conway.mkey`, too long to list here) is provided in order to demonstrate the capabilities (and limitations) of Capuchin. The demo script can be executed using the following command: `./capuchin ./demos/conway.mkey`: 
 
-TO DO: add gif
+![](https://github.com/ConstantinNicula/capuchin-interp/blob/main/img/conway_demo.gif)
 
 Note: You can modify the starting state of the simulation. By default a single "Gosper's glider gun" is used as a starting state. Also note that Capuchin does not support tail recursion so the number of iterations that can be simulated is limited by memory constraints. GC can't kick in because objects are still stack referenced.  
