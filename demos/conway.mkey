@@ -27,7 +27,7 @@ let foreach = fn(arr, f) {
 let displayRow = fn(arr) {
     foreach(arr, fn(x) {
         if (x) {
-            printf("O");
+            printf("X");
         } else {
             printf(" ");
         }
