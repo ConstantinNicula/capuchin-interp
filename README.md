@@ -54,7 +54,7 @@ map(a, double);
 ```
 Any Monkey script can be executed using the following command: `./capuchin <path to script>`. For example: 
 ```bash 
-ctin@ctin-VirtualBox:~/Desktop/c-inter$ ./capuchin ./demos/map.mkey 
+ctin@ctin-VirtualBox:~/Desktop/capuchin-interp$ ./capuchin ./demos/map.mkey 
 [0, 4, 6, 8]
 ```
 Note: In this mode results of intermediate statements are silenced (not printed to stdout like in interactive mode). In order to output information to the console explicit calls to `puts(<object>)` or `printf(<format>, ...)` must be placed within the script. 
