@@ -136,7 +136,7 @@ Object_t* pushBuiltin(Vector_t* args) {
 
     Array_t* arr = (Array_t*)argBuf[0];
     Object_t* obj = (Object_t*)argBuf[1];
-    
+
     uint32_t len = arrayGetElementCount(arr); 
     Object_t** elems = arrayGetElements(arr);
     

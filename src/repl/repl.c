@@ -73,7 +73,7 @@ char* readEntireFile(char* filename) {
     fsize = ftell(f);
     rewind(f);
 
-    char* ret = malloc(fsize);
+    char* ret = calloc(1, fsize + 2);
     if (!ret) HANDLE_OOM();
     fread(ret, fsize, 1, f);
     fclose(f);
@@ -85,6 +85,7 @@ void fileExecMode(char* filename) {
     Environment_t* env = createEnvironment(NULL);
     evalInput(input, env);
     gcFreeExtRef(env);
+    free(input);
 }
 
 

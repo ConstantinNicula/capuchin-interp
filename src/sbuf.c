@@ -45,7 +45,7 @@ void strbufWrite(Strbuf_t* sbuf, const char* str) {
         sbuf->cap = tlen + 1u; 
     } else if (sbuf->cap < tlen + 1) {
         while (sbuf->cap < tlen + 1) {
-            sbuf->cap *= 2;
+            sbuf->cap = (3 * sbuf->cap) / 2 + 1;
         }
         sbuf->str = (char*) realloc(sbuf->str, sbuf->cap);
     }

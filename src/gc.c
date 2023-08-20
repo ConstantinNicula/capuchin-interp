@@ -5,7 +5,6 @@
 #include "utils.h"
 #include "gc.h"
 
-
 typedef struct GCHandle {
     void* first;
     uint32_t objCount;
@@ -79,12 +78,12 @@ void* gcMalloc(size_t size, GCDataType_t type) {
 
     gcHandle.first = ptr;
     gcHandle.objCount++;
-
     return ptr;
 }
 
 void gcFree(void* ptr) {
     free(getHeader(ptr));
+    gcHandle.objCount--;
 }
 
 void gcMarkUsed(void* ptr) {
@@ -112,7 +111,10 @@ void gcFreeExtRef(void* ptr) {
         exit(1);
     }
     clearBit(header, EXTERNAL_REF_BIT);
+    gcForceRun();
+}
 
+void gcForceRun() {
     // perform mark & sweep round
     gcMark();
     gcSweep();

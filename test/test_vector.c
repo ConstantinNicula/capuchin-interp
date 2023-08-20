@@ -35,7 +35,7 @@ void vectorTestInsert() {
     vectorAppend(vec, cloneString("my value 4"));
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(5, vec->cnt, "Wrong item count");  
-    TEST_ASSERT_EQUAL_INT_MESSAGE(8, vec->cap, "Wrong capacity");  
+    TEST_ASSERT_EQUAL_INT_MESSAGE(7, vec->cap, "Wrong capacity");  
     TEST_ASSERT_EQUAL_STRING("my value 0", vec->buf[0]);
     TEST_ASSERT_EQUAL_STRING("my value 1", vec->buf[1]);
     TEST_ASSERT_EQUAL_STRING("my value 2", vec->buf[2]);
@@ -56,7 +56,7 @@ void vectorTestCopy() {
 
     Vector_t* newVec = copyVector(vec,(VectorElemCopyFn_t)copyStr);
     TEST_ASSERT_EQUAL_INT_MESSAGE(5, vec->cnt, "Wrong item count");  
-    TEST_ASSERT_EQUAL_INT_MESSAGE(8, vec->cap, "Wrong capacity");  
+    TEST_ASSERT_EQUAL_INT_MESSAGE(7, vec->cap, "Wrong capacity");  
     TEST_ASSERT_EQUAL_STRING("my value 0", vec->buf[0]);
     TEST_ASSERT_EQUAL_STRING("my value 1", vec->buf[1]);
     TEST_ASSERT_EQUAL_STRING("my value 2", vec->buf[2]);

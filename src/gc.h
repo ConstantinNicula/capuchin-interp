@@ -13,6 +13,7 @@ typedef enum GCDataType{
 
 void* gcMalloc(size_t size, GCDataType_t type);
 void gcFree(void* ptr);
+void gcForceRun();
 
 void gcMarkUsed(void* ptr);
 bool gcMarkedAsUsed(void*ptr);

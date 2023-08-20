@@ -58,7 +58,7 @@ void vectorAppend(Vector_t* vec, void* elem) {
     {
         if (vec->buf != NULL) {
             // no more space, reallocate
-            vec->cap = 2u * vec->cap;
+            vec->cap = (3u * vec->cap) / 2 + 1;
             vec->buf = (void*)realloc(vec->buf, sizeof(void*) * vec->cap);
             if (!vec->buf) HANDLE_OOM();
         }

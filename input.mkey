@@ -34,9 +34,7 @@ sum([1, 2, 3, 4, 5]);
 
 
 let loop = fn(count, f) {
-    if (count == 0) {
-    
-    } else {
+    if (count > 0) {
         f();
         loop(count-1, f);
     }

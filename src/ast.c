@@ -542,7 +542,7 @@ IfExpression_t* copyIfExpression(const IfExpression_t* exp) {
     IfExpression_t* newExp = createIfExpresion(exp->token);
     newExp->condition = copyExpression(exp->condition);
     newExp->consequence = copyBlockStatement(exp->consequence);
-    newExp->alternative = copyBlockStatement(exp->alternative);
+    newExp->alternative = exp->alternative ? copyBlockStatement(exp->alternative) : NULL;
     return newExp;
 }
 
